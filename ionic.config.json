@@ -1,0 +1,7 @@
+{
+  "name": "cosechapp",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
