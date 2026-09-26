@@ -1,0 +1,210 @@
+// Prisma Schema for CosechApp Backend
+// Entities in English following the PRD entity mapping
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model CoffeeGrower {
+  id            String    @id @default(cuid())
+  nationalId    String    @unique @map("national_id")
+  passwordHash  String    @map("password_hash")
+  profilePhoto  String?   @map("profile_photo")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  syncedAt      DateTime? @map("synced_at")
+
+  farm          Farm?
+  workers       Worker[]
+  harvests      Harvest[]
+  notifications Notification[]
+
+  @@map("coffee_growers")
+}
+
+model Farm {
+  id             String    @id @default(cuid())
+  coffeeGrowerId String    @unique @map("coffee_grower_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  syncedAt       DateTime? @map("synced_at")
+
+  coffeeGrower   CoffeeGrower @relation(fields: [coffeeGrowerId], references: [id], onDelete: Cascade)
+  harvests       Harvest[]
+
+  @@map("farms")
+}
+
+model Harvest {
+  id                String        @id @default(cuid())
+  farmId            String        @map("farm_id")
+  name              String
+  pricePerKilogram  Decimal       @map("price_per_kilogram") @db.Decimal(10, 2)
+  status            HarvestStatus @default(ACTIVE)
+  openingDate       DateTime      @default(now()) @map("opening_date")
+  closingDate       DateTime?     @map("closing_date")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  syncedAt          DateTime?     @map("synced_at")
+
+  farm              Farm          @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  harvestPickers    HarvestPicker[]
+  crews             Crew[]
+  productionCosts   ProductionCost[]
+  sale              Sale?
+
+  @@map("harvests")
+}
+
+enum HarvestStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Worker {
+  id             String    @id @default(cuid())
+  coffeeGrowerId String    @map("coffee_grower_id")
+  firstName      String    @map("first_name")
+  lastName       String    @map("last_name")
+  alias          String?
+  phoneNumber    String?   @map("phone_number")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  syncedAt       DateTime? @map("synced_at")
+
+  coffeeGrower   CoffeeGrower     @relation(fields: [coffeeGrowerId], references: [id], onDelete: Cascade)
+  harvestPickers HarvestPicker[]
+
+  @@map("workers")
+}
+
+model HarvestPicker {
+  id            String             @id @default(cuid())
+  harvestId     String             @map("harvest_id")
+  workerId      String             @map("worker_id")
+  harvestAlias  String?            @map("harvest_alias")
+  crewId        String?            @map("crew_id")
+  status        HarvestPickerStatus @default(ACTIVE)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  syncedAt      DateTime?          @map("synced_at")
+
+  harvest       Harvest            @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+  worker        Worker             @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  crew          Crew?              @relation(fields: [crewId], references: [id], onDelete: SetNull)
+  weightRecords WeightRecord[]
+  payments      Payment[]
+
+  @@unique([harvestId, workerId])
+  @@map("harvest_pickers")
+}
+
+enum HarvestPickerStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Crew {
+  id        String   @id @default(cuid())
+  harvestId String   @map("harvest_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  syncedAt  DateTime? @map("synced_at")
+
+  harvest   Harvest         @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+  pickers   HarvestPicker[]
+
+  @@map("crews")
+}
+
+model WeightRecord {
+  id               String   @id @default(cuid())
+  harvestPickerId  String   @map("harvest_picker_id")
+  kilograms        Decimal  @db.Decimal(10, 3)
+  dateTime         DateTime @default(now()) @map("date_time")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  syncedAt         DateTime? @map("synced_at")
+
+  harvestPicker    HarvestPicker @relation(fields: [harvestPickerId], references: [id], onDelete: Cascade)
+
+  @@map("weight_records")
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  harvestPickerId   String   @map("harvest_picker_id")
+  amount            Decimal  @db.Decimal(10, 2) // Negative value
+  includesMeals     Boolean  @default(false) @map("includes_meals")
+  mealDetail        String?  @map("meal_detail") // Price per meal or total per day
+  dateTime          DateTime @default(now()) @map("date_time")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  syncedAt          DateTime? @map("synced_at")
+
+  harvestPicker     HarvestPicker @relation(fields: [harvestPickerId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model ProductionCost {
+  id        String   @id @default(cuid())
+  harvestId String   @map("harvest_id")
+  description String
+  amount    Decimal  @db.Decimal(10, 2) // Negative value
+  date      DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  syncedAt  DateTime? @map("synced_at")
+
+  harvest   Harvest  @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+
+  @@map("production_costs")
+}
+
+model Sale {
+  id                 String   @id @default(cuid())
+  harvestId          String   @unique @map("harvest_id")
+  actualDryKilograms Decimal  @map("actual_dry_kilograms") @db.Decimal(10, 3)
+  salePrice          Decimal  @map("sale_price") @db.Decimal(10, 2)
+  date               DateTime @db.Date
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  syncedAt           DateTime? @map("synced_at")
+
+  harvest            Harvest  @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+
+  @@map("sales")
+}
+
+model CoffeePrice {
+  id        String   @id @default(cuid())
+  value     Decimal  @db.Decimal(10, 2)
+  queryDate DateTime @default(now()) @map("query_date")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("coffee_prices")
+}
+
+model Notification {
+  id              String              @id @default(cuid())
+  coffeeGrowerId  String              @map("coffee_grower_id")
+  type            NotificationType
+  date            DateTime            @default(now())
+  read            Boolean             @default(false)
+  createdAt       DateTime            @default(now()) @map("created_at")
+
+  coffeeGrower    CoffeeGrower        @relation(fields: [coffeeGrowerId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  PRICE_CHANGE
+}
