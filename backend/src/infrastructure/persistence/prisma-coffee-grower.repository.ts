@@ -28,6 +28,13 @@ export class PrismaCoffeeGrowerRepository implements CoffeeGrowerRepository {
     return found ? this.toDomain(found) : null;
   }
 
+  async findAll(): Promise<CoffeeGrower[]> {
+    const found = await this.client.coffeeGrower.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return found.map(this.toDomain);
+  }
+
   private toDomain(prisma: any): CoffeeGrower {
     return CoffeeGrower.reconstitute(
       prisma.id,

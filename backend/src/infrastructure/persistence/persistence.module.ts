@@ -10,6 +10,8 @@ import { PrismaWeighingRepository } from './prisma-weighing.repository';
 import { PrismaPaymentRepository } from './prisma-payment.repository';
 import { PrismaSaleRepository } from './prisma-sale.repository';
 import { PrismaProductionCostRepository } from './prisma-production-cost.repository';
+import { PrismaCoffeePriceRepository } from './prisma-coffee-price.repository';
+import { PrismaNotificationRepository } from './prisma-notification.repository';
 
 @Module({
   providers: [
@@ -54,6 +56,14 @@ import { PrismaProductionCostRepository } from './prisma-production-cost.reposit
       provide: 'PRODUCTION_COST_REPOSITORY',
       useClass: PrismaProductionCostRepository,
     },
+    {
+      provide: 'COFFEE_PRICE_REPOSITORY',
+      useClass: PrismaCoffeePriceRepository,
+    },
+    {
+      provide: 'NOTIFICATION_REPOSITORY',
+      useClass: PrismaNotificationRepository,
+    },
   ],
   exports: [
     'COFFEE_GROWER_REPOSITORY',
@@ -66,6 +76,8 @@ import { PrismaProductionCostRepository } from './prisma-production-cost.reposit
     'PAYMENT_REPOSITORY',
     'SALE_REPOSITORY',
     'PRODUCTION_COST_REPOSITORY',
+    'COFFEE_PRICE_REPOSITORY',
+    'NOTIFICATION_REPOSITORY',
     PrismaService,
   ],
 })

@@ -8,6 +8,7 @@ import { WorkerModule } from './infrastructure/http/worker/worker.module';
 import { WeighingModule } from './infrastructure/http/weighing/weighing.module';
 import { PaymentModule } from './infrastructure/http/payment/payment.module';
 import { SaleAndCostsModule } from './infrastructure/http/sale-and-costs/sale-and-costs.module';
+import { PriceAndNewsModule } from './infrastructure/http/price-and-news/price-and-news.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SaleAndCostsModule } from './infrastructure/http/sale-and-costs/sale-an
     WeighingModule,
     PaymentModule,
     SaleAndCostsModule,
+    PriceAndNewsModule,
   ],
 })
 export class AppModule {}

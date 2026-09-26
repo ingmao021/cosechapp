@@ -12,6 +12,7 @@ describe('RegisterUseCase', () => {
       save: jest.fn(),
       findById: jest.fn(),
       findByNationalId: jest.fn(),
+      findAll: jest.fn(),
     };
 
     useCase = new RegisterUseCase(
