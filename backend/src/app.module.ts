@@ -9,6 +9,7 @@ import { WeighingModule } from './infrastructure/http/weighing/weighing.module';
 import { PaymentModule } from './infrastructure/http/payment/payment.module';
 import { SaleAndCostsModule } from './infrastructure/http/sale-and-costs/sale-and-costs.module';
 import { PriceAndNewsModule } from './infrastructure/http/price-and-news/price-and-news.module';
+import { SyncModule } from './infrastructure/http/sync/sync.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PriceAndNewsModule } from './infrastructure/http/price-and-news/price-a
     PaymentModule,
     SaleAndCostsModule,
     PriceAndNewsModule,
+    SyncModule,
   ],
 })
 export class AppModule {}
