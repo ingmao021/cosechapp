@@ -7,6 +7,7 @@ import { HarvestModule } from './infrastructure/http/harvest/harvest.module';
 import { WorkerModule } from './infrastructure/http/worker/worker.module';
 import { WeighingModule } from './infrastructure/http/weighing/weighing.module';
 import { PaymentModule } from './infrastructure/http/payment/payment.module';
+import { SaleAndCostsModule } from './infrastructure/http/sale-and-costs/sale-and-costs.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PaymentModule } from './infrastructure/http/payment/payment.module';
     WorkerModule,
     WeighingModule,
     PaymentModule,
+    SaleAndCostsModule,
   ],
 })
 export class AppModule {}
