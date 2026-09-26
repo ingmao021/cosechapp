@@ -5,6 +5,7 @@ import { PrismaFarmRepository } from './prisma-farm.repository';
 import { PrismaHarvestRepository } from './prisma-harvest.repository';
 import { PrismaWorkerRepository } from './prisma-worker.repository';
 import { PrismaHarvestWorkerRepository } from './prisma-harvest-worker.repository';
+import { PrismaCrewRepository } from './prisma-crew.repository';
 
 @Module({
   providers: [
@@ -29,6 +30,10 @@ import { PrismaHarvestWorkerRepository } from './prisma-harvest-worker.repositor
       provide: 'HARVEST_WORKER_REPOSITORY',
       useClass: PrismaHarvestWorkerRepository,
     },
+    {
+      provide: 'CREW_REPOSITORY',
+      useClass: PrismaCrewRepository,
+    },
   ],
   exports: [
     'COFFEE_GROWER_REPOSITORY',
@@ -36,6 +41,7 @@ import { PrismaHarvestWorkerRepository } from './prisma-harvest-worker.repositor
     'HARVEST_REPOSITORY',
     'WORKER_REPOSITORY',
     'HARVEST_WORKER_REPOSITORY',
+    'CREW_REPOSITORY',
     PrismaService,
   ],
 })

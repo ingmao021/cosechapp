@@ -1,11 +1,12 @@
-import { Controller, Post, Patch, Get, Param, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Patch, Get, Param, Body, UseGuards, Request, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { IsString, IsNumber, IsPositive, Min, MaxLength, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsPositive, Min, MaxLength, MinLength, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 import { HarvestService } from './harvest.service';
 import { Harvest } from '@domain/harvest/harvest.entity';
 import { HarvestWorker } from '@domain/harvest/harvest-worker.entity';
+import { Crew } from '@domain/harvest/crew.entity';
 import { JwtAuthGuard } from '@infrastructure/http/auth/guards/jwt-auth.guard';
 
 @ApiTags('harvests')
@@ -79,6 +80,56 @@ export class HarvestController {
     return pickers.map(this.toHarvestWorkerResponse);
   }
 
+  @Post(':id/crews')
+  @ApiOperation({ summary: 'Create a new crew in the harvest' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  async createCrew(@Request() req: any, @Param('id') id: string, @Body() dto: CreateCrewDto) {
+    const crew = await this.harvestService.createCrew({
+      harvestId: id,
+      name: dto.name,
+    });
+    return this.toCrewResponse(crew);
+  }
+
+  @Get(':id/crews')
+  @ApiOperation({ summary: 'Get all crews in the harvest' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  async getCrews(@Request() req: any, @Param('id') id: string) {
+    const crews = await this.harvestService.listCrews(id);
+    return crews.map(this.toCrewResponse);
+  }
+
+  @Get(':id/crews/:crewId')
+  @ApiOperation({ summary: 'Get a crew by ID' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  @ApiParam({ name: 'crewId', description: 'Crew ID' })
+  async getCrew(@Request() req: any, @Param('id') id: string, @Param('crewId') crewId: string) {
+    const crew = await this.harvestService.getCrew(crewId, id);
+    return this.toCrewResponse(crew);
+  }
+
+  @Patch(':id/crews/:crewId')
+  @ApiOperation({ summary: 'Update a crew' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  @ApiParam({ name: 'crewId', description: 'Crew ID' })
+  async updateCrew(@Request() req: any, @Param('id') id: string, @Param('crewId') crewId: string, @Body() dto: UpdateCrewDto) {
+    const crew = await this.harvestService.updateCrew({
+      crewId,
+      harvestId: id,
+      name: dto.name,
+    });
+    return this.toCrewResponse(crew);
+  }
+
+  @Delete(':id/crews/:crewId')
+  @ApiOperation({ summary: 'Delete a crew' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  @ApiParam({ name: 'crewId', description: 'Crew ID' })
+  async deleteCrew(@Request() req: any, @Param('id') id: string, @Param('crewId') crewId: string) {
+    await this.harvestService.deleteCrew(crewId, id);
+    return { success: true };
+  }
+
   @Get('active')
   @ApiOperation({ summary: 'Get the active harvest for the current farm' })
   async getActiveHarvest(@Request() req: any) {
@@ -129,6 +180,16 @@ export class HarvestController {
       updatedAt: harvestWorker.updatedAt,
     };
   }
+
+  private toCrewResponse(crew: Crew) {
+    return {
+      id: crew.id,
+      harvestId: crew.harvestId,
+      name: crew.name,
+      createdAt: crew.createdAt,
+      updatedAt: crew.updatedAt,
+    };
+  }
 }
 
 export class OpenHarvestDto {
@@ -150,4 +211,18 @@ export class AssignWorkerDto {
   @IsString()
   @MaxLength(50)
   harvestAlias?: string;
+}
+
+export class CreateCrewDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  name!: string;
+}
+
+export class UpdateCrewDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  name!: string;
 }
