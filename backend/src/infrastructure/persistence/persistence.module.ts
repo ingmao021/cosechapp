@@ -7,6 +7,7 @@ import { PrismaWorkerRepository } from './prisma-worker.repository';
 import { PrismaHarvestWorkerRepository } from './prisma-harvest-worker.repository';
 import { PrismaCrewRepository } from './prisma-crew.repository';
 import { PrismaWeighingRepository } from './prisma-weighing.repository';
+import { PrismaPaymentRepository } from './prisma-payment.repository';
 
 @Module({
   providers: [
@@ -39,6 +40,10 @@ import { PrismaWeighingRepository } from './prisma-weighing.repository';
       provide: 'WEIGHING_REPOSITORY',
       useClass: PrismaWeighingRepository,
     },
+    {
+      provide: 'PAYMENT_REPOSITORY',
+      useClass: PrismaPaymentRepository,
+    },
   ],
   exports: [
     'COFFEE_GROWER_REPOSITORY',
@@ -48,6 +53,7 @@ import { PrismaWeighingRepository } from './prisma-weighing.repository';
     'HARVEST_WORKER_REPOSITORY',
     'CREW_REPOSITORY',
     'WEIGHING_REPOSITORY',
+    'PAYMENT_REPOSITORY',
     PrismaService,
   ],
 })
