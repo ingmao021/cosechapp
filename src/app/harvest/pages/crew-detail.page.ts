@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, effect, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
@@ -15,11 +16,13 @@ import { IonChip } from '@ionic/angular/ion-chip';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { addIcons } from 'ionicons';
 import { personOutline, addOutline, chevronForwardOutline, archiveOutline } from 'ionicons/icons';
+import { HarvestFacade } from '../services/harvest.facade';
 import { HarvestPickerCardComponent, AppChipComponent } from '@shared/components';
 
 /**
- * Pantalla Detalle de Cuadrilla — Placeholder para Tarea 3.3.
- * Lista de recolectores asignados + botón agregar.
+ * Pantalla Detalle de Cuadrilla — Tarea 3.3.
+ * Lista de recolectores asignados a la cuadrilla + botón agregar.
+ * Conecta con HarvestFacade para cargar datos reales.
  */
 @Component({
   selector: 'app-crew-detail',
@@ -33,29 +36,40 @@ import { HarvestPickerCardComponent, AppChipComponent } from '@shared/components
     </ion-header>
 
     <ion-content class="ion-padding">
-      <div class="header-actions">
-        <h2 class="text-level-2">Recolectores</h2>
-        <ion-button fill="solid" color="primary" (click)="addPicker()">
-          <ion-icon name="add-outline" slot="start"></ion-icon>
-          Agregar recolector
-        </ion-button>
-      </div>
-
-      @if (mockPickers.length === 0) {
-        <ion-card class="empty-state-card">
-          <ion-card-content class="text-center">
-            <ion-icon name="person-outline" size="large" color="medium"></ion-icon>
-            <h3 class="text-level-2 ion-margin-top">Sin recolectores</h3>
-            <p class="text-level-4 ion-margin">Agrega recolectores del catálogo o crea nuevos.</p>
-          </ion-card-content>
-        </ion-card>
+      @if (harvestFacade.isLoading()) {
+        <div class="loading-center">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
       } @else {
-        <harvest-picker-card
-          *ngFor="let picker of mockPickers"
-          [picker]="picker"
-          (cardClick)="goToPickerDetail(picker.id)"
-          (weighClick)="goToWeighing(picker.id)"
-        ></harvest-picker-card>
+        <div class="header-actions">
+          <h2 class="text-level-2">Recolectores</h2>
+          <ion-button fill="solid" color="primary" (click)="addPicker()">
+            <ion-icon name="add-outline" slot="start"></ion-icon>
+            Agregar recolector
+          </ion-button>
+        </div>
+
+        @if (crewPickers().length === 0) {
+          <!-- Estado vacío -->
+          <ion-card class="empty-state-card">
+            <ion-card-content class="text-center">
+              <ion-icon name="person-outline" size="large" color="medium"></ion-icon>
+              <h3 class="text-level-2 ion-margin-top">Sin recolectores</h3>
+              <p class="text-level-4 ion-margin">Agrega recolectores del catálogo o crea nuevos.</p>
+              <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="addPicker()">
+                <ion-icon name="add-outline" slot="start"></ion-icon>
+                Agregar recolector
+              </ion-button>
+            </ion-card-content>
+          </ion-card>
+        } @else {
+          <harvest-picker-card
+            *ngFor="let picker of crewPickers()"
+            [picker]="picker"
+            (cardClick)="goToPickerDetail(picker.id)"
+            (weighClick)="goToWeighing(picker.id)"
+          ></harvest-picker-card>
+        }
       }
     </ion-content>
   `,
@@ -77,31 +91,59 @@ import { HarvestPickerCardComponent, AppChipComponent } from '@shared/components
     .text-center {
       text-align: center;
     }
+    .loading-center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 50vh;
+    }
+    .text-center {
+      text-align: center;
+    }
   `],
 })
 export class CrewDetailPage {
-  crewName = 'De Huila';
+  protected readonly harvestFacade = inject(HarvestFacade);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
-  // Datos mock para placeholder - se conectará con facade en Tarea 3.3
-  mockPickers = [
-    { id: '1', name: 'Juan Pérez', alias: 'Juancho', dailyKilos: 45.5, weeklyKilos: 280, totalKilos: 850, hasMeals: true, mealDetail: '$15.000/día', avatarUrl: null, status: 'active' as const },
-    { id: '2', name: 'María García', alias: null, dailyKilos: 38.0, weeklyKilos: 220, totalKilos: 720, hasMeals: false, mealDetail: '', avatarUrl: null, status: 'active' as const },
-    { id: '3', name: 'Carlos López', alias: 'Carlitos', dailyKilos: 52.5, weeklyKilos: 310, totalKilos: 980, hasMeals: true, mealDetail: '$12.000/día', avatarUrl: null, status: 'active' as const },
-  ];
+  crewId = computed(() => this.route.snapshot.paramMap.get('crewId'));
+  crewName = 'Cuadrilla';
+
+  // Pickers filtrados por crewId
+  crewPickers = computed(() => {
+    const id = this.crewId();
+    if (!id) return [];
+    return this.harvestFacade.activeHarvestPickers().filter(p => p.crewId === id);
+  })
 
   constructor() {
     addIcons({ personOutline, addOutline, chevronForwardOutline, archiveOutline });
+
+    // Cargar nombre de la cuadrilla al inicializar
+    effect(() => {
+      const id = this.crewId();
+      if (id) {
+        this.loadCrewName(id);
+      }
+    });
+  }
+
+  async loadCrewName(id: string): Promise<void> {
+    // TODO: cargar nombre real desde facade/servicio
+    this.crewName = 'Cuadrilla ' + id.substring(0, 8);
   }
 
   addPicker(): void {
-    console.log('Agregar recolector a cuadrilla');
+    // TODO: modal agregar recolector (desde catálogo o nuevo)
+    console.log('Agregar recolector a cuadrilla:', this.crewId());
   }
 
   goToPickerDetail(pickerId: string): void {
-    console.log('Ver detalle recolector:', pickerId);
+    this.router.navigate(['/harvest/pickers', pickerId]);
   }
 
   goToWeighing(pickerId: string): void {
-    console.log('Registrar pesada para:', pickerId);
+    this.router.navigate(['/harvest/pickers', pickerId, 'weighing', 'new']);
   }
 }
