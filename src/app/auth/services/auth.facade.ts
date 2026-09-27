@@ -76,6 +76,8 @@ export class AuthFacade {
         this._currentUser.set({
           id: me.id,
           nationalId: me.nationalId,
+          profilePhoto: me.profilePhoto,
+          createdAt: me.createdAt,
         });
         await this.router.navigate(['/home'], { replaceUrl: true });
       } else {

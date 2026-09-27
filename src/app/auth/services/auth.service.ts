@@ -27,6 +27,8 @@ export interface AuthResponse {
 export interface MeResponse {
   id: string;
   nationalId: string;
+  profilePhoto?: string;
+  createdAt: string;
 }
 
 /**
