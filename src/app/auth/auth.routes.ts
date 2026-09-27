@@ -10,6 +10,14 @@ export const authRoutes: Routes = [
     loadComponent: () => import('./pages/register.page').then(m => m.RegisterPage),
   },
   {
+    path: 'change-password',
+    loadComponent: () => import('./pages/change-password.page').then(m => m.ChangePasswordPage),
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./pages/privacy.page').then(m => m.PrivacyPage),
+  },
+  {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full',

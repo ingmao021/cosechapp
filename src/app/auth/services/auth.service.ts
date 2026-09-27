@@ -14,6 +14,11 @@ export interface RegisterRequest {
   profilePhoto?: string;
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface AuthResponse {
   coffeeGrower: {
     id: string;
@@ -52,5 +57,17 @@ export class AuthService {
 
   me(): Observable<MeResponse> {
     return this.http.get<MeResponse>(`${this.baseUrl}/me`);
+  }
+
+  changePassword(dto: ChangePasswordRequest): Observable<void> {
+    // TODO: Backend endpoint no existe aún - ver wiki/frontend-findings.md
+    // return this.http.post<void>(`${this.baseUrl}/change-password`, dto);
+    // Por ahora simulamos éxito para no bloquear el frontend
+    return new Observable(subscriber => {
+      setTimeout(() => {
+        subscriber.next();
+        subscriber.complete();
+      }, 500);
+    });
   }
 }

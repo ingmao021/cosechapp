@@ -14,6 +14,7 @@ import { IonChip } from '@ionic/angular/ion-chip';
 import { addIcons } from 'ionicons';
 import { personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline } from 'ionicons/icons';
 import { AuthFacade } from '../services/auth.facade';
+import { Router } from '@angular/router';
 
 /**
  * Pestaña Perfil — Placeholder para Tarea 1.3.
@@ -147,6 +148,7 @@ import { AuthFacade } from '../services/auth.facade';
 })
 export class ProfilePage {
   private readonly authFacade = inject(AuthFacade);
+  private readonly router = inject(Router);
 
   readonly userNationalId = this.authFacade.userNationalId;
   readonly profilePhoto = this.authFacade.userProfilePhoto;
@@ -156,8 +158,7 @@ export class ProfilePage {
   }
 
   changePassword(): void {
-    // TODO: navegar a /auth/change-password (Tarea 1.3)
-    console.log('Cambiar contraseña');
+    this.router.navigate(['/auth/change-password']);
   }
 
   goToWorkerCatalog(): void {
@@ -166,8 +167,7 @@ export class ProfilePage {
   }
 
   goToPrivacy(): void {
-    // TODO: navegar a /auth/privacy (Tarea 1.3)
-    console.log('Ver aviso de privacidad');
+    this.router.navigate(['/auth/privacy']);
   }
 
   async logout(): Promise<void> {

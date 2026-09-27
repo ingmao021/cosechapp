@@ -1,7 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
-import { AuthService, LoginRequest, RegisterRequest, AuthResponse } from './auth.service';
+import { AuthService, LoginRequest, RegisterRequest, AuthResponse, ChangePasswordRequest } from './auth.service';
 
 const TOKEN_KEY = 'jwt';
 
@@ -157,6 +157,24 @@ export class AuthFacade {
     this._isAuthenticated.set(false);
     this._currentUser.set(null);
     await this.router.navigate(['/auth/login'], { replaceUrl: true });
+  }
+
+  /**
+   * Cambiar contraseña del usuario actual.
+   * Requiere contraseña actual y nueva contraseña.
+   */
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    try {
+      await this.authService.changePassword({ currentPassword, newPassword }).toPromise();
+    } catch (err: any) {
+      this._error.set(err?.error?.message ?? 'Error al actualizar contraseña');
+      throw err;
+    } finally {
+      this._isLoading.set(false);
+    }
   }
 
   // --- SecureStorage helpers ---
