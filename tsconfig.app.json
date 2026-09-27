@@ -12,7 +12,9 @@
       "@weighing/*": ["src/app/weighing/*"],
       "@payment/*": ["src/app/payment/*"],
       "@sale-and-costs/*": ["src/app/sale-and-costs/*"],
-      "@price-and-news/*": ["src/app/price-and-news/*"]
+      "@price-and-news/*": ["src/app/price-and-news/*"],
+      "@sync/*": ["src/app/sync/*"],
+      "@network/*": ["src/app/network/*"]
     }
   },
   "files": [
