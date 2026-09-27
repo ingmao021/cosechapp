@@ -41,6 +41,8 @@ export interface HarvestWorkerResponse {
   harvestAlias: string | null;
   crewId: string | null;
   status: 'active' | 'archived';
+  hasMeals: boolean;
+  mealDetail: string | null;
   createdAt: string;
   updatedAt: string;
 }

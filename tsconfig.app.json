@@ -8,7 +8,9 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["src/app/shared/*"],
-      "@harvest/*": ["src/app/harvest/*"]
+      "@harvest/*": ["src/app/harvest/*"],
+      "@weighing/*": ["src/app/weighing/*"],
+      "@payment/*": ["src/app/payment/*"]
     }
   },
   "files": [
