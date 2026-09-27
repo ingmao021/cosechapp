@@ -74,7 +74,7 @@ import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
 })
 export class AppInputComponent {
   // Inputs
-  label = input.required<string>();
+  label = input<string>('');
   type = input<'text' | 'password' | 'email' | 'number' | 'tel'>('text');
   placeholder = input<string>('');
   value = input<string>('');
