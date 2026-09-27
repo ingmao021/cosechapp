@@ -162,8 +162,7 @@ export class ProfilePage {
   }
 
   goToWorkerCatalog(): void {
-    // TODO: navegar a /worker/catalog (Tarea 3.1)
-    console.log('Ir a catálogo de trabajadores');
+    this.router.navigate(['/worker/catalog']);
   }
 
   goToPrivacy(): void {

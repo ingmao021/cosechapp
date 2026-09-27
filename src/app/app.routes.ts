@@ -11,6 +11,11 @@ export const routes: Routes = [
     path: 'auth',
     loadChildren: () => import('./auth/auth.routes').then(m => m.authRoutes),
   },
+  // Catálogo de trabajadores — fuera de tabs (acceso desde Perfil)
+  {
+    path: 'worker',
+    loadChildren: () => import('./worker/worker.routes').then(m => m.workerRoutes),
+  },
   // App principal con tabs — solo accesible si hay sesión válida
   {
     path: '',
