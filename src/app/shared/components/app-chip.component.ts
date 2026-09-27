@@ -9,7 +9,8 @@ import { IonChip, IonIcon, IonLabel } from '@ionic/angular';
  */
 @Component({
   selector: 'app-chip',
-  standalone: false,
+  standalone: true,
+  imports: [IonChip, IonIcon, IonLabel],
   template: `
     <ion-chip [color]="chipColor()" [outline]="outline()">
       @if (icon()) {

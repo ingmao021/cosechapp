@@ -8,7 +8,8 @@ import { IonButton, IonIcon } from '@ionic/angular';
  */
 @Component({
   selector: 'app-button-icon',
-  standalone: false,
+  standalone: true,
+  imports: [IonButton, IonIcon],
   template: `
     <ion-button
       [fill]="fill()"

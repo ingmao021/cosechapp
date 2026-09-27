@@ -1,6 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { KilosPipe } from '../pipes/kilos.pipe';
+import { AppChipComponent } from './app-chip.component';
 
 /**
  * Molécula: Tarjeta de recolector en lista de cuadrilla
@@ -23,7 +24,8 @@ export interface PickerCardData {
 
 @Component({
   selector: 'harvest-picker-card',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, KilosPipe, AppChipComponent],
   template: `
     <div
       class="picker-card"

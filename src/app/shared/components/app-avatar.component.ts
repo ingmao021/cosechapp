@@ -8,7 +8,8 @@ import { IonAvatar, IonIcon } from '@ionic/angular';
  */
 @Component({
   selector: 'app-avatar',
-  standalone: false,
+  standalone: true,
+  imports: [IonAvatar, IonIcon],
   template: `
     <ion-avatar
       [class.clickable]="clickable()"

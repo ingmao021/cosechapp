@@ -17,7 +17,10 @@ import { IonItem } from '@ionic/angular/ion-item';
 import { IonList } from '@ionic/angular/ion-list';
 import { addIcons } from 'ionicons';
 import { addOutline, cashOutline, timeOutline, chevronForwardOutline } from 'ionicons/icons';
-import { SharedModule } from '../../../shared/shared.module';
+import { AppChipComponent } from '@shared/components';
+import { CurrencyPipe } from '@shared/pipes/currency.pipe';
+import { DateFormatPipe } from '@shared/pipes/date.pipe';
+import { KilosPipe } from '@shared/pipes/kilos.pipe';
 
 /**
  * Pantalla Detalle de Recolector — Placeholder para Tarea 3.4.
@@ -26,7 +29,7 @@ import { SharedModule } from '../../../shared/shared.module';
 @Component({
   selector: 'app-picker-detail',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonChip, IonLabel, IonItem, IonList, SharedModule],
+  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonChip, IonLabel, IonItem, IonList, AppChipComponent, CurrencyPipe, DateFormatPipe, KilosPipe],
   template: `
     <ion-header>
       <ion-toolbar>

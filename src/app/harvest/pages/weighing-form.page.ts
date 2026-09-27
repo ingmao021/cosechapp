@@ -15,7 +15,10 @@ import { IonCardHeader } from '@ionic/angular/ion-card-header';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
 import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { IonToast } from '@ionic/angular/ion-toast';
-import { SharedModule } from '../../../shared/shared.module';
+import { AppInputComponent, AppButtonPrimaryComponent } from '@shared/components';
+import { KilosPipe } from '@shared/pipes/kilos.pipe';
+import { DateFormatPipe } from '@shared/pipes/date.pipe';
+import { IonChip, IonLabel } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, scaleOutline } from 'ionicons/icons';
 
@@ -26,7 +29,7 @@ import { arrowBackOutline, scaleOutline } from 'ionicons/icons';
 @Component({
   selector: 'app-weighing-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonToast, SharedModule],
+  imports: [CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonToast, IonChip, IonLabel, AppInputComponent, AppButtonPrimaryComponent, KilosPipe, DateFormatPipe],
   template: `
     <ion-header>
       <ion-toolbar>

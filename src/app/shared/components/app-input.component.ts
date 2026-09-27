@@ -12,7 +12,8 @@ import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
  */
 @Component({
   selector: 'app-input',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, FormsModule, IonInput, IonIcon, IonItem, IonLabel, IonButton],
   template: `
     <ion-item lines="full" class="input-wrapper" [class.error]="showError()">
       <ion-label position="floating">{{ label() }}</ion-label>

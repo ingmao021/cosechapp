@@ -15,7 +15,7 @@ import { IonChip } from '@ionic/angular/ion-chip';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { addIcons } from 'ionicons';
 import { personOutline, addOutline, chevronForwardOutline, archiveOutline } from 'ionicons/icons';
-import { SharedModule } from '../../../shared/shared.module';
+import { HarvestPickerCardComponent, AppChipComponent } from '@shared/components';
 
 /**
  * Pantalla Detalle de Cuadrilla — Placeholder para Tarea 3.3.
@@ -24,7 +24,7 @@ import { SharedModule } from '../../../shared/shared.module';
 @Component({
   selector: 'app-crew-detail',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonChip, IonLabel, SharedModule],
+  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonChip, IonLabel, HarvestPickerCardComponent, AppChipComponent],
   template: `
     <ion-header>
       <ion-toolbar>

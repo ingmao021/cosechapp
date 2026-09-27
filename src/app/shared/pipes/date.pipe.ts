@@ -14,7 +14,7 @@ import { Pipe, PipeTransform } from '@angular/core';
  */
 @Pipe({
   name: 'dateFormat',
-  standalone: false,
+  standalone: true,
 })
 export class DateFormatPipe implements PipeTransform {
   private readonly monthsShort = [

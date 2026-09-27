@@ -22,8 +22,8 @@ import { IonToast } from '@ionic/angular/ion-toast';
 import { IonChip } from '@ionic/angular/ion-chip';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, addOutline, cashOutline, calculatorOutline, checkmarkCircleOutline } from 'ionicons/icons';
-import { CurrencyPipe } from '../../../shared/pipes/currency.pipe';
-import { KilosPipe } from '../../../shared/pipes/kilos.pipe';
+import { CurrencyPipe } from '@shared/pipes/currency.pipe';
+import { KilosPipe } from '@shared/pipes/kilos.pipe';
 
 /**
  * Pantalla Cierre de Cosecha — Placeholder para Tarea 5.1.

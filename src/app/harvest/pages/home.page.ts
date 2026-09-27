@@ -17,7 +17,7 @@ import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { addIcons } from 'ionicons';
 import { scaleOutline, cloudDownloadOutline, syncOutline, addOutline, closeOutline, pricetagOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
-import { CurrencyPipe } from '../../../shared/pipes/currency.pipe';
+import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 
 /**
  * Pantalla Inicio (Home) — Cosecha activa.
