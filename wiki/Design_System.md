@@ -8,6 +8,12 @@ Taller de Design System aplicado a **CosechApp**, la app móvil de recolección 
 
 Define qué información y elementos se muestran en cada pantalla de CosechApp, con base en las funcionalidades ya definidas en el PRD.
 
+### 1.0 Splash
+- Imagen de fondo `Cosech.png` a pantalla completa (1591×2250px de origen — más alta que ancha; se ajusta con `object-fit: cover` centrado, ya que la relación de aspecto del archivo no coincide exactamente con la de un celular Android, para evitar franjas vacías).
+- Sin controles ni texto interactivo — es una pantalla de transición, no requiere acción del usuario.
+- Duración: el tiempo que tome verificar si ya existe una sesión activa (ver lógica en Navegación, sección 3.1) — no un tiempo fijo arbitrario.
+- Debe usarse como Splash nativo de Capacitor (configurado en `capacitor.config.ts` / recursos nativos de Android), no solo como una pantalla más de Angular, para que se vea desde el instante en que se abre la app y no solo después de que el WebView cargue.
+
 ### 1.1 Login / Registro
 - Campo cédula, campo contraseña.
 - Foto de perfil (opcional).
@@ -135,15 +141,25 @@ Design System — CosechApp
 Elegidos deliberadamente a partir del propio contexto de CosechApp: reemplaza un cuaderno de papel en el cafetal, así que la tipografía de título tiene un aire de libro de registro, y la paleta viene del cafetal mismo (hoja, cereza madura, tierra) en vez de la paleta genérica "café" (crema + terracota) que se ve en cualquier producto sobre café.
 
 **Colores**
+
+Paleta de marca real, tomada del logo (`LOGO.png`) y del splash (`Cosech.png`), reemplazando la paleta provisional del primer borrador:
+
 ```
---color-primary: #2F4A3D      /* verde cafetal — hoja de café */
---color-secondary: #C98A2B    /* dorado cereza — café en punto óptimo de recolección */
---color-accent: #7A2E22       /* rojo tierra — cereza madura, uso moderado (ej. "Pagar ahora") */
---color-background: #F6F3EC   /* pergamino cálido — el papel que la app reemplaza */
+--color-primary: #32591B       /* verde oscuro de marca — texto/botones principales */
+--color-primary-muted: #8e716d /* mauve/marrón de marca — línea del logo, acentos, bordes, iconos */
+--color-background: #F2EFF2    /* fondo claro de marca */
+--color-secondary: #8C694C     /* marrón medio de marca — acentos secundarios, títulos grandes */
 --color-surface: #FFFFFF
---color-text: #2B2420         /* café tostado oscuro, no negro puro */
+--color-text: #2B2420          /* texto de cuerpo — no se usa --color-primary-muted aquí (ver nota de contraste) */
 --color-border: #D8D2C0
+--color-accent-alert: #7A2E22  /* rojo tierra — se mantiene para alertas puntuales, no viene del logo */
 ```
+
+> **Nota de contraste (obligatoria por el PRD, sección 10 — Accesibilidad):** se verificó el contraste de cada color de marca contra `--color-background` (#F2EFF2) siguiendo WCAG:
+> - `#32591B` → contraste **7.1:1** — cumple AAA. Válido para texto de cualquier tamaño y para botones primarios.
+> - `#8C694C` → contraste **4.3:1** — cumple AA solo para texto grande (≥18sp o ≥14sp en negrita) o para iconos/bordes; **no usar en texto de cuerpo pequeño**.
+> - `#8e716d` → contraste **3.9:1** — no cumple AA ni siquiera para texto grande de forma consistente. Reservar para bordes, iconos decorativos y el trazo del logo, **nunca para texto**.
+> - Por eso `--color-text` usa un marrón oscuro propio (#2B2420) en vez de `#8e716d`: mantiene el aire cálido de la marca sin sacrificar legibilidad, algo crítico aquí porque la app se usa a plena luz del sol en el cafetal.
 
 **Tipografía**
 ```
@@ -227,9 +243,15 @@ Los íconos acompañan siempre al texto (nunca solos) en las acciones principale
 Navegación principal por barra inferior de pestañas (patrón estándar en apps Android), con 4 accesos directos y flujos de profundización (drill-down) dentro de cada uno:
 
 ```
-Login / Registro
-   │ (autenticación)
-   ▼
+Splash (Cosech.png)
+   │ (la app consulta al backend si hay una sesión válida)
+   ├── Sesión válida ──────────────┐
+   │                               ▼
+   └── Sin sesión / expirada       Dashboard (Inicio)
+       ▼
+   Login / Registro
+       │ (autenticación)
+       ▼
 ┌─────────────────────────────────────────────┐
 │  Barra inferior: Inicio | Precio&Noticias |  │
 │                  Historial | Perfil          │
@@ -269,11 +291,14 @@ Perfil
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).
 
 ### 3.4 Niveles de navegación
-1. **Nivel 0 — Autenticación:** Login/Registro (fuera de la barra de pestañas).
-2. **Nivel 1 — Pestañas principales:** Inicio, Precio y Noticias, Historial, Perfil.
-3. **Nivel 2 — Listas:** Cuadrillas, Catálogo de trabajadores, lista de cosechas cerradas.
-4. **Nivel 3 — Detalle:** Detalle de cuadrilla, Detalle de cosecha cerrada.
-5. **Nivel 4 — Acción puntual:** Detalle de recolector, Registro de pesada, Pagar ahora, Cierre de cosecha (venta y costos).
+1. **Nivel -1 — Splash:** pantalla de arranque con `Cosech.png`, mientras se verifica la sesión contra el backend.
+2. **Nivel 0 — Autenticación:** Login/Registro (fuera de la barra de pestañas), solo si no hay sesión válida.
+3. **Nivel 1 — Pestañas principales:** Inicio, Precio y Noticias, Historial, Perfil.
+4. **Nivel 2 — Listas:** Cuadrillas, Catálogo de trabajadores, lista de cosechas cerradas.
+5. **Nivel 3 — Detalle:** Detalle de cuadrilla, Detalle de cosecha cerrada.
+6. **Nivel 4 — Acción puntual:** Detalle de recolector, Registro de pesada, Pagar ahora, Cierre de cosecha (venta y costos).
+
+> **Nota sobre el timeout de sesión:** como el timeout se maneja en el backend (decisión ya confirmada), el frontend no calcula expiración por su cuenta. En el Splash, la app hace una llamada autenticada (con el token guardado) a un endpoint del backend (ej. `GET /auth/me`); si responde 200, va a Inicio, si responde 401 (sesión expirada o inválida), va a Login. El frontend solo reacciona a la respuesta del backend, nunca decide por sí mismo que la sesión venció.
 
 ---
 

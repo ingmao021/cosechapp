@@ -3,12 +3,29 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "types": []
+    "types": ["vitest/globals"],
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/app/shared/*"],
+      "@harvest/*": ["src/app/harvest/*"],
+      "@weighing/*": ["src/app/weighing/*"],
+      "@payment/*": ["src/app/payment/*"],
+      "@sale-and-costs/*": ["src/app/sale-and-costs/*"],
+      "@price-and-news/*": ["src/app/price-and-news/*"],
+      "@sync/*": ["src/app/sync/*"],
+      "@network/*": ["src/app/network/*"]
+    }
   },
   "files": [
     "src/main.ts"
   ],
   "include": [
+    "src/**/*.ts",
     "src/**/*.d.ts"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/test-setup.ts"
   ]
 }

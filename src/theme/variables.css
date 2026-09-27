@@ -1,0 +1,343 @@
+/**
+ * CosechApp - Design Tokens
+ * Fuente de verdad: wiki/Design_System.md (sección 2.2)
+ * Todas las medidas en dp (density-independent pixels) para Android
+ * Tipografía en sp (scale-independent pixels)
+ */
+
+/* ==========================================================================
+   FUENTES LOCALES (assets/fonts/)
+   ========================================================================== */
+@font-face {
+  font-family: 'Zilla Slab';
+  src: url('../assets/fonts/ZillaSlab-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  src: url('../assets/fonts/ZillaSlab-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/Inter-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/Inter-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   COLORES (Paleta de marca real desde LOGO.png y Cosech.png)
+   ========================================================================== */
+:root {
+  /* Colores de marca */
+  --color-primary: #32591B;        /* verde oscuro — texto/botones principales (contraste 7.1:1 AAA) */
+  --color-primary-muted: #8e716d;  /* mauve/marrón — bordes, iconos, trazo logo (NO texto) */
+  --color-background: #F2EFF2;     /* fondo claro de marca */
+  --color-secondary: #8C694C;      /* marrón medio — acentos secundarios, títulos grandes (contraste 4.3:1 AA solo texto grande) */
+  --color-surface: #FFFFFF;        /* blanco puro para tarjetas/superficies */
+  --color-text: #2B2420;           /* texto de cuerpo — marrón oscuro propio para legibilidad */
+  --color-border: #D8D2C0;         /* bordes sutiles */
+  --color-accent-alert: #7A2E22;   /* rojo tierra — alertas puntuales (botón cerrar cosecha, errores) */
+
+  /* Estados derivados */
+  --color-text-muted: rgba(43, 36, 32, 0.6);   /* metadata, Nivel 4 */
+  --color-text-on-primary: #FFFFFF;             /* texto sobre botón primario */
+  --color-text-on-alert: #FFFFFF;               /* texto sobre botón alerta */
+  --color-focus-ring: rgba(50, 89, 27, 0.4);    /* anillo foco accesible */
+
+  /* ==========================================================================
+     TIPOGRAFÍA
+     ========================================================================== */
+  --font-family-display: 'Zilla Slab', serif;   /* títulos — remite a cuaderno de registro */
+  --font-family-body: 'Inter', sans-serif;      /* cuerpo, números, UI — alta legibilidad */
+
+  --font-size-xs: 12sp;    /* metadatos (fecha pesada, última sync) */
+  --font-size-sm: 14sp;    /* texto pequeño */
+  --font-size-md: 16sp;    /* cuerpo base */
+  --font-size-lg: 20sp;    /* subtítulos de sección (Nivel 2) */
+  --font-size-xl: 28sp;    /* título de pantalla (Nivel 1) */
+
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+
+  /* ==========================================================================
+     ESPACIADO (grid base 4dp)
+     ========================================================================== */
+  --spacing-xs: 4dp;
+  --spacing-sm: 8dp;
+  --spacing-md: 16dp;
+  --spacing-lg: 24dp;
+  --spacing-xl: 32dp;
+
+  /* ==========================================================================
+     RADIOS
+     ========================================================================== */
+  --radius-sm: 6dp;          /* inputs */
+  --radius-md: 12dp;         /* tarjetas recolector, cuadrilla */
+  --radius-full: 999dp;      /* botones acción principal (pill), chips */
+
+  /* ==========================================================================
+     SOMBRAS
+     ========================================================================== */
+  --shadow-card: 0 1dp 3dp rgba(43, 36, 32, 0.12);
+
+  /* ==========================================================================
+     TOUCH TARGETS (Material Design Android)
+     ========================================================================== */
+  --touch-target-min: 48dp;  /* mínimo absoluto para cualquier elemento interactivo */
+
+  /* ==========================================================================
+     MEDIDAS PIXEL-PERFECT POR COMPONENTE (Sección 2.3 Design System)
+     ========================================================================== */
+
+  /* Botón primario: 48dp alto, 24dp padding horizontal, radius 24dp (pill), icono 20dp */
+  --btn-primary-height: 48dp;
+  --btn-primary-padding-h: 24dp;
+  --btn-primary-radius: 24dp;
+  --btn-primary-icon-size: 20dp;
+
+  /* Botón de ícono (+): 48×48dp, radius 24dp (circular), icono 24dp */
+  --btn-icon-size: 48dp;
+  --btn-icon-radius: 24dp;
+  --btn-icon-icon-size: 24dp;
+
+  /* Input texto/numérico: 48dp min alto, 16dp padding horizontal, radius 8dp */
+  --input-min-height: 48dp;
+  --input-padding-h: 16dp;
+  --input-radius: 8dp;
+
+  /* Tarjeta recolector: 64dp min alto, 16dp padding, radius 12dp, avatar/icono 24dp */
+  --picker-card-min-height: 64dp;
+  --picker-card-padding: 16dp;
+  --picker-card-radius: 12dp;
+  --picker-card-icon-size: 24dp;
+
+  /* Fila lista (cuadrillas, trabajadores): 56dp alto, 16dp padding horizontal, icono 24dp */
+  --list-row-height: 56dp;
+  --list-row-padding-h: 16dp;
+  --list-row-icon-size: 24dp;
+
+  /* Chip (alimentación): 28dp alto, 12dp padding horizontal, radius pill (999dp), icono 16dp */
+  --chip-height: 28dp;
+  --chip-padding-h: 12dp;
+  --chip-radius: 999dp;
+  --chip-icon-size: 16dp;
+
+  /* Barra navegación inferior: 56dp + inset gestos sistema, iconos 24dp */
+  --bottom-nav-height: 56dp;
+  --bottom-nav-icon-size: 24dp;
+
+  /* Header cosecha activa: 96dp alto, 16dp padding */
+  --harvest-header-height: 96dp;
+  --harvest-header-padding: 16dp;
+
+  /* Separación entre tarjetas en lista: 8dp vertical */
+  --card-gap-vertical: 8dp;
+
+  /* Margen lateral pantalla: 16dp (compacto/estándar), 24dp (amplio 430dp+) */
+  --screen-margin: 16dp;
+  --screen-margin-wide: 24dp;
+
+  /* Avatar/foto perfil: 64dp, radius 50% */
+  --avatar-size: 64dp;
+  --avatar-radius: 50%;
+}
+
+/* ==========================================================================
+   BREAKPOINTS (anchos Android) - ajustan márgenes y tipografía, no estructura
+   ========================================================================== */
+/* Compacto: 360dp - márgenes 16dp, tipografía base */
+/* Estándar: 390-412dp - igual que compacto */
+/* Amplio: 430dp+ - márgenes 24dp, sin cambio tipografía */
+
+@media (min-width: 430px) {
+  :root {
+    --screen-margin: 24dp;
+  }
+}
+
+/* ==========================================================================
+   CLASES DE UTILIDAD PARA JERARQUÍA VISUAL (Sección 2.5)
+   ========================================================================== */
+
+/* Nivel 1 - Título de pantalla */
+.text-level-1 {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+/* Nivel 2 - Secciones dentro de pantalla */
+.text-level-2 {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+/* Nivel 3 - Elementos individuales */
+.text-level-3 {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+/* Nivel 4 - Metadatos */
+.text-level-4 {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.text-level-4-xs {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   RESET Y BASE GLOBAL
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px; /* base para rem, pero usamos dp/sp via variables */
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  background-color: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ionic override: asegurar que use nuestras variables */
+ion-content {
+  --background: var(--color-background);
+  --color: var(--color-text);
+}
+
+ion-header {
+  --background: var(--color-surface);
+  --border-color: var(--color-border);
+}
+
+ion-toolbar {
+  --background: var(--color-surface);
+  --color: var(--color-text);
+}
+
+ion-button {
+  --border-radius: var(--btn-primary-radius);
+  --padding-start: var(--btn-primary-padding-h);
+  --padding-end: var(--btn-primary-padding-h);
+  height: var(--btn-primary-height);
+  min-height: var(--btn-primary-height);
+}
+
+ion-button[color="primary"] {
+  --background: var(--color-primary);
+  --background-activated: var(--color-primary);
+  --background-hover: var(--color-primary);
+  --color: var(--color-text-on-primary);
+}
+
+ion-button[color="danger"] {
+  --background: var(--color-accent-alert);
+  --background-activated: var(--color-accent-alert);
+  --background-hover: var(--color-accent-alert);
+  --color: var(--color-text-on-alert);
+}
+
+ion-input {
+  --padding-start: var(--input-padding-h);
+  --padding-end: var(--input-padding-h);
+  --border-radius: var(--input-radius);
+  min-height: var(--input-min-height);
+  --background: var(--color-surface);
+  --color: var(--color-text);
+  --placeholder-color: var(--color-text-muted);
+}
+
+ion-item {
+  --padding-start: var(--list-row-padding-h);
+  --padding-end: var(--list-row-padding-h);
+  min-height: var(--list-row-height);
+  --background: var(--color-surface);
+  --color: var(--color-text);
+}
+
+ion-card {
+  --background: var(--color-surface);
+  --border-radius: var(--radius-md);
+  --box-shadow: var(--shadow-card);
+  padding: var(--picker-card-padding);
+  min-height: var(--picker-card-min-height);
+}
+
+ion-chip {
+  --border-radius: var(--chip-radius);
+  --padding-start: var(--chip-padding-h);
+  --padding-end: var(--chip-padding-h);
+  height: var(--chip-height);
+  min-height: var(--chip-height);
+  --background: var(--color-primary-muted);
+  --color: var(--color-text-on-primary);
+}
+
+ion-tab-bar {
+  --background: var(--color-surface);
+  --border-color: var(--color-border);
+  height: var(--bottom-nav-height);
+  min-height: var(--bottom-nav-height);
+}
+
+ion-tab-button {
+  --color: var(--color-text-muted);
+  --color-selected: var(--color-primary);
+}
+
+ion-icon {
+  font-size: var(--list-row-icon-size);
+}
+
+/* Asegurar touch targets mínimos */
+button,
+ion-button,
+ion-icon,
+ion-chip,
+a,
+[role="button"] {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+}
