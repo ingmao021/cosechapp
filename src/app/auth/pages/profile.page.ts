@@ -7,10 +7,7 @@ import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonAvatar } from '@ionic/angular/ion-avatar';
-import { IonItem } from '@ionic/angular/ion-item';
 import { IonLabel } from '@ionic/angular/ion-label';
-import { IonList } from '@ionic/angular/ion-list';
-import { IonListHeader } from '@ionic/angular/ion-list-header';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { IonChip } from '@ionic/angular/ion-chip';
@@ -29,7 +26,7 @@ import { AuthFacade } from '../services/auth.facade';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonAvatar, IonItem, IonLabel, IonList, IonListHeader, IonCard, IonCardContent, IonChip],
+  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonAvatar, IonLabel, IonCard, IonCardContent, IonChip],
   template: `
     <ion-header>
       <ion-toolbar>
