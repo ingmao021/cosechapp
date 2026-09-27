@@ -80,3 +80,18 @@ No se deben incluir tokens, contraseñas ni archivos de credenciales en Git.
 ## Comandos ejecutados en este proyecto
 
 Hasta ahora se han ejecutado correctamente:
+
+
+## Requisitos previos:
+1. Base de datos: Configurar DATABASE_URL en backend/.env o backend/.env.local (apuntando a Neon/local PostgreSQL)
+2. Migraciones: npm run prisma:migrate (crea las tablas en la BD)
+3. Cliente Prisma: npm run prisma:generate (genera el cliente tipado)
+
+### Ejemplo completo:
+cd backend
+cp .env.example .env.local
+
+## Edita .env.local con tu DATABASE_URL real
+npm run prisma:generate
+npm run prisma:migrate
+npm run start:dev
