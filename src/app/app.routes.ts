@@ -16,6 +16,11 @@ export const routes: Routes = [
     path: 'worker',
     loadChildren: () => import('./worker/worker.routes').then(m => m.workerRoutes),
   },
+  // Precio y Noticias — fuera de tabs (acceso desde notificaciones)
+  {
+    path: 'price-and-news',
+    loadChildren: () => import('./price-and-news/price-and-news.routes').then(m => m.priceAndNewsRoutes),
+  },
   // App principal con tabs — solo accesible si hay sesión válida
   {
     path: '',
