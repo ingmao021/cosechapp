@@ -34,6 +34,28 @@ export interface HarvestResponse {
   updatedAt: string;
 }
 
+export interface HarvestDetailResponse {
+  harvest: HarvestResponse;
+  pickers: HarvestWorkerResponse[];
+  crews: CrewResponse[];
+  totalCherryKilograms: number;
+  totalPayments: number;
+  sale: {
+    actualDryKilograms: number;
+    salePrice: number;
+    date: string;
+    grossRevenue: number;
+  } | null;
+  costs: Array<{
+    id: string;
+    description: string;
+    amount: number;
+    date: string;
+  }>;
+  grossProfit: number;
+  actualProfit: number;
+}
+
 export interface HarvestWorkerResponse {
   id: string;
   harvestId: string;
@@ -43,6 +65,8 @@ export interface HarvestWorkerResponse {
   status: 'active' | 'archived';
   hasMeals: boolean;
   mealDetail: string | null;
+  totalPaid: number;
+  totalKilograms: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,6 +108,10 @@ export class HarvestService {
 
   getHarvestById(harvestId: string): Observable<HarvestResponse | null> {
     return this.http.get<HarvestResponse | null>(`${this.baseUrl}/${harvestId}`);
+  }
+
+  getHarvestDetail(harvestId: string): Observable<HarvestDetailResponse | null> {
+    return this.http.get<HarvestDetailResponse | null>(`${this.baseUrl}/${harvestId}/detail`);
   }
 
   // Pickers (trabajadores asignados a la cosecha)

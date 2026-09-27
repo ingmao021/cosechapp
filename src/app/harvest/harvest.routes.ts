@@ -25,4 +25,8 @@ export const harvestRoutes: Routes = [
     path: 'close',
     loadComponent: () => import('./pages/harvest-close.page').then(m => m.HarvestClosePage),
   },
+  {
+    path: 'history/:harvestId',
+    loadComponent: () => import('./pages/harvest-history-detail.page').then(m => m.HarvestHistoryDetailPage),
+  },
 ];
