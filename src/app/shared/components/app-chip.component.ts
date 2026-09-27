@@ -1,8 +1,5 @@
 import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { IonChip } from '@ionic/angular/ion-chip';
-import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonLabel } from '@ionic/angular/ion-label';
+import { IonChip, IonIcon, IonLabel } from '@ionic/angular';
 
 /**
  * Componente atómico: Chip (estado, alimentación, etc.)
@@ -12,8 +9,7 @@ import { IonLabel } from '@ionic/angular/ion-label';
  */
 @Component({
   selector: 'app-chip',
-  standalone: true,
-  imports: [CommonModule, IonChip, IonIcon, IonLabel],
+  standalone: false,
   template: `
     <ion-chip [color]="chipColor()" [outline]="outline()">
       @if (icon()) {

@@ -7,7 +7,7 @@ import { Pipe, PipeTransform } from '@angular/core';
  */
 @Pipe({
   name: 'kilos',
-  standalone: true,
+  standalone: false,
 })
 export class KilosPipe implements PipeTransform {
   transform(value: number | null | undefined, showUnit = true): string {

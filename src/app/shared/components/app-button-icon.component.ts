@@ -1,7 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { IonButton } from '@ionic/angular/ion-button';
-import { IonIcon } from '@ionic/angular/ion-icon';
+import { IonButton, IonIcon } from '@ionic/angular';
 
 /**
  * Componente atómico: Botón de ícono (ej. "+" para agregar pesada)
@@ -10,8 +8,7 @@ import { IonIcon } from '@ionic/angular/ion-icon';
  */
 @Component({
   selector: 'app-button-icon',
-  standalone: true,
-  imports: [CommonModule, IonButton, IonIcon],
+  standalone: false,
   template: `
     <ion-button
       [fill]="fill()"

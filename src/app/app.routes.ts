@@ -32,6 +32,11 @@ export const routes: Routes = [
         path: 'profile',
         loadComponent: () => import('./auth/pages/profile.page').then(m => m.ProfilePage),
       },
+      // Rutas de cosecha (hijas de tabs para mantener navegación inferior)
+      {
+        path: 'harvest',
+        loadChildren: () => import('./harvest/harvest.routes').then(m => m.harvestRoutes),
+      },
       {
         path: '',
         redirectTo: 'home',

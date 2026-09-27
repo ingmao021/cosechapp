@@ -1,7 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { IonAvatar } from '@ionic/angular/ion-avatar';
-import { IonIcon } from '@ionic/angular/ion-icon';
+import { IonAvatar, IonIcon } from '@ionic/angular';
 
 /**
  * Componente atómico: Avatar / Foto de perfil
@@ -10,8 +8,7 @@ import { IonIcon } from '@ionic/angular/ion-icon';
  */
 @Component({
   selector: 'app-avatar',
-  standalone: true,
-  imports: [CommonModule, IonAvatar, IonIcon],
+  standalone: false,
   template: `
     <ion-avatar
       [class.clickable]="clickable()"

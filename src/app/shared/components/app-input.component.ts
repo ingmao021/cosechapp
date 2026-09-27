@@ -1,10 +1,7 @@
 import { Component, input, output, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonInput } from '@ionic/angular/ion-input';
-import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonItem } from '@ionic/angular/ion-item';
-import { IonLabel } from '@ionic/angular/ion-label';
-import { IonButton } from '@ionic/angular/ion-button';
+import { FormsModule } from '@angular/forms';
+import { IonInput, IonIcon, IonItem, IonLabel, IonButton } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
 
@@ -15,8 +12,7 @@ import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
  */
 @Component({
   selector: 'app-input',
-  standalone: true,
-  imports: [CommonModule, IonInput, IonIcon, IonItem, IonLabel, IonButton],
+  standalone: false,
   template: `
     <ion-item lines="full" class="input-wrapper" [class.error]="showError()">
       <ion-label position="floating">{{ label() }}</ion-label>

@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
@@ -14,22 +15,40 @@ import { IonCardHeader } from '@ionic/angular/ion-card-header';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
 import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { addIcons } from 'ionicons';
-import { scaleOutline, cloudDownloadOutline, syncOutline } from 'ionicons/icons';
+import { scaleOutline, cloudDownloadOutline, syncOutline, addOutline, closeOutline, pricetagOutline } from 'ionicons/icons';
+import { HarvestFacade } from '../services/harvest.facade';
+import { CurrencyPipe } from '../../../shared/pipes/currency.pipe';
 
 /**
  * Pantalla Inicio (Home) — Cosecha activa.
- * Placeholder para Tarea 2.2.
+ * Tarea 2.2: Conecta con HarvestFacade para mostrar datos reales.
  * Contenido según Design System 1.2:
  * - Header organismo: nombre cosecha + precio/kilo + botón "Cerrar cosecha"
  * - Si no hay cosecha: invitación a abrir nueva
- * - Precio FNC actual con fecha
- * - Indicador sincronización
+ * - Precio FNC actual con fecha (placeholder - se conectará en Tarea 6.1)
+ * - Indicador sincronización (placeholder - se conectará en Tarea 8)
  * - Botón "Pesar" → /harvest/crews
  */
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonChip, IonLabel, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle],
+  imports: [
+    CommonModule,
+    IonContent,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButton,
+    IonIcon,
+    IonChip,
+    IonLabel,
+    IonCard,
+    IonCardContent,
+    IonCardHeader,
+    IonCardTitle,
+    IonCardSubtitle,
+    CurrencyPipe,
+  ],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -38,48 +57,52 @@ import { scaleOutline, cloudDownloadOutline, syncOutline } from 'ionicons/icons'
     </ion-header>
 
     <ion-content class="ion-padding">
-      <!-- Placeholder: cosecha activa -->
-      <ion-card class="harvest-header-card">
-        <ion-card-header>
-          <ion-card-title class="text-level-2">Cosecha activa</ion-card-title>
-          <ion-card-subtitle class="text-level-4">Primer pasón • \$ 2.500 COP/kg</ion-card-subtitle>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="header-actions">
-            <ion-chip color="medium" class="sync-chip">
-              <ion-icon name="sync-outline" slot="start"></ion-icon>
-              <ion-label>Sincronizado</ion-label>
-            </ion-chip>
-            <ion-chip color="medium" class="fnc-chip">
-              <ion-icon name="pricetag-outline" slot="start"></ion-icon>
-              <ion-label>FNC: \$ 2.450 (26 sep)</ion-label>
-            </ion-chip>
-          </div>
-          <div class="main-actions">
-            <ion-button expand="block" fill="solid" color="primary" class="weigh-btn" (click)="goToWeigh()">
-              <ion-icon name="scale-outline" slot="start"></ion-icon>
-              Pesar
+      @if (harvestFacade.hasActiveHarvest()) {
+        <!-- Cosecha activa -->
+        <ion-card class="harvest-header-card">
+          <ion-card-header>
+            <ion-card-title class="text-level-2">{{ harvestFacade.activeHarvestName() }}</ion-card-title>
+            <ion-card-subtitle class="text-level-4">
+              {{ harvestFacade.activeHarvestPrice() | currency }}
+            </ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="header-actions">
+              <ion-chip color="medium" class="sync-chip">
+                <ion-icon name="sync-outline" slot="start"></ion-icon>
+                <ion-label>Sincronizado</ion-label>
+              </ion-chip>
+              <ion-chip color="medium" class="fnc-chip">
+                <ion-icon name="pricetag-outline" slot="start"></ion-icon>
+                <ion-label>FNC: \$ 2.450 (26 sep)</ion-label>
+              </ion-chip>
+            </div>
+            <div class="main-actions">
+              <ion-button expand="block" fill="solid" color="primary" class="weigh-btn" (click)="goToWeigh()">
+                <ion-icon name="scale-outline" slot="start"></ion-icon>
+                Pesar
+              </ion-button>
+              <ion-button expand="block" fill="outline" color="danger" class="close-harvest-btn" (click)="goToCloseHarvest()">
+                <ion-icon name="close-outline" slot="start"></ion-icon>
+                Cerrar cosecha
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      } @else {
+        <!-- Estado vacío: no hay cosecha activa -->
+        <ion-card class="empty-state-card">
+          <ion-card-content class="text-center">
+            <ion-icon name="add-circle-outline" size="large" color="primary"></ion-icon>
+            <h2 class="text-level-2 ion-margin-top">No hay cosecha activa</h2>
+            <p class="text-level-4 ion-margin">Abre una nueva cosecha para empezar a registrar pesadas.</p>
+            <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="openHarvest()">
+              <ion-icon name="add-outline" slot="start"></ion-icon>
+              Abrir nueva cosecha
             </ion-button>
-            <ion-button expand="block" fill="outline" color="danger" class="close-harvest-btn">
-              <ion-icon name="close-outline" slot="start"></ion-icon>
-              Cerrar cosecha
-            </ion-button>
-          </div>
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Placeholder: estado vacío (cuando no hay cosecha) -->
-      <ion-card class="empty-state-card" *ngIf="false">
-        <ion-card-content class="text-center">
-          <ion-icon name="add-circle-outline" size="large" color="primary"></ion-icon>
-          <h2 class="text-level-2 ion-margin-top">No hay cosecha activa</h2>
-          <p class="text-level-4 ion-margin">Abre una nueva cosecha para empezar a registrar pesadas.</p>
-          <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="openHarvest()">
-            <ion-icon name="add-outline" slot="start"></ion-icon>
-            Abrir nueva cosecha
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
+          </ion-card-content>
+        </ion-card>
+      }
     </ion-content>
   `,
   styles: [`
@@ -129,17 +152,30 @@ import { scaleOutline, cloudDownloadOutline, syncOutline } from 'ionicons/icons'
   `],
 })
 export class HomePage {
+  protected readonly harvestFacade = inject(HarvestFacade);
+  private readonly router = inject(Router);
+
   constructor() {
-    addIcons({ scaleOutline, cloudDownloadOutline, syncOutline });
+    addIcons({ scaleOutline, cloudDownloadOutline, syncOutline, addOutline, closeOutline, pricetagOutline });
+
+    // Cargar cosecha activa al inicializar
+    effect(() => {
+      this.harvestFacade.loadActiveHarvest();
+    });
   }
 
   goToWeigh(): void {
-    // TODO: navegar a /harvest/crews (Tarea 3.2)
-    console.log('Navegar a Cuadrillas');
+    // Navegar a cuadrillas para pesar
+    this.router.navigate(['/harvest/crews']);
+  }
+
+  goToCloseHarvest(): void {
+    // Navegar a pantalla de cierre de cosecha (venta + costos)
+    this.router.navigate(['/harvest/close']);
   }
 
   openHarvest(): void {
-    // TODO: navegar a página abrir cosecha (Tarea 2.3)
-    console.log('Abrir nueva cosecha');
+    // Navegar a página para abrir nueva cosecha
+    this.router.navigate(['/harvest/open']);
   }
 }
