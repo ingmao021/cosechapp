@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -85,9 +85,9 @@ export interface CrewResponse {
  */
 @Injectable({ providedIn: 'root' })
 export class HarvestService {
-  private readonly baseUrl = `${environment.apiUrl}/harvests`;
+  private readonly http = inject(HttpClient);
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly baseUrl = `${environment.apiUrl}/harvests`;
 
   // Harvest CRUD
   openHarvest(dto: OpenHarvestDto): Observable<HarvestResponse> {

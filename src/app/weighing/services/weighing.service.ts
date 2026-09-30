@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -30,9 +30,9 @@ export interface WeighingSummaryResponse {
  */
 @Injectable({ providedIn: 'root' })
 export class WeighingService {
-  private readonly baseUrl = `${environment.apiUrl}/weighings`;
+  private readonly http = inject(HttpClient);
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly baseUrl = `${environment.apiUrl}/weighings`;
 
   recordWeighing(dto: RecordWeighingDto): Observable<WeighingResponse> {
     return this.http.post<WeighingResponse>(this.baseUrl, dto);

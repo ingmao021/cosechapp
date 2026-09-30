@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { WeighingService, RecordWeighingDto, WeighingResponse, WeighingSummaryResponse } from './weighing.service';
 
 /**
@@ -23,6 +23,8 @@ import { WeighingService, RecordWeighingDto, WeighingResponse, WeighingSummaryRe
  */
 @Injectable({ providedIn: 'root' })
 export class WeighingFacade {
+  private readonly weighingService = inject(WeighingService);
+
   // Estado privado (signals)
   private readonly _weighings = signal<WeighingResponse[]>([]);
   private readonly _todayWeighings = signal<WeighingResponse[]>([]);
@@ -43,8 +45,6 @@ export class WeighingFacade {
   readonly todayTotalKilos = computed(() =>
     this._todayWeighings().reduce((sum, w) => sum + w.kilograms, 0)
   );
-
-  constructor(private readonly weighingService: WeighingService) {}
 
   /**
    * Carga todas las pesadas de un recolector.

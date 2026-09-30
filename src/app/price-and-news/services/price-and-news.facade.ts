@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { PriceAndNewsService, CoffeePriceResponse, NotificationResponse, NewsItem } from './price-and-news.service';
 
 /**
@@ -23,6 +23,8 @@ import { PriceAndNewsService, CoffeePriceResponse, NotificationResponse, NewsIte
  */
 @Injectable({ providedIn: 'root' })
 export class PriceAndNewsFacade {
+  private readonly priceAndNewsService = inject(PriceAndNewsService);
+
   // Estado privado (signals)
   private readonly _coffeePrice = signal<{ value: number; queryDate: string } | null>(null);
   private readonly _notifications = signal<{ id: string; date: string; read: boolean }[]>([]);
@@ -56,8 +58,6 @@ export class PriceAndNewsFacade {
     const date = new Date(price.queryDate);
     return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
   });
-
-  constructor(private readonly priceAndNewsService: PriceAndNewsService) {}
 
   /**
    * Carga el precio actual del café FNC.

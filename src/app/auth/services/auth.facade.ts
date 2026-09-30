@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 import { AuthService, LoginRequest, RegisterRequest, AuthResponse, ChangePasswordRequest } from './auth.service';
@@ -24,6 +24,9 @@ const TOKEN_KEY = 'jwt';
  */
 @Injectable({ providedIn: 'root' })
 export class AuthFacade {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
   // Estado privado (signals)
   private readonly _isAuthenticated = signal(false);
   private readonly _currentUser = signal<AuthResponse['coffeeGrower'] | null>(null);
@@ -39,11 +42,6 @@ export class AuthFacade {
   // Computed para comodidad en templates
   readonly userNationalId = computed(() => this._currentUser()?.nationalId ?? null);
   readonly userProfilePhoto = computed(() => this._currentUser()?.profilePhoto ?? null);
-
-  constructor(
-    private readonly authService: AuthService,
-    private readonly router: Router
-  ) {}
 
   /**
    * Inicializa la sesión al arrancar la app (llamado desde Splash).

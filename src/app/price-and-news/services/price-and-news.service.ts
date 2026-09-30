@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -34,9 +34,9 @@ export interface NewsItem {
  */
 @Injectable({ providedIn: 'root' })
 export class PriceAndNewsService {
-  private readonly baseUrl = `${environment.apiUrl}/price-and-news`;
+  private readonly http = inject(HttpClient);
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly baseUrl = `${environment.apiUrl}/price-and-news`;
 
   /**
    * Obtiene el último precio del café FNC.

@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { WorkerService, CreateWorkerDto, UpdateWorkerDto, WorkerResponse } from './worker.service';
 
@@ -20,6 +20,9 @@ import { WorkerService, CreateWorkerDto, UpdateWorkerDto, WorkerResponse } from 
  */
 @Injectable({ providedIn: 'root' })
 export class WorkerFacade {
+  private readonly workerService = inject(WorkerService);
+  private readonly router = inject(Router);
+
   // Estado privado (signals)
   private readonly _workers = signal<WorkerResponse[]>([]);
   private readonly _isLoading = signal(false);
@@ -32,11 +35,6 @@ export class WorkerFacade {
 
   // Computed para comodidad en templates
   readonly workersCount = computed(() => this._workers().length);
-
-  constructor(
-    private readonly workerService: WorkerService,
-    private readonly router: Router
-  ) {}
 
   /**
    * Carga la lista completa de trabajadores del catálogo.

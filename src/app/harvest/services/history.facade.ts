@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { HarvestService, HarvestResponse, HarvestDetailResponse } from './harvest.service';
 
 /**
@@ -19,6 +19,8 @@ import { HarvestService, HarvestResponse, HarvestDetailResponse } from './harves
  */
 @Injectable({ providedIn: 'root' })
 export class HistoryFacade {
+  private readonly harvestService = inject(HarvestService);
+
   // Estado privado (signals)
   private readonly _allHarvests = signal<HarvestResponse[]>([]);
   private readonly _selectedHarvest = signal<HarvestDetailResponse | null>(null);
@@ -33,8 +35,6 @@ export class HistoryFacade {
 
   // Computed
   readonly hasHarvests = computed(() => this._allHarvests().length > 0);
-
-  constructor(private readonly harvestService: HarvestService) {}
 
   /**
    * Carga todas las cosechas para el historial.

@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { PaymentService, PayNowDto, PaymentResponse, PaymentResponseItem, PaymentSummaryResponse } from './payment.service';
 
 /**
@@ -20,6 +20,8 @@ import { PaymentService, PayNowDto, PaymentResponse, PaymentResponseItem, Paymen
  */
 @Injectable({ providedIn: 'root' })
 export class PaymentFacade {
+  private readonly paymentService = inject(PaymentService);
+
   // Estado privado (signals)
   private readonly _payments = signal<PaymentResponseItem[]>([]);
   private readonly _totalPaid = signal<number>(0);
@@ -36,8 +38,6 @@ export class PaymentFacade {
 
   // Computed
   readonly hasPayments = computed(() => this._payments().length > 0);
-
-  constructor(private readonly paymentService: PaymentService) {}
 
   /**
    * Carga el historial de pagos de un recolector.

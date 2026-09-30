@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { SaleAndCostsService, RecordSaleDto, AddProductionCostDto, SaleResponse, ProductionCostResponse, ProfitResponse, DryKgProjectionResponse } from './sale-and-costs.service';
 
 /**
@@ -23,6 +23,8 @@ import { SaleAndCostsService, RecordSaleDto, AddProductionCostDto, SaleResponse,
  */
 @Injectable({ providedIn: 'root' })
 export class SaleAndCostsFacade {
+  private readonly saleAndCostsService = inject(SaleAndCostsService);
+
   // Estado privado (signals)
   private readonly _sale = signal<SaleResponse | null>(null);
   private readonly _costs = signal<ProductionCostResponse[]>([]);
@@ -44,8 +46,6 @@ export class SaleAndCostsFacade {
   // Computed
   readonly hasSale = computed(() => this._sale() !== null);
   readonly totalCosts = computed(() => this._costs().reduce((sum, c) => sum + c.amount, 0));
-
-  constructor(private readonly saleAndCostsService: SaleAndCostsService) {}
 
   /**
    * Carga el cálculo completo de ganancia para una cosecha.

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -35,9 +35,9 @@ export interface WorkerResponse {
  */
 @Injectable({ providedIn: 'root' })
 export class WorkerService {
-  private readonly baseUrl = `${environment.apiUrl}/workers`;
+  private readonly http = inject(HttpClient);
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly baseUrl = `${environment.apiUrl}/workers`;
 
   createWorker(dto: CreateWorkerDto): Observable<WorkerResponse> {
     return this.http.post<WorkerResponse>(this.baseUrl, dto);

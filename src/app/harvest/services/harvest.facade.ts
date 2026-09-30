@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { HarvestService, HarvestResponse, HarvestWorkerResponse, CrewResponse, OpenHarvestDto, AssignWorkerDto, CreateCrewDto, UpdateCrewDto } from './harvest.service';
 
@@ -30,6 +30,9 @@ import { HarvestService, HarvestResponse, HarvestWorkerResponse, CrewResponse, O
  */
 @Injectable({ providedIn: 'root' })
 export class HarvestFacade {
+  private readonly harvestService = inject(HarvestService);
+  private readonly router = inject(Router);
+
   // Estado privado (signals)
   private readonly _activeHarvest = signal<HarvestResponse | null>(null);
   private readonly _activeHarvestPickers = signal<HarvestWorkerResponse[]>([]);
@@ -51,11 +54,6 @@ export class HarvestFacade {
   readonly activeHarvestName = computed(() => this._activeHarvest()?.name ?? '');
   readonly activeHarvestPrice = computed(() => this._activeHarvest()?.pricePerKilogram ?? 0);
   readonly activeHarvestStatus = computed(() => this._activeHarvest()?.status ?? '');
-
-  constructor(
-    private readonly harvestService: HarvestService,
-    private readonly router: Router
-  ) {}
 
   /**
    * Carga la cosecha activa al iniciar la app o al navegar a Home.
