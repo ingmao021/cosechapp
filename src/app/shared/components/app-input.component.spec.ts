@@ -29,7 +29,7 @@ describe('AppInputComponent', () => {
   });
 
   it('should emit valueChange on input', () => {
-    const emitSpy = spyOn(component.valueChange, 'emit');
+    const emitSpy = vi.spyOn(component.valueChange, 'emit');
     fixture.detectChanges();
     const input = fixture.debugElement.query(By.css('ion-input'));
     input.triggerEventHandler('ionInput', { target: { value: '12345' } });
@@ -42,10 +42,10 @@ describe('AppInputComponent', () => {
     fixture.detectChanges();
 
     const input = fixture.debugElement.query(By.css('ion-input'));
-    input.triggerEventHandler('ionBlur', {});
+    input.triggerEventHandler('ionBlur', { target: input.nativeElement });
     fixture.detectChanges();
 
-    expect(component.showError()).toBeTrue();
+    expect(component.showError()).toBe(true);
   });
 
   it('should not show error when valid value on blur', () => {
@@ -54,23 +54,23 @@ describe('AppInputComponent', () => {
     fixture.detectChanges();
 
     const input = fixture.debugElement.query(By.css('ion-input'));
-    input.triggerEventHandler('ionBlur', {});
+    input.triggerEventHandler('ionBlur', { target: input.nativeElement });
     fixture.detectChanges();
 
-    expect(component.showError()).toBeFalse();
+    expect(component.showError()).toBe(false);
   });
 
   it('should toggle password visibility', () => {
     fixture.componentRef.setInput('type', 'password');
     fixture.detectChanges();
 
-    expect(component.showPassword()).toBeFalse();
+    expect(component.showPassword()).toBe(false);
 
     const toggleButton = fixture.debugElement.query(By.css('ion-button[slot="end"]'));
     toggleButton.triggerEventHandler('click', {});
     fixture.detectChanges();
 
-    expect(component.showPassword()).toBeTrue();
+    expect(component.showPassword()).toBe(true);
   });
 
   it('should respect minlength validation', () => {
@@ -80,10 +80,10 @@ describe('AppInputComponent', () => {
     fixture.detectChanges();
 
     const input = fixture.debugElement.query(By.css('ion-input'));
-    input.triggerEventHandler('ionBlur', {});
+    input.triggerEventHandler('ionBlur', { target: input.nativeElement });
     fixture.detectChanges();
 
-    expect(component.showError()).toBeTrue();
+    expect(component.showError()).toBe(true);
   });
 
   it('should respect maxlength validation', () => {
@@ -93,9 +93,9 @@ describe('AppInputComponent', () => {
     fixture.detectChanges();
 
     const input = fixture.debugElement.query(By.css('ion-input'));
-    input.triggerEventHandler('ionBlur', {});
+    input.triggerEventHandler('ionBlur', { target: input.nativeElement });
     fixture.detectChanges();
 
-    expect(component.showError()).toBeTrue();
+    expect(component.showError()).toBe(true);
   });
 });

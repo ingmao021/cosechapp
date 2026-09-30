@@ -15,8 +15,5 @@ if (!window.matchMedia) {
     }) as MediaQueryList;
 }
 
-// Initialize Angular TestBed for standalone components
-import { TestBed } from '@angular/core/testing';
-import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
-
-TestBed.initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting());
+// El entorno de TestBed lo inicializa el builder @angular/build:unit-test;
+// inicializarlo aquí de nuevo crea una segunda plataforma (NG0400).

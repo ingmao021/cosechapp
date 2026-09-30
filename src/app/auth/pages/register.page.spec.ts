@@ -3,30 +3,52 @@ import { RegisterPage } from './register.page';
 import { AuthFacade } from '../services/auth.facade';
 import { Router } from '@angular/router';
 import { By } from '@angular/platform-browser';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
+import type { Mock } from 'vitest';
 
 describe('RegisterPage', () => {
   let component: RegisterPage;
   let fixture: ComponentFixture<RegisterPage>;
-  let authFacadeSpy: jasmine.SpyObj<AuthFacade>;
-  let routerSpy: jasmine.SpyObj<Router>;
+  let authFacadeMock: { register: Mock<AuthFacade['register']>; isLoading: WritableSignal<boolean> };
+  let routerMock: { navigate: Mock<Router['navigate']> };
+
+  // Simula la escritura del usuario: el componente es OnPush (por defecto en Angular 22),
+  // así que asignar los campos directamente no refrescaría la vista.
+  const typeInto = (label: string, value: string): void => {
+    const ionInput = fixture.debugElement.query(By.css(`app-input[label="${label}"] ion-input`));
+    ionInput.nativeElement.value = value;
+    ionInput.triggerEventHandler('ionInput', { target: ionInput.nativeElement });
+  };
+
+  const fillForm = async (nationalId: string, password: string, confirmPassword: string): Promise<void> => {
+    typeInto('Cédula', nationalId);
+    typeInto('Contraseña', password);
+    typeInto('Confirmar contraseña', confirmPassword);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
 
   beforeEach(async () => {
-    authFacadeSpy = jasmine.createSpyObj('AuthFacade', ['register', 'isLoading'], {
+    authFacadeMock = {
+      register: vi.fn<AuthFacade['register']>(),
       isLoading: signal(false),
-    });
-    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    };
+    routerMock = { navigate: vi.fn<Router['navigate']>() };
 
     await TestBed.configureTestingModule({
       imports: [RegisterPage],
       providers: [
-        { provide: AuthFacade, useValue: authFacadeSpy },
-        { provide: Router, useValue: routerSpy },
+        { provide: AuthFacade, useValue: authFacadeMock },
+        { provide: Router, useValue: routerMock },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegisterPage);
     component = fixture.componentInstance;
+    fixture.detectChanges();
+    // ngModel registra los controles de forma asíncrona; se refresca la vista con el estado del formulario
+    await fixture.whenStable();
     fixture.detectChanges();
   });
 
@@ -42,7 +64,7 @@ describe('RegisterPage', () => {
   it('should have cedula input with correct validation', () => {
     const cedulaInput = fixture.debugElement.query(By.css('app-input[label="Cédula"]'));
     expect(cedulaInput).toBeTruthy();
-    expect(cedulaInput.componentInstance.required()).toBeTrue();
+    expect(cedulaInput.componentInstance.required()).toBe(true);
     expect(cedulaInput.componentInstance.minlength()).toBe(5);
     expect(cedulaInput.componentInstance.maxlength()).toBe(20);
   });
@@ -50,7 +72,7 @@ describe('RegisterPage', () => {
   it('should have password input with correct validation', () => {
     const passwordInput = fixture.debugElement.query(By.css('app-input[label="Contraseña"]'));
     expect(passwordInput).toBeTruthy();
-    expect(passwordInput.componentInstance.required()).toBeTrue();
+    expect(passwordInput.componentInstance.required()).toBe(true);
     expect(passwordInput.componentInstance.minlength()).toBe(6);
     expect(passwordInput.componentInstance.maxlength()).toBe(50);
   });
@@ -58,83 +80,67 @@ describe('RegisterPage', () => {
   it('should have confirm password input with correct validation', () => {
     const confirmInput = fixture.debugElement.query(By.css('app-input[label="Confirmar contraseña"]'));
     expect(confirmInput).toBeTruthy();
-    expect(confirmInput.componentInstance.required()).toBeTrue();
+    expect(confirmInput.componentInstance.required()).toBe(true);
   });
 
-  it('should show error when passwords do not match', () => {
-    component.password = 'password123';
-    component.confirmPassword = 'different';
-    fixture.detectChanges();
+  it('should show error when passwords do not match', async () => {
+    await fillForm('', 'password123', 'different');
 
-    expect(component.passwordMismatch()).toBeTrue();
+    expect(component.passwordMismatch()).toBe(true);
   });
 
-  it('should not show error when passwords match', () => {
-    component.password = 'password123';
-    component.confirmPassword = 'password123';
-    fixture.detectChanges();
+  it('should not show error when passwords match', async () => {
+    await fillForm('', 'password123', 'password123');
 
-    expect(component.passwordMismatch()).toBeFalse();
+    expect(component.passwordMismatch()).toBe(false);
   });
 
-  it('should disable submit button when passwords do not match', () => {
-    component.nationalId = '12345';
-    component.password = 'password123';
-    component.confirmPassword = 'different';
-    fixture.detectChanges();
+  it('should disable submit button when passwords do not match', async () => {
+    await fillForm('12345', 'password123', 'different');
 
     const button = fixture.debugElement.query(By.css('app-button-primary[type="submit"]'));
-    expect(button.componentInstance.disabled()).toBeTrue();
+    expect(button.componentInstance.disabled()).toBe(true);
   });
 
-  it('should enable submit button when form is valid and passwords match', () => {
-    component.nationalId = '12345';
-    component.password = 'password123';
-    component.confirmPassword = 'password123';
-    fixture.detectChanges();
+  it('should enable submit button when form is valid and passwords match', async () => {
+    await fillForm('12345', 'password123', 'password123');
 
     const button = fixture.debugElement.query(By.css('app-button-primary[type="submit"]'));
-    expect(button.componentInstance.disabled()).toBeFalse();
+    expect(button.componentInstance.disabled()).toBe(false);
   });
 
   it('should call authFacade.register on form submit', async () => {
-    authFacadeSpy.register.and.resolveTo(undefined);
-    component.nationalId = '123456789';
-    component.password = 'password123';
-    component.confirmPassword = 'password123';
-    fixture.detectChanges();
+    authFacadeMock.register.mockResolvedValue(undefined);
+    await fillForm('123456789', 'password123', 'password123');
 
     const form = fixture.debugElement.query(By.css('form'));
     form.triggerEventHandler('ngSubmit', {});
     await fixture.whenStable();
 
-    expect(authFacadeSpy.register).toHaveBeenCalledWith('123456789', 'password123', undefined);
+    expect(authFacadeMock.register).toHaveBeenCalledWith('123456789', 'password123', undefined);
   });
 
   it('should show error toast on register failure', async () => {
-    authFacadeSpy.register.and.rejectWith({ message: 'Error al crear cuenta' });
-    component.nationalId = '123456789';
-    component.password = 'password123';
-    component.confirmPassword = 'password123';
-    fixture.detectChanges();
+    authFacadeMock.register.mockRejectedValue({ message: 'Error al crear cuenta' });
+    await fillForm('123456789', 'password123', 'password123');
 
     const form = fixture.debugElement.query(By.css('form'));
     form.triggerEventHandler('ngSubmit', {});
     await fixture.whenStable();
 
-    expect(component.showError()).toBeTrue();
+    expect(component.showError()).toBe(true);
     expect(component.errorMessage()).toBe('Error al crear cuenta');
   });
 
   it('should navigate to login page on "Ingresar" click', () => {
-    const loginLink = fixture.debugElement.query(By.css('ion-button[fill="clear"]'));
+    const loginLink = fixture.debugElement.query(By.css('.login-link ion-button'));
     loginLink.triggerEventHandler('click', {});
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/auth/login']);
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/login']);
   });
 
   it('should navigate back to login on back button click', () => {
-    const backButton = fixture.debugElement.query(By.css('ion-button[fill="clear"][slot="start"]'));
+    const backButton = fixture.debugElement.query(By.css('ion-buttons[slot="start"] ion-button'));
     backButton.triggerEventHandler('click', {});
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/auth/login']);
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/login']);
   });
 });
