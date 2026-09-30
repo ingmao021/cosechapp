@@ -9,14 +9,10 @@ import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { IonChip } from '@ionic/angular/ion-chip';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonList } from '@ionic/angular/ion-list';
-import { IonToast } from '@ionic/angular/ion-toast';
 import { addIcons } from 'ionicons';
 import { pricetagOutline, chevronForwardOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
@@ -41,14 +37,10 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     IonIcon,
     IonCard,
     IonCardContent,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardSubtitle,
     IonChip,
     IonLabel,
     IonItem,
     IonList,
-    IonToast,
     CurrencyPipe,
     DateFormatPipe,
   ],
@@ -72,28 +64,30 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
         </div>
       } @else {
         <ion-list lines="full">
-          <ion-item *ngFor="let n of priceAndNewsFacade.notifications()" lines="full" [class.unread]="!n.read">
-            <ion-card class="notification-card" [class.unread]="!n.read">
-              <ion-card-content>
-                <div class="notification-header">
-                  <ion-chip [color]="n.read ? 'medium' : 'primary'" size="small">
-                    <ion-label>{{ n.read ? 'Leída' : 'Nueva' }}</ion-label>
-                  </ion-chip>
-                  <ion-badge color="primary" slot="end">{{ n.value | currency }}</ion-badge>
-                </div>
-                <div class="notification-body">
-                  <p class="text-level-3">Cambio de precio del café FNC</p>
-                  <p class="text-level-4">{{ n.date | dateFormat:'short' }}</p>
-                </div>
-                @if (!n.read) {
-                  <ion-button fill="clear" color="primary" size="small" class="ion-margin-top" (click)="markAsRead(n.id)">
-                    <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-                    Marcar como leída
-                  </ion-button>
-                }
-              </ion-card-content>
-            </ion-card>
-          </ion-item>
+          @for (n of priceAndNewsFacade.notifications(); track n.id) {
+            <ion-item lines="full" [class.unread]="!n.read">
+              <ion-card class="notification-card" [class.unread]="!n.read">
+                <ion-card-content>
+                  <div class="notification-header">
+                    <ion-chip [color]="n.read ? 'medium' : 'primary'" size="small">
+                      <ion-label>{{ n.read ? 'Leída' : 'Nueva' }}</ion-label>
+                    </ion-chip>
+                    <ion-badge color="primary" slot="end">{{ n.value | currency }}</ion-badge>
+                  </div>
+                  <div class="notification-body">
+                    <p class="text-level-3">Cambio de precio del café FNC</p>
+                    <p class="text-level-4">{{ n.date | dateFormat:'short' }}</p>
+                  </div>
+                  @if (!n.read) {
+                    <ion-button fill="clear" color="primary" size="small" class="ion-margin-top" (click)="markAsRead(n.id)">
+                      <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+                      Marcar como leída
+                    </ion-button>
+                  }
+                </ion-card-content>
+              </ion-card>
+            </ion-item>
+          }
         </ion-list>
       }
     </ion-content>

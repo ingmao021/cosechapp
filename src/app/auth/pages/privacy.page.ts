@@ -1,5 +1,4 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
@@ -27,7 +26,6 @@ import { Router } from '@angular/router';
   selector: 'app-privacy',
   standalone: true,
   imports: [
-    CommonModule,
     IonContent,
     IonHeader,
     IonToolbar,

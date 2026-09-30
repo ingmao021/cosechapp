@@ -1,5 +1,4 @@
 import { Component, effect, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { IonContent } from '@ionic/angular/ion-content';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { AuthFacade } from '../services/auth.facade';
@@ -17,7 +16,7 @@ import { AuthFacade } from '../services/auth.facade';
 @Component({
   selector: 'app-splash',
   standalone: true,
-  imports: [CommonModule, IonContent],
+  imports: [IonContent],
   template: `
     <ion-content class="splash-content" [class.hidden]="navigated">
       <!-- Contenido vacío: el splash real es el nativo de Capacitor (Cosech.png).

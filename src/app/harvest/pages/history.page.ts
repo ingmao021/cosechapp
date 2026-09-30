@@ -50,26 +50,28 @@ import { HistoryFacade } from '../services/history.facade';
         </div>
       } @else {
         <!-- Lista de cosechas -->
-        <ion-card class="history-card" *ngFor="let harvest of historyFacade.allHarvests()" (click)="goToDetail(harvest.id)">
-          <ion-card-content>
-            <ion-card-header>
-              <ion-card-title class="text-level-3">{{ harvest.name }}</ion-card-title>
-              <ion-card-subtitle class="text-level-4">
-                {{ harvest.openingDate | dateFormat:'date' }} – {{ harvest.closingDate | dateFormat:'date' }}
-              </ion-card-subtitle>
-            </ion-card-header>
-            <div class="card-meta">
-              <ion-chip color="medium" class="status-chip">
-                <ion-label>{{ harvest.status }}</ion-label>
-              </ion-chip>
-              <div class="profit-info">
-                <span class="text-level-4">Ganancia de la cosecha</span>
-                <span class="profit-value text-level-2">{{ harvest.profit ? (harvest.profit | currency) : '—' }}</span>
+        @for (harvest of historyFacade.allHarvests(); track harvest.id) {
+          <ion-card class="history-card" (click)="goToDetail(harvest.id)">
+            <ion-card-content>
+              <ion-card-header>
+                <ion-card-title class="text-level-3">{{ harvest.name }}</ion-card-title>
+                <ion-card-subtitle class="text-level-4">
+                  {{ harvest.openingDate | dateFormat:'date' }} – {{ harvest.closingDate | dateFormat:'date' }}
+                </ion-card-subtitle>
+              </ion-card-header>
+              <div class="card-meta">
+                <ion-chip color="medium" class="status-chip">
+                  <ion-label>{{ harvest.status }}</ion-label>
+                </ion-chip>
+                <div class="profit-info">
+                  <span class="text-level-4">Ganancia de la cosecha</span>
+                  <span class="profit-value text-level-2">{{ harvest.profit ? (harvest.profit | currency) : '—' }}</span>
+                </div>
               </div>
-            </div>
-            <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
-          </ion-card-content>
-        </ion-card>
+              <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+            </ion-card-content>
+          </ion-card>
+        }
       }
     </ion-content>
   `,

@@ -1,5 +1,4 @@
 import { Component, effect, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
@@ -27,7 +26,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonAvatar, IonLabel, IonCard, IonCardContent, IonChip],
+  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonAvatar, IonLabel, IonCard, IonCardContent, IonChip],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -41,8 +40,12 @@ import { Router } from '@angular/router';
         <ion-card-content>
           <div class="profile-header">
             <ion-avatar class="profile-avatar">
-              <ion-icon name="person-outline" *ngIf="!profilePhoto()" size="large"></ion-icon>
-              <img *ngIf="profilePhoto()" [src]="profilePhoto()" alt="Foto de perfil" />
+              @if (!profilePhoto()) {
+                <ion-icon name="person-outline" size="large"></ion-icon>
+              }
+              @if (profilePhoto()) {
+                <img [src]="profilePhoto()" alt="Foto de perfil" />
+              }
             </ion-avatar>
             <div class="profile-info">
               <h2 class="text-level-2">{{ userNationalId() }}</h2>

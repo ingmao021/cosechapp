@@ -11,12 +11,9 @@ import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { IonCardHeader } from '@ionic/angular/ion-card-header';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
-import { IonChip } from '@ionic/angular/ion-chip';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonList } from '@ionic/angular/ion-list';
-import { IonToast } from '@ionic/angular/ion-toast';
 import { addIcons } from 'ionicons';
 import { addOutline, cashOutline, timeOutline, chevronForwardOutline, alertCircleOutline } from 'ionicons/icons';
 import { AppChipComponent } from '@shared/components';
@@ -47,12 +44,9 @@ import { PaymentFacade } from '@payment/services/payment.facade';
     IonCardContent,
     IonCardHeader,
     IonCardTitle,
-    IonCardSubtitle,
-    IonChip,
     IonLabel,
     IonItem,
     IonList,
-    IonToast,
     AppChipComponent,
     CurrencyPipe,
     DateFormatPipe,
@@ -81,12 +75,14 @@ import { PaymentFacade } from '@payment/services/payment.facade';
               <p class="text-level-4 text-center ion-padding">Sin pesadas hoy</p>
             } @else {
               <ion-list lines="full">
-                <ion-item *ngFor="let w of weighingFacade.todayWeighings()" lines="full">
-                  <ion-label>
-                    <h3 class="text-level-3">{{ w.kilograms | kilos }}</h3>
-                    <p class="text-level-4">{{ w.dateTime | dateFormat:'time' }}</p>
-                  </ion-label>
-                </ion-item>
+                @for (w of weighingFacade.todayWeighings(); track w.id) {
+                  <ion-item lines="full">
+                    <ion-label>
+                      <h3 class="text-level-3">{{ w.kilograms | kilos }}</h3>
+                      <p class="text-level-4">{{ w.dateTime | dateFormat:'time' }}</p>
+                    </ion-label>
+                  </ion-item>
+                }
               </ion-list>
             }
             <ion-button fill="solid" color="primary" expand="block" class="ion-margin-top" (click)="addWeighing()">
@@ -139,7 +135,9 @@ import { PaymentFacade } from '@payment/services/payment.facade';
             <div class="pay-summary">
               <p class="text-level-3">Monto a pagar: <span class="pay-amount">{{ paymentFacade.payNowResult()?.amountDue ?? 0 | currency }}</span></p>
               <p class="text-level-4">(Kilos totales × precio/kilo - alimentación)</p>
-              <p class="text-level-4" *ngIf="paymentFacade.payNowResult()">Kilos: {{ paymentFacade.payNowResult()!.totalKilograms | kilos }}</p>
+              @if (paymentFacade.payNowResult()) {
+                <p class="text-level-4">Kilos: {{ paymentFacade.payNowResult()!.totalKilograms | kilos }}</p>
+              }
             </div>
             <ion-button
               fill="solid"
@@ -165,18 +163,20 @@ import { PaymentFacade } from '@payment/services/payment.facade';
               <p class="text-level-4 text-center ion-padding">Sin pagos registrados</p>
             } @else {
               <ion-list lines="full">
-                <ion-item *ngFor="let p of paymentFacade.payments()" lines="full">
-                  <ion-label>
-                    <h3 class="text-level-3">{{ p.amount | currency }}</h3>
-                    <p class="text-level-4">{{ p.dateTime | dateFormat:'short' }}</p>
-                    @if (p.includesMeals) {
-                      <p class="text-level-4" style="color: var(--color-primary);">
-                        <ion-icon name="restaurant-outline" size="small"></ion-icon>
-                        Incluye alimentación
-                      </p>
-                    }
-                  </ion-label>
-                </ion-item>
+                @for (p of paymentFacade.payments(); track p.id) {
+                  <ion-item lines="full">
+                    <ion-label>
+                      <h3 class="text-level-3">{{ p.amount | currency }}</h3>
+                      <p class="text-level-4">{{ p.dateTime | dateFormat:'short' }}</p>
+                      @if (p.includesMeals) {
+                        <p class="text-level-4" style="color: var(--color-primary);">
+                          <ion-icon name="restaurant-outline" size="small"></ion-icon>
+                          Incluye alimentación
+                        </p>
+                      }
+                    </ion-label>
+                  </ion-item>
+                }
               </ion-list>
             }
           </ion-card-content>

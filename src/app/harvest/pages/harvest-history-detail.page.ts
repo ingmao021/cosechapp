@@ -11,12 +11,9 @@ import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { IonCardHeader } from '@ionic/angular/ion-card-header';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
-import { IonChip } from '@ionic/angular/ion-chip';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonList } from '@ionic/angular/ion-list';
-import { IonToast } from '@ionic/angular/ion-toast';
 import { addIcons } from 'ionicons';
 import { chevronForwardOutline, cashOutline, timeOutline, personOutline, restaurantOutline, calculatorOutline } from 'ionicons/icons';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
@@ -44,12 +41,9 @@ import { HistoryFacade } from '../services/history.facade';
     IonCardContent,
     IonCardHeader,
     IonCardTitle,
-    IonCardSubtitle,
-    IonChip,
     IonLabel,
     IonItem,
     IonList,
-    IonToast,
     CurrencyPipe,
     DateFormatPipe,
     KilosPipe,
@@ -92,20 +86,22 @@ import { HistoryFacade } from '../services/history.facade';
               <p class="text-level-4 text-center ion-padding">Sin recolectores registrados</p>
             } @else {
               <ion-list lines="full">
-                <ion-item *ngFor="let p of pickers()" lines="full">
-                  <ion-label>
-                    <h3 class="text-level-3">{{ p.harvestAlias ?? p.workerId }}</h3>
-                    <p class="text-level-4">{{ p.totalKilograms | kilos }} total • {{ p.totalPaid | currency }} pagado</p>
-                    @if (p.hasMeals) {
-                      <p class="text-level-4" style="color: var(--color-primary);">
-                        <ion-icon name="restaurant-outline" size="small"></ion-icon>
-                        Con alimentación: {{ p.mealDetail }}
-                      </p>
-                    }
-                    <p class="text-level-4">Estado: {{ p.status }}</p>
-                  </ion-label>
-                  <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
-                </ion-item>
+                @for (p of pickers(); track p.id) {
+                  <ion-item lines="full">
+                    <ion-label>
+                      <h3 class="text-level-3">{{ p.harvestAlias ?? p.workerId }}</h3>
+                      <p class="text-level-4">{{ p.totalKilograms | kilos }} total • {{ p.totalPaid | currency }} pagado</p>
+                      @if (p.hasMeals) {
+                        <p class="text-level-4" style="color: var(--color-primary);">
+                          <ion-icon name="restaurant-outline" size="small"></ion-icon>
+                          Con alimentación: {{ p.mealDetail }}
+                        </p>
+                      }
+                      <p class="text-level-4">Estado: {{ p.status }}</p>
+                    </ion-label>
+                    <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+                  </ion-item>
+                }
               </ion-list>
             }
           </ion-card-content>
@@ -150,13 +146,15 @@ import { HistoryFacade } from '../services/history.facade';
           <ion-card-content>
             @if (selectedHarvest()?.costs && selectedHarvest()!.costs!.length > 0) {
               <ion-list lines="full">
-                <ion-item *ngFor="let c of selectedHarvest()!.costs!" lines="full">
-                  <ion-label>
-                    <h3 class="text-level-3">{{ c.description }}</h3>
-                    <p class="text-level-4">{{ c.date | dateFormat:'date' }}</p>
-                  </ion-label>
-                  <ion-note slot="end" color="danger">{{ c.amount | currency }}</ion-note>
-                </ion-item>
+                @for (c of selectedHarvest()!.costs!; track c.id) {
+                  <ion-item lines="full">
+                    <ion-label>
+                      <h3 class="text-level-3">{{ c.description }}</h3>
+                      <p class="text-level-4">{{ c.date | dateFormat:'date' }}</p>
+                    </ion-label>
+                    <ion-note slot="end" color="danger">{{ c.amount | currency }}</ion-note>
+                  </ion-item>
+                }
               </ion-list>
               <div class="total-costs">
                 <span class="text-level-3">Total costos</span>

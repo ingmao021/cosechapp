@@ -13,7 +13,6 @@ import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { IonCardHeader } from '@ionic/angular/ion-card-header';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { IonInput } from '@ionic/angular/ion-input';
@@ -50,7 +49,6 @@ import { DateFormatPipe } from '@shared/pipes/date.pipe';
     IonCardContent,
     IonCardHeader,
     IonCardTitle,
-    IonCardSubtitle,
     IonItem,
     IonLabel,
     IonInput,
@@ -80,10 +78,12 @@ import { DateFormatPipe } from '@shared/pipes/date.pipe';
         </div>
       } @else {
         <!-- Header con info de la cosecha -->
-        <div class="harvest-header" *ngIf="harvestFacade.hasActiveHarvest()">
-          <h2 class="text-level-2">{{ harvestFacade.activeHarvestName() }}</h2>
-          <p class="text-level-4">Kilos cereza totales: {{ totalCherryKilos() | kilos }} | Proyección: {{ saleAndCostsFacade.projectedDryKg() | kilos }} secos</p>
-        </div>
+        @if (harvestFacade.hasActiveHarvest()) {
+          <div class="harvest-header">
+            <h2 class="text-level-2">{{ harvestFacade.activeHarvestName() }}</h2>
+            <p class="text-level-4">Kilos cereza totales: {{ totalCherryKilos() | kilos }} | Proyección: {{ saleAndCostsFacade.projectedDryKg() | kilos }} secos</p>
+          </div>
+        }
 
         <!-- Paso 1: Venta -->
         <ion-card class="step-card" [class.active]="currentStep() === 1">
@@ -197,13 +197,15 @@ import { DateFormatPipe } from '@shared/pipes/date.pipe';
 
             @if (saleAndCostsFacade.costs().length > 0) {
               <ion-list lines="full" class="ion-margin-top">
-                <ion-item *ngFor="let cost of saleAndCostsFacade.costs()">
-                  <ion-label>
-                    <h3 class="text-level-3">{{ cost.description }}</h3>
-                    <p class="text-level-4">{{ cost.date | dateFormat:'date' }}</p>
-                  </ion-label>
-                  <ion-note slot="end" color="danger">{{ cost.amount | currency }}</ion-note>
-                </ion-item>
+                @for (cost of saleAndCostsFacade.costs(); track cost.id) {
+                  <ion-item>
+                    <ion-label>
+                      <h3 class="text-level-3">{{ cost.description }}</h3>
+                      <p class="text-level-4">{{ cost.date | dateFormat:'date' }}</p>
+                    </ion-label>
+                    <ion-note slot="end" color="danger">{{ cost.amount | currency }}</ion-note>
+                  </ion-item>
+                }
               </ion-list>
             }
 

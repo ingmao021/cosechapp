@@ -1,5 +1,4 @@
 import { Component, effect, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -9,11 +8,8 @@ import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
 import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
-import { IonChip } from '@ionic/angular/ion-chip';
-import { IonLabel } from '@ionic/angular/ion-label';
 import { addIcons } from 'ionicons';
 import { peopleOutline, addOutline, chevronForwardOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
@@ -26,7 +22,7 @@ import { HarvestFacade } from '../services/harvest.facade';
 @Component({
   selector: 'app-crews',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonChip, IonLabel],
+  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardTitle, IonCardSubtitle],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -76,15 +72,17 @@ import { HarvestFacade } from '../services/harvest.facade';
           </ion-card>
         } @else {
           <!-- Lista de cuadrillas -->
-          <ion-card class="crew-card" *ngFor="let crew of harvestFacade.activeHarvestCrews()" (click)="goToCrewDetail(crew.id)">
-            <ion-card-content>
-              <div class="crew-info">
-                <ion-card-title class="text-level-3">{{ crew.name }}</ion-card-title>
-                <ion-card-subtitle class="text-level-4">{{ getPickersCount(crew.id) }} recolectores</ion-card-subtitle>
-              </div>
-              <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
-            </ion-card-content>
-          </ion-card>
+          @for (crew of harvestFacade.activeHarvestCrews(); track crew.id) {
+            <ion-card class="crew-card" (click)="goToCrewDetail(crew.id)">
+              <ion-card-content>
+                <div class="crew-info">
+                  <ion-card-title class="text-level-3">{{ crew.name }}</ion-card-title>
+                  <ion-card-subtitle class="text-level-4">{{ getPickersCount(crew.id) }} recolectores</ion-card-subtitle>
+                </div>
+                <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+              </ion-card-content>
+            </ion-card>
+          }
         }
       }
     </ion-content>

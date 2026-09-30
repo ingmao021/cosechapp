@@ -1,9 +1,8 @@
 import { Component, effect, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonChip, IonLabel, IonBadge, IonToast, IonButtons } from '@ionic/angular';
+import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonLabel, IonBadge, IonButtons } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline } from 'ionicons/icons';
-import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.facade';
 
@@ -33,12 +32,9 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     IonCardHeader,
     IonCardTitle,
     IonCardSubtitle,
-    IonChip,
     IonLabel,
     IonBadge,
-    IonToast,
     IonButtons,
-    CurrencyPipe,
     DateFormatPipe,
   ],
   template: `
@@ -48,7 +44,9 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
         <ion-buttons slot="end">
           <ion-button fill="clear" (click)="goToNotifications()">
             <ion-icon name="notifications-outline" slot="icon-only"></ion-icon>
-            <ion-badge *ngIf="priceAndNewsFacade.unreadCount() > 0" color="danger">{{ priceAndNewsFacade.unreadCount() }}</ion-badge>
+            @if (priceAndNewsFacade.unreadCount() > 0) {
+              <ion-badge color="danger">{{ priceAndNewsFacade.unreadCount() }}</ion-badge>
+            }
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -104,19 +102,21 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
               <p class="text-level-4 ion-padding-horizontal">No hay noticias disponibles</p>
             </div>
           } @else {
-            <ion-card class="news-card" *ngFor="let news of priceAndNewsFacade.news()">
-              <ion-card-content>
-                <ion-card-header>
-                  <ion-card-title class="text-level-3">{{ news.title }}</ion-card-title>
-                  <ion-card-subtitle class="text-level-4">{{ news.source }} • {{ news.publishedAt | dateFormat:'short' }}</ion-card-subtitle>
-                </ion-card-header>
-                <p class="text-level-4 ion-margin-top">{{ news.summary }}</p>
-                <ion-button fill="clear" color="primary" size="small" class="ion-margin-top" (click)="openLink(news.url)">
-                  <ion-icon name="open-outline" slot="end"></ion-icon>
-                  Leer más
-                </ion-button>
-              </ion-card-content>
-            </ion-card>
+            @for (news of priceAndNewsFacade.news(); track news.url) {
+              <ion-card class="news-card">
+                <ion-card-content>
+                  <ion-card-header>
+                    <ion-card-title class="text-level-3">{{ news.title }}</ion-card-title>
+                    <ion-card-subtitle class="text-level-4">{{ news.source }} • {{ news.publishedAt | dateFormat:'short' }}</ion-card-subtitle>
+                  </ion-card-header>
+                  <p class="text-level-4 ion-margin-top">{{ news.summary }}</p>
+                  <ion-button fill="clear" color="primary" size="small" class="ion-margin-top" (click)="openLink(news.url)">
+                    <ion-icon name="open-outline" slot="end"></ion-icon>
+                    Leer más
+                  </ion-button>
+                </ion-card-content>
+              </ion-card>
+            }
           }
         </div>
       }

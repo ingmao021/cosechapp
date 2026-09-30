@@ -1,5 +1,4 @@
 import { Component, effect, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -10,7 +9,6 @@ import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
 import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { IonItem } from '@ionic/angular/ion-item';
@@ -34,7 +32,6 @@ import { WorkerFacade } from '../services/worker.facade';
   selector: 'app-worker-catalog',
   standalone: true,
   imports: [
-    CommonModule,
     IonContent,
     IonHeader,
     IonToolbar,
@@ -44,7 +41,6 @@ import { WorkerFacade } from '../services/worker.facade';
     IonIcon,
     IonCard,
     IonCardContent,
-    IonCardHeader,
     IonItem,
     IonLabel,
     IonAvatar,
