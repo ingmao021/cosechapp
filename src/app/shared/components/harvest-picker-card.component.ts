@@ -88,7 +88,7 @@ export interface PickerCardData {
     .picker-card:hover,
     .picker-card:active {
       transform: scale(0.99);
-      box-shadow: 0 2dp 6dp rgba(43,36,32,0.16);
+      box-shadow: 0 2px 6px rgba(43,36,32,0.16);
     }
     .picker-card.clickable {
       cursor: pointer;
@@ -112,13 +112,13 @@ export interface PickerCardData {
       object-fit: cover;
     }
     .avatar-icon {
-      font-size: 24dp;
+      font-size: 24px;
     }
     .picker-info {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 4dp;
+      gap: 4px;
       min-width: 0;
       flex: 1;
     }
@@ -139,7 +139,7 @@ export interface PickerCardData {
     .picker-meta {
       display: flex;
       align-items: center;
-      gap: 8dp;
+      gap: 8px;
       font-family: var(--font-family-body);
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
@@ -147,24 +147,24 @@ export interface PickerCardData {
     .daily-kilos {
       display: flex;
       align-items: center;
-      gap: 4dp;
+      gap: 4px;
     }
     .daily-kilos .icon {
-      font-size: 14dp;
+      font-size: 14px;
       color: var(--color-primary);
     }
     .picker-actions {
       display: flex;
       align-items: center;
-      gap: 8dp;
+      gap: 8px;
       flex-wrap: wrap;
     }
     .icon-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40dp;
-      height: 40dp;
+      width: 40px;
+      height: 40px;
       border: none;
       border-radius: var(--radius-full);
       background: var(--color-primary);
@@ -178,7 +178,7 @@ export interface PickerCardData {
       opacity: 0.9;
     }
     .icon-btn .icon {
-      font-size: 20dp;
+      font-size: 20px;
     }
   `],
 })

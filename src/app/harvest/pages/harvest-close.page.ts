@@ -251,7 +251,7 @@ import { DateFormatPipe } from '@shared/pipes/date.pipe';
       --box-shadow: var(--shadow-card);
       margin-bottom: var(--spacing-md);
       transition: border-color 0.2s;
-      border: 2dp solid transparent;
+      border: 2px solid transparent;
     }
     .step-card.active {
       border-color: var(--color-primary);
@@ -268,7 +268,7 @@ import { DateFormatPipe } from '@shared/pipes/date.pipe';
     }
     .result-box {
       background: var(--color-surface);
-      border: 2dp solid var(--color-primary);
+      border: 2px solid var(--color-primary);
       border-radius: var(--radius-md);
       padding: var(--spacing-md);
       margin-top: var(--spacing-md);

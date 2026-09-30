@@ -108,7 +108,7 @@ import { HistoryFacade } from '../services/history.facade';
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 2dp;
+      gap: 2px;
     }
     .profit-value {
       font-family: var(--font-family-display);

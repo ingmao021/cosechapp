@@ -139,8 +139,8 @@ import { Router } from '@angular/router';
     }
     .logout-btn {
       --border-radius: var(--radius-full);
-      height: 48dp;
-      min-height: 48dp;
+      height: 48px;
+      min-height: 48px;
     }
     .legal-card {
       --border-radius: var(--radius-md);

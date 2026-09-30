@@ -200,7 +200,7 @@ import { PaymentFacade } from '@payment/services/payment.facade';
       padding: var(--spacing-sm);
     }
     .pay-card {
-      border: 2dp solid var(--color-primary);
+      border: 2px solid var(--color-primary);
     }
     .pay-summary {
       text-align: center;

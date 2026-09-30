@@ -130,16 +130,16 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
     }
     .weigh-btn {
       --border-radius: var(--radius-full);
-      height: 56dp;
-      min-height: 56dp;
+      height: 56px;
+      min-height: 56px;
       font-family: var(--font-family-display);
       font-size: var(--font-size-lg);
       font-weight: var(--font-weight-bold);
     }
     .close-harvest-btn {
       --border-radius: var(--radius-full);
-      height: 48dp;
-      min-height: 48dp;
+      height: 48px;
+      min-height: 48px;
     }
     .empty-state-card {
       --border-radius: var(--radius-md);

@@ -203,7 +203,7 @@ import { HistoryFacade } from '../services/history.facade';
     .detail-header {
       margin-bottom: var(--spacing-lg);
       padding-bottom: var(--spacing-md);
-      border-bottom: 1dp solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
     }
     .section-card {
       --border-radius: var(--radius-md);
@@ -214,10 +214,10 @@ import { HistoryFacade } from '../services/history.facade';
       display: flex;
       justify-content: space-between;
       padding: var(--spacing-xs) 0;
-      border-bottom: 1dp solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
     }
     .sale-row.total {
-      border-bottom: 2dp solid var(--color-primary);
+      border-bottom: 2px solid var(--color-primary);
       font-weight: bold;
     }
     .total-costs {
@@ -225,7 +225,7 @@ import { HistoryFacade } from '../services/history.facade';
       justify-content: space-between;
       margin-top: var(--spacing-sm);
       padding-top: var(--spacing-sm);
-      border-top: 1dp solid var(--color-border);
+      border-top: 1px solid var(--color-border);
     }
     .profit-summary {
       display: flex;
@@ -236,11 +236,11 @@ import { HistoryFacade } from '../services/history.facade';
       display: flex;
       justify-content: space-between;
       padding: var(--spacing-xs) 0;
-      border-bottom: 1dp solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
     }
     .summary-row.final {
       border-bottom: none;
-      border-top: 2dp solid #28a745;
+      border-top: 2px solid #28a745;
       padding-top: var(--spacing-sm);
       margin-top: var(--spacing-xs);
     }

@@ -73,10 +73,10 @@ import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
       font-family: var(--font-family-body);
       font-size: var(--font-size-xs);
       color: var(--color-accent-alert);
-      margin-top: 4dp;
+      margin-top: 4px;
     }
     ion-icon {
-      font-size: 20dp;
+      font-size: 20px;
       color: var(--color-text-muted);
     }
   `],

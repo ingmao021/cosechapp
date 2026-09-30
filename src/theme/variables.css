@@ -66,11 +66,11 @@
   --font-family-display: 'Zilla Slab', serif;   /* títulos — remite a cuaderno de registro */
   --font-family-body: 'Inter', sans-serif;      /* cuerpo, números, UI — alta legibilidad */
 
-  --font-size-xs: 12sp;    /* metadatos (fecha pesada, última sync) */
-  --font-size-sm: 14sp;    /* texto pequeño */
-  --font-size-md: 16sp;    /* cuerpo base */
-  --font-size-lg: 20sp;    /* subtítulos de sección (Nivel 2) */
-  --font-size-xl: 28sp;    /* título de pantalla (Nivel 1) */
+  --font-size-xs: 0.75rem;    /* metadatos (fecha pesada, última sync) */
+  --font-size-sm: 0.875rem;    /* texto pequeño */
+  --font-size-md: 1rem;    /* cuerpo base */
+  --font-size-lg: 1.25rem;    /* subtítulos de sección (Nivel 2) */
+  --font-size-xl: 1.75rem;    /* título de pantalla (Nivel 1) */
 
   --font-weight-regular: 400;
   --font-weight-bold: 700;
@@ -78,83 +78,83 @@
   /* ==========================================================================
      ESPACIADO (grid base 4dp)
      ========================================================================== */
-  --spacing-xs: 4dp;
-  --spacing-sm: 8dp;
-  --spacing-md: 16dp;
-  --spacing-lg: 24dp;
-  --spacing-xl: 32dp;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
 
   /* ==========================================================================
      RADIOS
      ========================================================================== */
-  --radius-sm: 6dp;          /* inputs */
-  --radius-md: 12dp;         /* tarjetas recolector, cuadrilla */
-  --radius-full: 999dp;      /* botones acción principal (pill), chips */
+  --radius-sm: 6px;          /* inputs */
+  --radius-md: 12px;         /* tarjetas recolector, cuadrilla */
+  --radius-full: 999px;      /* botones acción principal (pill), chips */
 
   /* ==========================================================================
      SOMBRAS
      ========================================================================== */
-  --shadow-card: 0 1dp 3dp rgba(43, 36, 32, 0.12);
+  --shadow-card: 0 1px 3px rgba(43, 36, 32, 0.12);
 
   /* ==========================================================================
      TOUCH TARGETS (Material Design Android)
      ========================================================================== */
-  --touch-target-min: 48dp;  /* mínimo absoluto para cualquier elemento interactivo */
+  --touch-target-min: 48px;  /* mínimo absoluto para cualquier elemento interactivo */
 
   /* ==========================================================================
      MEDIDAS PIXEL-PERFECT POR COMPONENTE (Sección 2.3 Design System)
      ========================================================================== */
 
   /* Botón primario: 48dp alto, 24dp padding horizontal, radius 24dp (pill), icono 20dp */
-  --btn-primary-height: 48dp;
-  --btn-primary-padding-h: 24dp;
-  --btn-primary-radius: 24dp;
-  --btn-primary-icon-size: 20dp;
+  --btn-primary-height: 48px;
+  --btn-primary-padding-h: 24px;
+  --btn-primary-radius: 24px;
+  --btn-primary-icon-size: 20px;
 
   /* Botón de ícono (+): 48×48dp, radius 24dp (circular), icono 24dp */
-  --btn-icon-size: 48dp;
-  --btn-icon-radius: 24dp;
-  --btn-icon-icon-size: 24dp;
+  --btn-icon-size: 48px;
+  --btn-icon-radius: 24px;
+  --btn-icon-icon-size: 24px;
 
   /* Input texto/numérico: 48dp min alto, 16dp padding horizontal, radius 8dp */
-  --input-min-height: 48dp;
-  --input-padding-h: 16dp;
-  --input-radius: 8dp;
+  --input-min-height: 48px;
+  --input-padding-h: 16px;
+  --input-radius: 8px;
 
   /* Tarjeta recolector: 64dp min alto, 16dp padding, radius 12dp, avatar/icono 24dp */
-  --picker-card-min-height: 64dp;
-  --picker-card-padding: 16dp;
-  --picker-card-radius: 12dp;
-  --picker-card-icon-size: 24dp;
+  --picker-card-min-height: 64px;
+  --picker-card-padding: 16px;
+  --picker-card-radius: 12px;
+  --picker-card-icon-size: 24px;
 
   /* Fila lista (cuadrillas, trabajadores): 56dp alto, 16dp padding horizontal, icono 24dp */
-  --list-row-height: 56dp;
-  --list-row-padding-h: 16dp;
-  --list-row-icon-size: 24dp;
+  --list-row-height: 56px;
+  --list-row-padding-h: 16px;
+  --list-row-icon-size: 24px;
 
   /* Chip (alimentación): 28dp alto, 12dp padding horizontal, radius pill (999dp), icono 16dp */
-  --chip-height: 28dp;
-  --chip-padding-h: 12dp;
-  --chip-radius: 999dp;
-  --chip-icon-size: 16dp;
+  --chip-height: 28px;
+  --chip-padding-h: 12px;
+  --chip-radius: 999px;
+  --chip-icon-size: 16px;
 
   /* Barra navegación inferior: 56dp + inset gestos sistema, iconos 24dp */
-  --bottom-nav-height: 56dp;
-  --bottom-nav-icon-size: 24dp;
+  --bottom-nav-height: 56px;
+  --bottom-nav-icon-size: 24px;
 
   /* Header cosecha activa: 96dp alto, 16dp padding */
-  --harvest-header-height: 96dp;
-  --harvest-header-padding: 16dp;
+  --harvest-header-height: 96px;
+  --harvest-header-padding: 16px;
 
   /* Separación entre tarjetas en lista: 8dp vertical */
-  --card-gap-vertical: 8dp;
+  --card-gap-vertical: 8px;
 
   /* Margen lateral pantalla: 16dp (compacto/estándar), 24dp (amplio 430dp+) */
-  --screen-margin: 16dp;
-  --screen-margin-wide: 24dp;
+  --screen-margin: 16px;
+  --screen-margin-wide: 24px;
 
   /* Avatar/foto perfil: 64dp, radius 50% */
-  --avatar-size: 64dp;
+  --avatar-size: 64px;
   --avatar-radius: 50%;
 }
 
@@ -167,7 +167,7 @@
 
 @media (min-width: 430px) {
   :root {
-    --screen-margin: 24dp;
+    --screen-margin: 24px;
   }
 }
 

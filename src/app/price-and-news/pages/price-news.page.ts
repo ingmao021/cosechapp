@@ -132,7 +132,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     }
     .price-value {
       font-family: var(--font-family-display);
-      font-size: 48sp;
+      font-size: 3rem;
       font-weight: var(--font-weight-bold);
       line-height: 1.1;
     }
@@ -145,7 +145,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       --border-radius: var(--radius-md);
       --box-shadow: var(--shadow-card);
       margin: var(--spacing-md);
-      border-left: 4dp solid var(--color-primary);
+      border-left: 4px solid var(--color-primary);
     }
     .news-section {
       padding: 0 var(--spacing-md) var(--spacing-xl);

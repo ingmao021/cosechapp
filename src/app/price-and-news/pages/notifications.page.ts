@@ -111,7 +111,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     }
     .notification-card.unread {
       background: var(--color-background);
-      border-left: 4dp solid var(--color-primary);
+      border-left: 4px solid var(--color-primary);
     }
     .notification-header {
       display: flex;

@@ -169,7 +169,7 @@ import { WorkerFacade } from '../services/worker.facade';
       --color: var(--color-text);
     }
     ion-item-option {
-      --width: 60dp;
+      --width: 60px;
     }
   `],
 })

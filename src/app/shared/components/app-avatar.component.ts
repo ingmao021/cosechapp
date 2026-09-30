@@ -42,7 +42,7 @@ import { IonAvatar, IonIcon } from '@ionic/angular';
     }
     ion-avatar.clickable {
       cursor: pointer;
-      border: 2dp solid var(--color-border);
+      border: 2px solid var(--color-border);
       transition: border-color 0.2s ease;
     }
     ion-avatar.clickable:hover,
@@ -50,7 +50,7 @@ import { IonAvatar, IonIcon } from '@ionic/angular';
       border-color: var(--color-primary);
     }
     ion-icon {
-      font-size: 32dp;
+      font-size: 32px;
     }
   `],
 })
