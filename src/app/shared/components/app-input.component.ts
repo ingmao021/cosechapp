@@ -1,6 +1,15 @@
-import { Component, input, output, signal, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import {
+  Component,
+  booleanAttribute,
+  computed,
+  forwardRef,
+  input,
+  linkedSignal,
+  numberAttribute,
+  output,
+  signal,
+} from '@angular/core';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { IonInput, IonIcon, IonItem, IonLabel, IonButton } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
@@ -13,15 +22,18 @@ import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
 @Component({
   selector: 'app-input',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonInput, IonIcon, IonItem, IonLabel, IonButton],
+  imports: [FormsModule, IonInput, IonIcon, IonItem, IonLabel, IonButton],
+  providers: [
+    { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => AppInputComponent), multi: true },
+  ],
   template: `
     <ion-item lines="full" class="input-wrapper" [class.error]="showError()">
       <ion-label position="floating">{{ label() }}</ion-label>
       <ion-input
         [type]="showPassword() ? 'text' : type()"
         [placeholder]="placeholder()"
-        [value]="value()"
-        [disabled]="disabled()"
+        [value]="currentValue()"
+        [disabled]="isDisabled()"
         [readonly]="readonly()"
         [required]="required()"
         [minlength]="minlength()"
@@ -69,81 +81,109 @@ import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
     }
   `],
 })
-export class AppInputComponent {
+export class AppInputComponent implements ControlValueAccessor {
   // Inputs
   label = input<string>('');
   type = input<'text' | 'password' | 'email' | 'number' | 'tel'>('text');
   placeholder = input<string>('');
   value = input<string>('');
-  disabled = input<boolean>(false);
-  readonly = input<boolean>(false);
-  required = input<boolean>(false);
-  minlength = input<number | null>(null);
-  maxlength = input<number | null>(null);
+  disabled = input(false, { transform: booleanAttribute });
+  readonly = input(false, { transform: booleanAttribute });
+  required = input(false, { transform: booleanAttribute });
+  minlength = input<number | null, unknown>(null, { transform: optionalNumberAttribute });
+  maxlength = input<number | null, unknown>(null, { transform: optionalNumberAttribute });
   inputmode = input<'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url'>('text');
   autocomplete = input<string>('off');
   errorMessage = input<string>('');
 
   // Outputs
   valueChange = output<string>();
-  blur = output<void>();
-  focus = output<void>();
+  inputBlur = output<void>();
+  inputFocus = output<void>();
 
-  // Estado interno
+  // Estado interno: se inicializa desde los inputs y lo actualizan el usuario o el formulario (ngModel)
+  readonly currentValue = linkedSignal(() => this.value() ?? '');
+  readonly isDisabled = linkedSignal(() => this.disabled());
   showPassword = signal(false);
   touched = signal(false);
   focused = signal(false);
 
-  // Validación computada
-  showError = signal(false);
+  // Validación computada: se recalcula ante cualquier cambio de valor, incluso desde fuera
+  private readonly hasError = computed(() => {
+    const val = this.currentValue();
+    const minlength = this.minlength();
+    const maxlength = this.maxlength();
+
+    if (this.required() && val.trim() === '') {
+      return true;
+    }
+    if (minlength !== null && val.length > 0 && val.length < minlength) {
+      return true;
+    }
+    if (maxlength !== null && val.length > maxlength) {
+      return true;
+    }
+    return false;
+  });
+  readonly showError = computed(() => this.touched() && this.hasError());
+
+  // Callbacks registrados por Angular Forms
+  private onChange: (value: string | number | null) => void = () => undefined;
+  private onTouched: () => void = () => undefined;
 
   constructor() {
     addIcons({ eyeOutline, eyeOffOutline });
   }
 
-  onInput(event: any): void {
-    const val = event.target?.value ?? '';
+  onInput(event: Event): void {
+    const val = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.currentValue.set(val);
+    this.onChange(this.toModelValue(val));
     this.valueChange.emit(val);
   }
 
   onBlur(): void {
     this.touched.set(true);
     this.focused.set(false);
-    this.updateErrorState();
-    this.blur.emit();
+    this.onTouched();
+    this.inputBlur.emit();
   }
 
   onFocus(): void {
     this.focused.set(true);
-    this.blur.emit();
+    this.inputFocus.emit();
   }
 
   togglePassword(): void {
     this.showPassword.set(!this.showPassword());
   }
 
-  private updateErrorState(): void {
-    const val = this.value();
-    let hasError = false;
-
-    if (this.required() && (!val || val.trim() === '')) {
-      hasError = true;
-    }
-    if (this.minlength() && val.length > 0 && val.length < this.minlength()!) {
-      hasError = true;
-    }
-    if (this.maxlength() && val.length > this.maxlength()!) {
-      hasError = true;
-    }
-
-    this.showError.set(this.touched() && hasError);
+  // ControlValueAccessor
+  writeValue(value: unknown): void {
+    this.currentValue.set(value === null || value === undefined ? '' : String(value));
   }
 
-  // HostListener para validar en cambios de value() desde fuera
-  @HostListener('valueChange')
-  onValueChange(): void {
-    if (this.touched()) {
-      this.updateErrorState();
-    }
+  registerOnChange(fn: (value: string | number | null) => void): void {
+    this.onChange = fn;
   }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.isDisabled.set(isDisabled);
+  }
+
+  /** Igual que NumberValueAccessor de Angular: los inputs numéricos entregan number (o null si está vacío). */
+  private toModelValue(val: string): string | number | null {
+    if (this.type() !== 'number') {
+      return val;
+    }
+    return val === '' ? null : parseFloat(val);
+  }
+}
+
+function optionalNumberAttribute(value: unknown): number | null {
+  return value === null || value === undefined || value === '' ? null : numberAttribute(value, 0);
 }

@@ -1,5 +1,4 @@
 import { Component, signal, inject, computed, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
@@ -30,7 +29,6 @@ import { WorkerFacade } from '../services/worker.facade';
   selector: 'app-worker-form',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     IonContent,
     IonHeader,
@@ -75,7 +73,7 @@ import { WorkerFacade } from '../services/worker.facade';
               [src]="profilePhoto()"
               [fallbackIcon]="'person-add-outline'"
               [clickable]="true"
-              (click)="pickProfilePhoto()"
+              (avatarClick)="pickProfilePhoto()"
             ></app-avatar>
             <p class="text-level-4 ion-margin-top">Foto opcional (tap para cambiar)</p>
           </div>
@@ -89,7 +87,6 @@ import { WorkerFacade } from '../services/worker.facade';
               [(ngModel)]="firstName"
               required
               maxlength="50"
-              (valueChange)="firstName = $event"
             ></app-input>
 
             <app-input
@@ -99,7 +96,6 @@ import { WorkerFacade } from '../services/worker.facade';
               [(ngModel)]="lastName"
               required
               maxlength="50"
-              (valueChange)="lastName = $event"
             ></app-input>
 
             <app-input
@@ -109,7 +105,6 @@ import { WorkerFacade } from '../services/worker.facade';
               [(ngModel)]="alias"
               maxlength="50"
               placeholder="Ej: Juancho"
-              (valueChange)="alias = $event"
             ></app-input>
 
             <app-input
@@ -120,7 +115,6 @@ import { WorkerFacade } from '../services/worker.facade';
               maxlength="20"
               placeholder="Ej: 3001234567"
               inputmode="tel"
-              (valueChange)="phoneNumber = $event"
             ></app-input>
 
             <app-button-primary

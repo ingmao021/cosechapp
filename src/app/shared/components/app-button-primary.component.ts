@@ -4,7 +4,7 @@ import { IonButton, IonIcon } from '@ionic/angular';
 /**
  * Componente atómico: Botón primario
  * Espec Design System: 48dp alto, 24dp padding horizontal, radius 24dp (pill), icono 20dp opcional
- * Uso: <app-button-primary (click)="onSubmit()" [loading]="isLoading">Ingresar</app-button-primary>
+ * Uso: <app-button-primary (buttonClick)="onSubmit()" [loading]="isLoading">Ingresar</app-button-primary>
  */
 @Component({
   selector: 'app-button-primary',
@@ -85,11 +85,11 @@ export class AppButtonPrimaryComponent {
   iconEnd = input<string | null>(null);
 
   // Output
-  click = output<Event>();
+  buttonClick = output<Event>();
 
   onClick(event: Event): void {
     if (!this.disabled() && !this.loading()) {
-      this.click.emit(event);
+      this.buttonClick.emit(event);
     }
   }
 }

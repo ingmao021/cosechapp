@@ -4,7 +4,7 @@ import { IonButton, IonIcon } from '@ionic/angular';
 /**
  * Componente atómico: Botón de ícono (ej. "+" para agregar pesada)
  * Espec Design System: 48×48dp, radius 24dp (circular), icono 24dp
- * Uso: <app-button-icon icon="add-outline" (click)="onAdd()" />
+ * Uso: <app-button-icon icon="add-outline" (buttonClick)="onAdd()" />
  */
 @Component({
   selector: 'app-button-icon',
@@ -55,11 +55,11 @@ export class AppButtonIconComponent {
   ariaLabel = input<string>('');
 
   // Output
-  click = output<Event>();
+  buttonClick = output<Event>();
 
   onClick(event: Event): void {
     if (!this.disabled()) {
-      this.click.emit(event);
+      this.buttonClick.emit(event);
     }
   }
 }

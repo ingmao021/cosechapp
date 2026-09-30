@@ -1,12 +1,11 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { KilosPipe } from '../pipes/kilos.pipe';
 import { AppChipComponent } from './app-chip.component';
 
 /**
  * Molécula: Tarjeta de recolector en lista de cuadrilla
  * Espec Design System: 64dp min alto, 16dp padding, radius 12dp, avatar/icono 24dp, nombre/alias + kilos día
- * Uso: <harvest-picker-card [picker]="pickerData" (click)="onPickerClick()" (weigh)="onWeigh()" />
+ * Uso: <app-harvest-picker-card [picker]="pickerData" (cardClick)="onPickerClick()" (weighClick)="onWeigh()" />
  * Implementado con HTML puro + CSS Design Tokens (sin componentes Ionic)
  */
 export interface PickerCardData {
@@ -23,9 +22,9 @@ export interface PickerCardData {
 }
 
 @Component({
-  selector: 'harvest-picker-card',
+  selector: 'app-harvest-picker-card',
   standalone: true,
-  imports: [CommonModule, KilosPipe, AppChipComponent],
+  imports: [KilosPipe, AppChipComponent],
   template: `
     <div
       class="picker-card"

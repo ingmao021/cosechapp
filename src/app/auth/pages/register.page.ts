@@ -1,5 +1,4 @@
-import { Component, signal, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -30,7 +29,6 @@ import { Router } from '@angular/router';
   selector: 'app-register',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     IonContent,
     IonHeader,
@@ -75,7 +73,7 @@ import { Router } from '@angular/router';
               [src]="profilePhoto()"
               [fallbackIcon]="'person-add-outline'"
               [clickable]="true"
-              (click)="pickProfilePhoto()"
+              (avatarClick)="pickProfilePhoto()"
             ></app-avatar>
             <p class="text-level-4 ion-margin-top">Foto opcional (tap para cambiar)</p>
           </div>
@@ -92,7 +90,6 @@ import { Router } from '@angular/router';
               maxlength="20"
               inputmode="numeric"
               autocomplete="username"
-              (valueChange)="nationalId = $event"
             ></app-input>
 
             <app-input
@@ -104,7 +101,6 @@ import { Router } from '@angular/router';
               minlength="6"
               maxlength="50"
               autocomplete="new-password"
-              (valueChange)="password = $event"
             ></app-input>
 
             <app-input
@@ -115,7 +111,6 @@ import { Router } from '@angular/router';
               required
               autocomplete="new-password"
               [errorMessage]="passwordMismatch() ? 'Las contraseñas no coinciden' : ''"
-              (valueChange)="confirmPassword = $event"
             ></app-input>
 
             <app-button-primary
@@ -185,7 +180,10 @@ export class RegisterPage {
   showError = signal(false);
   errorMessage = signal('');
 
-  passwordMismatch = computed(() => this.confirmPassword && this.password !== this.confirmPassword);
+  // Método (no computed): lee campos enlazados con ngModel, que no son signals
+  passwordMismatch(): boolean {
+    return !!this.confirmPassword && this.password !== this.confirmPassword;
+  }
 
   constructor() {
     addIcons({ arrowBackOutline });

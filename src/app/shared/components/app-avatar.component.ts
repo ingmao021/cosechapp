@@ -4,7 +4,7 @@ import { IonAvatar, IonIcon } from '@ionic/angular';
 /**
  * Componente atómico: Avatar / Foto de perfil
  * Espec Design System: 64dp (o tamaño custom), radius 50%
- * Uso: <app-avatar [src]="photoUrl" [fallbackIcon]="'person-outline'" (click)="onPickPhoto()" />
+ * Uso: <app-avatar [src]="photoUrl" [fallbackIcon]="'person-outline'" (avatarClick)="onPickPhoto()" />
  */
 @Component({
   selector: 'app-avatar',
@@ -60,11 +60,11 @@ export class AppAvatarComponent {
   fallbackIcon = input<string>('person-outline');
   clickable = input<boolean>(false);
 
-  click = output<Event>();
+  avatarClick = output<Event>();
 
   onClick(event: Event): void {
     if (this.clickable()) {
-      this.click.emit(event);
+      this.avatarClick.emit(event);
     }
   }
 }

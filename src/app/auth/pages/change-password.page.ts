@@ -1,5 +1,4 @@
-import { Component, signal, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -28,7 +27,6 @@ import { Router } from '@angular/router';
   selector: 'app-change-password',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     IonContent,
     IonHeader,
@@ -76,7 +74,6 @@ import { Router } from '@angular/router';
               minlength="6"
               maxlength="50"
               autocomplete="current-password"
-              (valueChange)="currentPassword = $event"
             ></app-input>
 
             <app-input
@@ -88,7 +85,6 @@ import { Router } from '@angular/router';
               minlength="6"
               maxlength="50"
               autocomplete="new-password"
-              (valueChange)="newPassword = $event"
             ></app-input>
 
             <app-input
@@ -99,7 +95,6 @@ import { Router } from '@angular/router';
               required
               autocomplete="new-password"
               [errorMessage]="passwordMismatch() ? 'Las contraseñas no coinciden' : ''"
-              (valueChange)="confirmNewPassword = $event"
             ></app-input>
 
             <app-button-primary
@@ -165,7 +160,10 @@ export class ChangePasswordPage {
   errorMessage = signal('');
   showSuccess = signal(false);
 
-  passwordMismatch = computed(() => this.confirmNewPassword && this.newPassword !== this.confirmNewPassword);
+  // Método (no computed): lee campos enlazados con ngModel, que no son signals
+  passwordMismatch(): boolean {
+    return !!this.confirmNewPassword && this.newPassword !== this.confirmNewPassword;
+  }
 
   constructor() {
     addIcons({ arrowBackOutline });

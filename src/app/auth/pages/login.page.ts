@@ -1,5 +1,4 @@
 import { Component, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -29,7 +28,6 @@ import { Router } from '@angular/router';
   selector: 'app-login',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     IonContent,
     IonHeader,
@@ -67,7 +65,7 @@ import { Router } from '@angular/router';
               [src]="profilePhoto()"
               [fallbackIcon]="'person-outline'"
               [clickable]="true"
-              (click)="pickProfilePhoto()"
+              (avatarClick)="pickProfilePhoto()"
             ></app-avatar>
             <p class="text-level-4 ion-margin-top">Foto opcional (tap para cambiar)</p>
           </div>
@@ -85,7 +83,6 @@ import { Router } from '@angular/router';
               inputmode="numeric"
               autocomplete="username"
               #nationalIdInput
-              (valueChange)="nationalId = $event"
             ></app-input>
 
             <app-input
@@ -98,7 +95,6 @@ import { Router } from '@angular/router';
               maxlength="50"
               autocomplete="current-password"
               #passwordInput
-              (valueChange)="password = $event"
             ></app-input>
 
             <app-button-primary

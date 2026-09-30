@@ -96,7 +96,6 @@ import { WeighingFacade } from '@weighing/services/weighing.facade';
                 step="0.1"
                 inputmode="decimal"
                 placeholder="Ej: 25.5"
-                (valueChange)="kilograms = $event"
               ></app-input>
 
               <app-button-primary

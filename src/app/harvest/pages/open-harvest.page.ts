@@ -1,5 +1,4 @@
 import { Component, signal, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -28,7 +27,6 @@ import { Router } from '@angular/router';
   selector: 'app-open-harvest',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     IonContent,
     IonHeader,
@@ -75,7 +73,6 @@ import { Router } from '@angular/router';
               required
               maxlength="100"
               placeholder="Ej: Primer pasón, Mitaca 2026"
-              (valueChange)="name = $event"
             ></app-input>
 
             <app-input
@@ -87,7 +84,6 @@ import { Router } from '@angular/router';
               min="1"
               inputmode="numeric"
               autocomplete="off"
-              (valueChange)="pricePerKilogram = $event"
             ></app-input>
 
             <app-button-primary

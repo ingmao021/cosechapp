@@ -1,5 +1,4 @@
 import { Component, effect, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -9,15 +8,10 @@ import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
-import { IonChip } from '@ionic/angular/ion-chip';
-import { IonLabel } from '@ionic/angular/ion-label';
 import { addIcons } from 'ionicons';
 import { personOutline, addOutline, chevronForwardOutline, archiveOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
-import { HarvestPickerCardComponent, AppChipComponent } from '@shared/components';
+import { HarvestPickerCardComponent } from '@shared/components';
 
 /**
  * Pantalla Detalle de Cuadrilla — Tarea 3.3.
@@ -27,7 +21,7 @@ import { HarvestPickerCardComponent, AppChipComponent } from '@shared/components
 @Component({
   selector: 'app-crew-detail',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonChip, IonLabel, HarvestPickerCardComponent, AppChipComponent],
+  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, HarvestPickerCardComponent],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -63,12 +57,13 @@ import { HarvestPickerCardComponent, AppChipComponent } from '@shared/components
             </ion-card-content>
           </ion-card>
         } @else {
-          <harvest-picker-card
-            *ngFor="let picker of crewPickers()"
-            [picker]="picker"
-            (cardClick)="goToPickerDetail(picker.id)"
-            (weighClick)="goToWeighing(picker.id)"
-          ></harvest-picker-card>
+          @for (picker of crewPickers(); track picker.id) {
+            <app-harvest-picker-card
+              [picker]="picker"
+              (cardClick)="goToPickerDetail(picker.id)"
+              (weighClick)="goToWeighing(picker.id)"
+            ></app-harvest-picker-card>
+          }
         }
       }
     </ion-content>
