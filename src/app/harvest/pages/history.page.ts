@@ -1,34 +1,27 @@
-import { Component, effect, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
 import { IonTitle } from '@ionic/angular/ion-title';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonChip } from '@ionic/angular/ion-chip';
-import { IonLabel } from '@ionic/angular/ion-label';
+import { IonSpinner } from '@ionic/angular/ion-spinner';
+import { IonRefresher } from '@ionic/angular/ion-refresher';
+import { IonRefresherContent } from '@ionic/angular/ion-refresher-content';
 import { addIcons } from 'ionicons';
-import { timeOutline, chevronForwardOutline } from 'ionicons/icons';
+import { timeOutline, chevronForwardOutline, alertCircleOutline } from 'ionicons/icons';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { HistoryFacade } from '../services/history.facade';
 
 /**
- * Pestaña Historial — Tarea 7.1.
- * Lista de cosechas cerradas (harvest-history-card molecule).
- * Tap fila → /history/:harvestId (detalle).
- * Conectado a HistoryFacade para datos reales.
+ * Historial de cosechas (Design System §1.9): cosechas cerradas con sus fechas y la
+ * ganancia de la cosecha. Tocar una abre su detalle.
  */
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonIcon, IonChip, IonLabel, CurrencyPipe, DateFormatPipe],
+  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonIcon, IonSpinner, IonRefresher, IonRefresherContent, CurrencyPipe, DateFormatPipe],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -36,92 +29,139 @@ import { HistoryFacade } from '../services/history.facade';
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      @if (historyFacade.isLoading()) {
-        <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
-        </div>
-      } @else if (!historyFacade.hasHarvests()) {
-        <!-- Estado vacío -->
-        <div class="empty-state text-center">
-          <ion-icon name="time-outline" size="large" color="medium"></ion-icon>
-          <h2 class="text-level-2 ion-margin-top">Sin cosechas cerradas</h2>
-          <p class="text-level-4 ion-margin">Las cosechas finalizadas aparecerán aquí.</p>
-        </div>
-      } @else {
-        <!-- Lista de cosechas -->
-        @for (harvest of historyFacade.allHarvests(); track harvest.id) {
-          <ion-card class="history-card" (click)="goToDetail(harvest.id)">
-            <ion-card-content>
-              <ion-card-header>
-                <ion-card-title class="text-level-3">{{ harvest.name }}</ion-card-title>
-                <ion-card-subtitle class="text-level-4">
-                  {{ harvest.openingDate | dateFormat:'date' }} – {{ harvest.closingDate | dateFormat:'date' }}
-                </ion-card-subtitle>
-              </ion-card-header>
-              <div class="card-meta">
-                <ion-chip color="medium" class="status-chip">
-                  <ion-label>{{ harvest.status }}</ion-label>
-                </ion-chip>
-                <div class="profit-info">
-                  <span class="text-level-4">Ganancia de la cosecha</span>
-                  <span class="profit-value text-level-2">{{ harvest.profit ? (harvest.profit | currency) : '—' }}</span>
-                </div>
-              </div>
-              <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
-            </ion-card-content>
-          </ion-card>
+    <ion-content>
+      <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
+
+      <div class="page">
+        @if (historyFacade.error()) {
+          <p class="form-error" role="alert">
+            <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+            <span>{{ historyFacade.error() }}</span>
+          </p>
         }
-      }
+
+        @if (historyFacade.isLoading() && !historyFacade.hasHarvests()) {
+          <div class="loading-center"><ion-spinner name="crescent"></ion-spinner></div>
+        } @else if (!historyFacade.hasHarvests()) {
+          <div class="empty-state">
+            <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+            <h2 class="text-level-2">Sin cosechas cerradas</h2>
+            <p class="text-level-4">Cuando cierres una cosecha, aparecerá aquí con su ganancia.</p>
+          </div>
+        } @else {
+          <ul class="harvest-list">
+            @for (harvest of historyFacade.closedHarvests(); track harvest.id) {
+              <li>
+                <button type="button" class="harvest-row" (click)="goToDetail(harvest.id)">
+                  <span class="harvest-row__info">
+                    <span class="harvest-row__name">{{ harvest.name }}</span>
+                    <span class="harvest-row__dates">
+                      {{ harvest.openingDate | dateFormat: 'date' }} – {{ harvest.closingDate | dateFormat: 'date' }}
+                    </span>
+                  </span>
+                  <span class="harvest-row__profit">
+                    <span class="harvest-row__label">Ganancia</span>
+                    <span
+                      class="harvest-row__value"
+                      [class.harvest-row__value--loss]="(harvest.actualProfit ?? 0) < 0"
+                    >
+                      {{ harvest.actualProfit === null ? '—' : (harvest.actualProfit | currency) }}
+                    </span>
+                  </span>
+                  <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
     </ion-content>
   `,
   styles: [`
-    .empty-state {
-      text-align: center;
-      padding: var(--spacing-xl) var(--spacing-md);
+    .page {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md) var(--screen-margin);
     }
-    .history-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      margin-bottom: var(--card-gap-vertical);
-      cursor: pointer;
-      transition: transform 0.15s ease;
+    .harvest-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--card-gap-vertical);
     }
-    .history-card:active {
-      transform: scale(0.99);
-    }
-    .card-meta {
+    .harvest-row {
+      width: 100%;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-top: var(--spacing-sm);
-      flex-wrap: wrap;
-      gap: var(--spacing-sm);
-    }
-    .status-chip {
-      --height: var(--chip-height);
-      --border-radius: var(--chip-radius);
+      gap: var(--spacing-md);
+      min-height: var(--picker-card-min-height);
+      padding: var(--spacing-md);
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-card);
       font-family: var(--font-family-body);
-      font-size: var(--font-size-xs);
+      text-align: left;
+      color: var(--color-text);
+      cursor: pointer;
     }
-    .profit-info {
+    .harvest-row__info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .harvest-row__name {
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-bold);
+    }
+    .harvest-row__dates,
+    .harvest-row__label {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+    .harvest-row__profit {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 2px;
     }
-    .profit-value {
-      font-family: var(--font-family-display);
+    .harvest-row__value {
+      font-weight: var(--font-weight-bold);
       color: var(--color-primary);
     }
-    .text-center {
+    .harvest-row__value--loss {
+      color: var(--color-accent-alert);
+    }
+    .harvest-row > ion-icon {
+      color: var(--color-text-muted);
+      font-size: 20px;
+    }
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-xl) var(--spacing-md);
       text-align: center;
+    }
+    .empty-state ion-icon {
+      font-size: 40px;
+      color: var(--color-text-muted);
+    }
+    .empty-state h2,
+    .empty-state p {
+      margin: 0;
     }
     .loading-center {
       display: flex;
       justify-content: center;
-      align-items: center;
-      min-height: 50vh;
+      padding: var(--spacing-xl);
     }
   `],
 })
@@ -130,15 +170,20 @@ export class HistoryPage {
   private readonly router = inject(Router);
 
   constructor() {
-    addIcons({ timeOutline, chevronForwardOutline });
+    addIcons({ timeOutline, chevronForwardOutline, alertCircleOutline });
+  }
 
-    // Cargar historial al inicializar
-    effect(() => {
-      this.historyFacade.loadAllHarvests();
-    });
+  /** Cada vez que se entra a la pestaña: puede haberse cerrado una cosecha. */
+  ionViewWillEnter(): void {
+    void this.historyFacade.loadAllHarvests();
+  }
+
+  async refresh(event: CustomEvent): Promise<void> {
+    await this.historyFacade.loadAllHarvests();
+    (event.target as HTMLIonRefresherElement).complete();
   }
 
   goToDetail(harvestId: string): void {
-    this.router.navigate(['/history', harvestId]);
+    this.router.navigate(['/harvest/history', harvestId]);
   }
 }

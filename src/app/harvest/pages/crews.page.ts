@@ -1,8 +1,11 @@
 import { Component, effect, inject } from '@angular/core';
+import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
+import { IonButtons } from '@ionic/angular/ion-buttons';
+import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
@@ -11,8 +14,11 @@ import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
 import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { addIcons } from 'ionicons';
-import { peopleOutline, addOutline, chevronForwardOutline } from 'ionicons/icons';
+import { peopleOutline, addOutline, chevronForwardOutline, alertCircleOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
+import { AlertController } from '@ionic/angular/alert-controller';
+import { ToastController } from '@ionic/angular/toast-controller';
+import { apiErrorMessage } from '../../shared/utils';
 
 /**
  * Pantalla Cuadrillas — Tarea 3.2.
@@ -22,10 +28,17 @@ import { HarvestFacade } from '../services/harvest.facade';
 @Component({
   selector: 'app-crews',
   standalone: true,
-  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardTitle, IonCardSubtitle],
+  imports: [
+    IonSpinner,
+    IonButtons,
+    IonBackButton,
+    IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardTitle, IonCardSubtitle],
   template: `
     <ion-header>
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button defaultHref="/home" text="" aria-label="Volver"></ion-back-button>
+        </ion-buttons>
         <ion-title class="text-level-1">Cuadrillas</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -51,10 +64,13 @@ import { HarvestFacade } from '../services/harvest.facade';
       } @else {
         <div class="header-actions">
           <h2 class="text-level-2">Cuadrillas de "{{ harvestFacade.activeHarvestName() }}"</h2>
-          <ion-button fill="solid" color="primary" (click)="createCrew()">
-            <ion-icon name="add-outline" slot="start"></ion-icon>
-            Nueva cuadrilla
-          </ion-button>
+          <!-- Con lista vacía la única acción es la del estado vacío, para no duplicar botones -->
+          @if (harvestFacade.activeHarvestCrews().length > 0) {
+            <ion-button fill="solid" color="primary" (click)="createCrew()">
+              <ion-icon name="add-outline" slot="start"></ion-icon>
+              Nueva cuadrilla
+            </ion-button>
+          }
         </div>
 
         @if (harvestFacade.activeHarvestCrews().length === 0) {
@@ -108,6 +124,11 @@ import { HarvestFacade } from '../services/harvest.facade';
       margin-bottom: var(--card-gap-vertical);
       cursor: pointer;
     }
+    .crew-card ion-card-content {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+    }
     .crew-info {
       flex: 1;
     }
@@ -125,9 +146,11 @@ import { HarvestFacade } from '../services/harvest.facade';
 export class CrewsPage {
   protected readonly harvestFacade = inject(HarvestFacade);
   private readonly router = inject(Router);
+  private readonly alertController = inject(AlertController);
+  private readonly toastController = inject(ToastController);
 
   constructor() {
-    addIcons({ peopleOutline, addOutline, chevronForwardOutline });
+    addIcons({ peopleOutline, addOutline, chevronForwardOutline, alertCircleOutline });
 
     // Cargar cuadrillas al inicializar
     effect(() => {
@@ -142,9 +165,48 @@ export class CrewsPage {
     return this.harvestFacade.activeHarvestPickers().filter((p: { crewId: string | null }) => p.crewId === crewId).length;
   }
 
-  createCrew(): void {
-    // TODO: modal crear cuadrilla (Tarea 3.2)
-    console.log('Crear cuadrilla - implementar modal');
+  /** Diálogo con un solo campo: la cuadrilla solo necesita un nombre (Design System §1.3). */
+  async createCrew(): Promise<void> {
+    const count = this.harvestFacade.activeHarvestCrews().length;
+    const alert = await this.alertController.create({
+      header: 'Nueva cuadrilla',
+      inputs: [
+        {
+          name: 'name',
+          type: 'text',
+          placeholder: 'Ej: Cuadrilla de don José',
+          value: `Cuadrilla ${count + 1}`,
+          attributes: { maxlength: 100, autocapitalize: 'sentences' },
+        },
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Crear',
+          handler: (data: { name: string }) => {
+            const name = data.name?.trim();
+            if (!name) return false; // mantiene el diálogo abierto
+            this.saveCrew(name);
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async saveCrew(name: string): Promise<void> {
+    try {
+      await this.harvestFacade.createCrew(name);
+    } catch (err: unknown) {
+      const toast = await this.toastController.create({
+        message: apiErrorMessage(err, 'No se pudo crear la cuadrilla. Intenta de nuevo.'),
+        duration: 3000,
+        position: 'bottom',
+        color: 'danger',
+      });
+      await toast.present();
+    }
   }
 
   goToCrewDetail(crewId: string): void {

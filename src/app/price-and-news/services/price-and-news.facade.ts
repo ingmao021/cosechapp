@@ -1,5 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { PriceAndNewsService, CoffeePriceResponse, NotificationResponse, NewsItem } from './price-and-news.service';
+import { apiErrorMessage } from '../../shared/utils';
 
 /**
  * Facade de Precio y Noticias — Estado (Signals) + Orquestación.
@@ -27,7 +28,7 @@ export class PriceAndNewsFacade {
 
   // Estado privado (signals)
   private readonly _coffeePrice = signal<{ value: number; queryDate: string } | null>(null);
-  private readonly _notifications = signal<{ id: string; date: string; read: boolean }[]>([]);
+  private readonly _notifications = signal<NotificationResponse[]>([]);
   private readonly _news = signal<Array<{ title: string; source: string; summary: string; url: string; publishedAt: string }>>([]);
   private readonly _isLoading = signal(false);
   private readonly _error = signal<string | null>(null);
@@ -70,7 +71,7 @@ export class PriceAndNewsFacade {
       const price = await this.priceAndNewsService.getLatestCoffeePrice().toPromise();
       this._coffeePrice.set(price ?? null);
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar precio del café');
+      this._error.set(apiErrorMessage(err, 'Error al cargar precio del café'));
       this._coffeePrice.set(null);
     } finally {
       this._isLoading.set(false);
@@ -88,7 +89,7 @@ export class PriceAndNewsFacade {
       const notifications = await this.priceAndNewsService.getNotifications().toPromise();
       this._notifications.set(notifications ?? []);
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar notificaciones');
+      this._error.set(apiErrorMessage(err, 'Error al cargar notificaciones'));
       this._notifications.set([]);
     } finally {
       this._isLoading.set(false);
@@ -106,7 +107,7 @@ export class PriceAndNewsFacade {
       const news = await this.priceAndNewsService.getNews().toPromise();
       this._news.set(news ?? []);
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar noticias');
+      this._error.set(apiErrorMessage(err, 'Error al cargar noticias'));
       this._news.set([]);
     } finally {
       this._isLoading.set(false);
@@ -123,7 +124,7 @@ export class PriceAndNewsFacade {
         current.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al marcar notificación');
+      this._error.set(apiErrorMessage(err, 'Error al marcar notificación'));
     }
   }
 

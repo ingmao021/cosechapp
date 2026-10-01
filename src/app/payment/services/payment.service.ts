@@ -3,64 +3,60 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-// DTOs matching backend PaymentController
 export interface PayNowDto {
   harvestPickerId: string;
   harvestId: string;
   includesMeals: boolean;
-  mealDetail?: string;
+  /** Valor a descontar por alimentación (COP), si includesMeals. */
+  mealDeduction?: number;
 }
 
-export interface PaymentResponse {
-  payment: {
-    id: string;
-    harvestPickerId: string;
-    amount: number;
-    includesMeals: boolean;
-    mealDetail: string | null;
-    dateTime: string;
-    createdAt: string;
-    updatedAt: string;
-  };
+/** Desglose de lo que se le pagaría ahora al recolector. Montos en positivo (COP). */
+export interface PaymentPreviewResponse {
   totalKilograms: number;
-  amountDue: number;
+  gross: number;
+  alreadyPaid: number;
+  previousMealDeductions: number;
+  mealDeduction: number;
+  net: number;
 }
 
-export interface PaymentSummaryResponse {
-  harvestPickerId: string;
-  totalPaid: number;
-}
-
-export interface PaymentResponseItem {
+/** Un pago hecho. `amount` es lo que recibió en efectivo, en positivo. */
+export interface PaymentItemResponse {
   id: string;
   harvestPickerId: string;
   amount: number;
   includesMeals: boolean;
-  mealDetail: string | null;
+  mealDeduction: number;
   dateTime: string;
   createdAt: string;
   updatedAt: string;
 }
 
-/**
- * Servicio HTTP para pagos.
- * Wrapper tipado sobre los endpoints del PaymentController del backend.
- */
+export interface PayNowResponse {
+  payment: PaymentItemResponse;
+  totalKilograms: number;
+  amountDue: number;
+}
+
+/** Servicio HTTP de pagos: wrapper tipado sobre PaymentController. */
 @Injectable({ providedIn: 'root' })
 export class PaymentService {
   private readonly http = inject(HttpClient);
 
   private readonly baseUrl = `${environment.apiUrl}/payments`;
 
-  payNow(dto: PayNowDto): Observable<PaymentResponse> {
-    return this.http.post<PaymentResponse>(`${this.baseUrl}/pay-now`, dto);
+  preview(harvestPickerId: string, harvestId: string, mealDeduction: number | null): Observable<PaymentPreviewResponse> {
+    const params: Record<string, string> = { harvestId, includesMeals: String(mealDeduction !== null) };
+    if (mealDeduction !== null) params['mealDeduction'] = String(mealDeduction);
+    return this.http.get<PaymentPreviewResponse>(`${this.baseUrl}/picker/${harvestPickerId}/preview`, { params });
   }
 
-  getPaymentsByPicker(harvestPickerId: string): Observable<PaymentResponseItem[]> {
-    return this.http.get<PaymentResponseItem[]>(`${this.baseUrl}/picker/${harvestPickerId}`);
+  payNow(dto: PayNowDto): Observable<PayNowResponse> {
+    return this.http.post<PayNowResponse>(`${this.baseUrl}/pay-now`, dto);
   }
 
-  getTotalPaidByPicker(harvestPickerId: string): Observable<PaymentSummaryResponse> {
-    return this.http.get<PaymentSummaryResponse>(`${this.baseUrl}/picker/${harvestPickerId}/total`);
+  getPaymentsByPicker(harvestPickerId: string): Observable<PaymentItemResponse[]> {
+    return this.http.get<PaymentItemResponse[]>(`${this.baseUrl}/picker/${harvestPickerId}`);
   }
 }

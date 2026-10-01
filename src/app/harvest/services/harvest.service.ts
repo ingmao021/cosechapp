@@ -3,7 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-// DTOs matching backend HarvestController
+/*
+ * Contrato con el backend (ver "Contrato de API" en wiki/Design_System.md):
+ * estados en minúscula, montos en positivo (COP), fechas ISO. Un GET sin dato
+ * responde 204 y HttpClient lo entrega como null.
+ */
+
 export interface OpenHarvestDto {
   name: string;
   pricePerKilogram: number;
@@ -12,6 +17,8 @@ export interface OpenHarvestDto {
 export interface AssignWorkerDto {
   workerId: string;
   harvestAlias?: string;
+  /** Cuadrilla destino; si el trabajador ya está en la cosecha, se le mueve a esta. */
+  crewId?: string;
 }
 
 export interface CreateCrewDto {
@@ -22,7 +29,6 @@ export interface UpdateCrewDto {
   name: string;
 }
 
-// Response interfaces matching backend responses
 export interface HarvestResponse {
   id: string;
   name: string;
@@ -34,28 +40,12 @@ export interface HarvestResponse {
   updatedAt: string;
 }
 
-export interface HarvestDetailResponse {
-  harvest: HarvestResponse;
-  pickers: HarvestWorkerResponse[];
-  crews: CrewResponse[];
-  totalCherryKilograms: number;
-  totalPayments: number;
-  sale: {
-    actualDryKilograms: number;
-    salePrice: number;
-    date: string;
-    grossRevenue: number;
-  } | null;
-  costs: Array<{
-    id: string;
-    description: string;
-    amount: number;
-    date: string;
-  }>;
-  grossProfit: number;
-  actualProfit: number;
+/** Cosecha en la lista del historial: las cerradas traen su ganancia. */
+export interface HarvestSummaryResponse extends HarvestResponse {
+  actualProfit: number | null;
 }
 
+/** Recolector asignado a una cosecha (respuesta de asignar o archivar). */
 export interface HarvestWorkerResponse {
   id: string;
   harvestId: string;
@@ -63,10 +53,27 @@ export interface HarvestWorkerResponse {
   harvestAlias: string | null;
   crewId: string | null;
   status: 'active' | 'archived';
-  hasMeals: boolean;
-  mealDetail: string | null;
-  totalPaid: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Recolector con nombre y acumulados, listo para mostrar (GET /harvests/:id/pickers). */
+export interface PickerStatsResponse {
+  id: string;
+  harvestId: string;
+  workerId: string;
+  crewId: string | null;
+  status: 'active' | 'archived';
+  firstName: string;
+  lastName: string;
+  alias: string | null;
+  displayName: string;
+  todayKilograms: number;
+  weekKilograms: number;
   totalKilograms: number;
+  totalPaid: number;
+  totalMealDeductions: number;
+  balanceDue: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -79,9 +86,26 @@ export interface CrewResponse {
   updatedAt: string;
 }
 
+export interface HarvestDetailResponse {
+  harvest: HarvestResponse;
+  pickers: PickerStatsResponse[];
+  crews: CrewResponse[];
+  totalCherryKilograms: number;
+  totalPayments: number;
+  sale: {
+    actualDryKilograms: number;
+    salePrice: number;
+    date: string;
+    grossRevenue: number;
+  } | null;
+  costs: Array<{ id: string; description: string; amount: number; date: string }>;
+  grossProfit: number;
+  actualProfit: number;
+}
+
 /**
- * Servicio HTTP para cosechas.
- * Wrapper tipado sobre los endpoints del HarvestController del backend.
+ * Servicio HTTP de cosechas: wrapper tipado sobre HarvestController.
+ * Sin estado ni lógica de negocio.
  */
 @Injectable({ providedIn: 'root' })
 export class HarvestService {
@@ -89,7 +113,6 @@ export class HarvestService {
 
   private readonly baseUrl = `${environment.apiUrl}/harvests`;
 
-  // Harvest CRUD
   openHarvest(dto: OpenHarvestDto): Observable<HarvestResponse> {
     return this.http.post<HarvestResponse>(this.baseUrl, dto);
   }
@@ -98,23 +121,23 @@ export class HarvestService {
     return this.http.patch<HarvestResponse>(`${this.baseUrl}/${harvestId}/close`, {});
   }
 
+  /** null (204) cuando no hay cosecha activa. */
   getActiveHarvest(): Observable<HarvestResponse | null> {
     return this.http.get<HarvestResponse | null>(`${this.baseUrl}/active`);
   }
 
-  getAllHarvests(): Observable<HarvestResponse[]> {
-    return this.http.get<HarvestResponse[]>(this.baseUrl);
+  getAllHarvests(): Observable<HarvestSummaryResponse[]> {
+    return this.http.get<HarvestSummaryResponse[]>(this.baseUrl);
   }
 
-  getHarvestById(harvestId: string): Observable<HarvestResponse | null> {
-    return this.http.get<HarvestResponse | null>(`${this.baseUrl}/${harvestId}`);
+  getHarvestById(harvestId: string): Observable<HarvestResponse> {
+    return this.http.get<HarvestResponse>(`${this.baseUrl}/${harvestId}`);
   }
 
-  getHarvestDetail(harvestId: string): Observable<HarvestDetailResponse | null> {
-    return this.http.get<HarvestDetailResponse | null>(`${this.baseUrl}/${harvestId}/detail`);
+  getHarvestDetail(harvestId: string): Observable<HarvestDetailResponse> {
+    return this.http.get<HarvestDetailResponse>(`${this.baseUrl}/${harvestId}/detail`);
   }
 
-  // Pickers (trabajadores asignados a la cosecha)
   assignWorker(harvestId: string, dto: AssignWorkerDto): Observable<HarvestWorkerResponse> {
     return this.http.post<HarvestWorkerResponse>(`${this.baseUrl}/${harvestId}/pickers`, dto);
   }
@@ -123,15 +146,14 @@ export class HarvestService {
     return this.http.patch<HarvestWorkerResponse>(`${this.baseUrl}/${harvestId}/pickers/${pickerId}/archive`, {});
   }
 
-  getPickers(harvestId: string): Observable<HarvestWorkerResponse[]> {
-    return this.http.get<HarvestWorkerResponse[]>(`${this.baseUrl}/${harvestId}/pickers`);
+  getPickers(harvestId: string): Observable<PickerStatsResponse[]> {
+    return this.http.get<PickerStatsResponse[]>(`${this.baseUrl}/${harvestId}/pickers`);
   }
 
-  getActivePickers(harvestId: string): Observable<HarvestWorkerResponse[]> {
-    return this.http.get<HarvestWorkerResponse[]>(`${this.baseUrl}/${harvestId}/pickers/active`);
+  getActivePickers(harvestId: string): Observable<PickerStatsResponse[]> {
+    return this.http.get<PickerStatsResponse[]>(`${this.baseUrl}/${harvestId}/pickers/active`);
   }
 
-  // Crews (cuadrillas)
   createCrew(harvestId: string, dto: CreateCrewDto): Observable<CrewResponse> {
     return this.http.post<CrewResponse>(`${this.baseUrl}/${harvestId}/crews`, dto);
   }
@@ -140,15 +162,16 @@ export class HarvestService {
     return this.http.get<CrewResponse[]>(`${this.baseUrl}/${harvestId}/crews`);
   }
 
-  getCrew(harvestId: string, crewId: string): Observable<CrewResponse | null> {
-    return this.http.get<CrewResponse | null>(`${this.baseUrl}/${harvestId}/crews/${crewId}`);
+  getCrew(harvestId: string, crewId: string): Observable<CrewResponse> {
+    return this.http.get<CrewResponse>(`${this.baseUrl}/${harvestId}/crews/${crewId}`);
   }
 
   updateCrew(harvestId: string, crewId: string, dto: UpdateCrewDto): Observable<CrewResponse> {
     return this.http.patch<CrewResponse>(`${this.baseUrl}/${harvestId}/crews/${crewId}`, dto);
   }
 
-  deleteCrew(harvestId: string, crewId: string): Observable<{ success: boolean }> {
-    return this.http.delete<{ success: boolean }>(`${this.baseUrl}/${harvestId}/crews/${crewId}`);
+  /** 204 sin cuerpo. */
+  deleteCrew(harvestId: string, crewId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${harvestId}/crews/${crewId}`);
   }
 }

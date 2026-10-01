@@ -1,5 +1,7 @@
 import { Injectable, signal } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { environment } from '../../../environments/environment';
 
 export interface PushNotification {
   title: string;
@@ -26,7 +28,16 @@ export class PushNotificationService {
     this.initialize();
   }
 
+  /** Push solo funciona en nativo y con Firebase configurado (ver environment.pushNotificationsEnabled). */
+  get isAvailable(): boolean {
+    return environment.pushNotificationsEnabled && Capacitor.isNativePlatform();
+  }
+
   private async initialize(): Promise<void> {
+    if (!this.isAvailable) {
+      return;
+    }
+
     try {
       // Solicitar permisos al inicio
       const permResult = await PushNotifications.requestPermissions();
@@ -47,6 +58,10 @@ export class PushNotificationService {
    * Registra el dispositivo para push notifications
    */
   async register(): Promise<void> {
+    if (!this.isAvailable) {
+      return;
+    }
+
     try {
       await PushNotifications.register();
     } catch (error) {

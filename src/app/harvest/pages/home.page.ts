@@ -7,16 +7,18 @@ import { IonToolbar } from '@ionic/angular/ion-toolbar';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonChip } from '@ionic/angular/ion-chip';
-import { IonLabel } from '@ionic/angular/ion-label';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { IonCardHeader } from '@ionic/angular/ion-card-header';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
 import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { addIcons } from 'ionicons';
-import { scaleOutline, cloudDownloadOutline, syncOutline, addOutline, closeOutline, pricetagOutline } from 'ionicons/icons';
+import { scaleOutline, addOutline, closeOutline, pricetagOutline, addCircleOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
+import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.facade';
+import { NetworkService } from '../../network/services/network.service';
+import { SyncFacade } from '../../sync/services/sync.facade';
+import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 
 /**
@@ -40,14 +42,13 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
     IonTitle,
     IonButton,
     IonIcon,
-    IonChip,
-    IonLabel,
     IonCard,
     IonCardContent,
     IonCardHeader,
     IonCardTitle,
     IonCardSubtitle,
     CurrencyPipe,
+    DateFormatPipe,
   ],
   template: `
     <ion-header>
@@ -63,19 +64,39 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
           <ion-card-header>
             <ion-card-title class="text-level-2">{{ harvestFacade.activeHarvestName() }}</ion-card-title>
             <ion-card-subtitle class="text-level-4">
-              {{ harvestFacade.activeHarvestPrice() | currency }}
+              Pagas {{ harvestFacade.activeHarvestPrice() | currency }} por kilo
             </ion-card-subtitle>
           </ion-card-header>
           <ion-card-content>
-            <div class="header-actions">
-              <ion-chip color="medium" class="sync-chip">
-                <ion-icon name="sync-outline" slot="start"></ion-icon>
-                <ion-label>Sincronizado</ion-label>
-              </ion-chip>
-              <ion-chip color="medium" class="fnc-chip">
-                <ion-icon name="pricetag-outline" slot="start"></ion-icon>
-                <ion-label>FNC: \$ 2.450 (26 sep)</ion-label>
-              </ion-chip>
+            <!-- Solo datos reales: estado de conexión y precio FNC si existe -->
+            <div class="status-row">
+              @if (sync.pendingCount() > 0) {
+                <span class="status-pill status-pill--offline">
+                  <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
+                  {{ sync.pendingCount() }} {{ sync.pendingCount() === 1 ? 'pesada' : 'pesadas' }} por enviar
+                </span>
+              } @else if (!network.isOnline()) {
+                <span class="status-pill status-pill--offline">
+                  <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+                  Sin conexión · se guarda en el teléfono
+                </span>
+              } @else if (sync.lastSync()) {
+                <span class="status-pill">
+                  <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
+                  Todo enviado · {{ sync.lastSync() | dateFormat: 'time' }}
+                </span>
+              } @else {
+                <span class="status-pill">
+                  <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
+                  En línea
+                </span>
+              }
+              @if (priceAndNewsFacade.hasPrice()) {
+                <span class="status-pill">
+                  <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
+                  FNC {{ priceAndNewsFacade.formattedPrice() }} · {{ priceAndNewsFacade.priceDate() }}
+                </span>
+              }
             </div>
             <div class="main-actions">
               <ion-button expand="block" fill="solid" color="primary" class="weigh-btn" (click)="goToWeigh()">
@@ -111,17 +132,33 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
       --box-shadow: var(--shadow-card);
       margin-bottom: var(--spacing-md);
     }
-    .header-actions {
+    .status-row {
       display: flex;
       flex-wrap: wrap;
       gap: var(--spacing-sm);
       margin-bottom: var(--spacing-md);
     }
-    .sync-chip, .fnc-chip {
-      --height: var(--chip-height);
-      --border-radius: var(--chip-radius);
+    /* Etiqueta informativa, no interactiva (no usa ion-chip para no parecer botón). */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--radius-full);
+      background: var(--color-background);
+      color: var(--color-text);
       font-family: var(--font-family-body);
       font-size: var(--font-size-xs);
+    }
+    .status-pill ion-icon {
+      font-size: 16px;
+      color: var(--color-primary);
+    }
+    .status-pill--offline {
+      background: rgba(183, 121, 31, 0.12);
+    }
+    .status-pill--offline ion-icon {
+      color: var(--ion-color-warning);
     }
     .main-actions {
       display: flex;
@@ -132,7 +169,6 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
       --border-radius: var(--radius-full);
       height: 56px;
       min-height: 56px;
-      font-family: var(--font-family-display);
       font-size: var(--font-size-lg);
       font-weight: var(--font-weight-bold);
     }
@@ -153,14 +189,18 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 })
 export class HomePage {
   protected readonly harvestFacade = inject(HarvestFacade);
+  protected readonly priceAndNewsFacade = inject(PriceAndNewsFacade);
+  protected readonly network = inject(NetworkService);
+  protected readonly sync = inject(SyncFacade);
   private readonly router = inject(Router);
 
   constructor() {
-    addIcons({ scaleOutline, cloudDownloadOutline, syncOutline, addOutline, closeOutline, pricetagOutline });
+    addIcons({ scaleOutline, addOutline, closeOutline, pricetagOutline, addCircleOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline });
 
-    // Cargar cosecha activa al inicializar
+    // Cargar cosecha activa y precio FNC al inicializar
     effect(() => {
       this.harvestFacade.loadActiveHarvest();
+      this.priceAndNewsFacade.loadCoffeePrice();
     });
   }
 

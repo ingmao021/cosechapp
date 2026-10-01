@@ -1,163 +1,67 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { WeighingService, RecordWeighingDto, WeighingResponse, WeighingSummaryResponse } from './weighing.service';
+import { firstValueFrom } from 'rxjs';
+import { WeighingService, WeighingResponse } from './weighing.service';
+import { OfflineStore } from '../../sync/services/offline-store';
+import { apiErrorMessage } from '../../shared/utils';
+
+const isSameLocalDay = (iso: string, now = new Date()) => new Date(iso).toDateString() === now.toDateString();
 
 /**
- * Facade de Pesadas — Estado (Signals) + Orquestación.
- *
- * Expone signals de solo lectura hacia los componentes:
- * - weighingsByPicker: WeighingResponse[] (pesadas de un recolector específico)
- * - todayWeighings: WeighingResponse[] (pesadas de hoy)
- * - weeklyKilos: number
- * - totalKilos: number
- * - isLoading: boolean
- * - error: string | null
- *
- * Métodos de acción:
- * - loadWeighingsForPicker(harvestPickerId)
- * - loadTodayWeighings(harvestPickerId)
- * - recordWeighing(dto)
- * - getWeeklyTotal(harvestPickerId)
- * - getTotalKilos(harvestPickerId)
- *
- * Delega llamadas HTTP al WeighingService.
+ * Facade de Pesadas: lista de pesadas de un recolector, incluidas las que están
+ * en el teléfono esperando señal (marcadas como `pending`).
+ * Los acumulados (hoy, semana, ciclo) vienen calculados en los recolectores de HarvestFacade.
+ * Para registrar una pesada se usa SyncFacade.recordWeighing (funciona sin señal).
  */
 @Injectable({ providedIn: 'root' })
 export class WeighingFacade {
   private readonly weighingService = inject(WeighingService);
+  private readonly offlineStore = inject(OfflineStore);
 
-  // Estado privado (signals)
+  private readonly _pickerId = signal<string | null>(null);
   private readonly _weighings = signal<WeighingResponse[]>([]);
-  private readonly _todayWeighings = signal<WeighingResponse[]>([]);
-  private readonly _weeklyKilos = signal<number>(0);
-  private readonly _totalKilos = signal<number>(0);
   private readonly _isLoading = signal(false);
   private readonly _error = signal<string | null>(null);
+  /** Cambia cuando la cola local cambia, para recalcular `weighings`. */
+  private readonly pendingTick = signal(0);
 
-  // Señales públicas de solo lectura
-  readonly weighings = this._weighings.asReadonly();
-  readonly todayWeighings = this._todayWeighings.asReadonly();
-  readonly weeklyKilos = this._weeklyKilos.asReadonly();
-  readonly totalKilos = this._totalKilos.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly error = this._error.asReadonly();
 
-  // Computed
-  readonly todayTotalKilos = computed(() =>
-    this._todayWeighings().reduce((sum, w) => sum + w.kilograms, 0)
-  );
+  /** Pesadas del recolector actual, más recientes primero; las pendientes de enviar incluidas. */
+  readonly weighings = computed<Array<WeighingResponse & { pending: boolean }>>(() => {
+    const pickerId = this._pickerId();
+    const sent = this._weighings().map((w) => ({ ...w, pending: false }));
+    const sentIds = new Set(sent.map((w) => w.id));
+    const pending = this.pendingTick() >= 0
+      ? this.offlineStore
+          .pendingWeighings()
+          .filter((w) => w.harvestPickerId === pickerId && !sentIds.has(w.id))
+          .map((w) => ({ ...w, createdAt: w.dateTime, updatedAt: w.dateTime, pending: true }))
+      : [];
+    return [...pending, ...sent].sort((a, b) => b.dateTime.localeCompare(a.dateTime));
+  });
 
-  /**
-   * Carga todas las pesadas de un recolector.
-   */
+  readonly todayWeighings = computed(() => this.weighings().filter((w) => isSameLocalDay(w.dateTime)));
+
   async loadWeighingsForPicker(harvestPickerId: string): Promise<void> {
+    if (this._pickerId() !== harvestPickerId) this._weighings.set([]);
+    this._pickerId.set(harvestPickerId);
     this._isLoading.set(true);
     this._error.set(null);
-
     try {
-      const weighings = await this.weighingService.getWeighingsByPicker(harvestPickerId).toPromise();
-      this._weighings.set(weighings ?? []);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar pesadas');
-      this._weighings.set([]);
-    } finally {
-      this._isLoading.set(false);
-    }
-  }
-
-  /**
-   * Carga las pesadas de hoy para un recolector.
-   */
-  async loadTodayWeighings(harvestPickerId: string): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const weighings = await this.weighingService.getWeighingsByPickerAndDateRange(
-        harvestPickerId,
-        today + 'T00:00:00',
-        today + 'T23:59:59'
-      ).toPromise();
-      this._todayWeighings.set(weighings ?? []);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar pesadas de hoy');
-      this._todayWeighings.set([]);
-    } finally {
-      this._isLoading.set(false);
-    }
-  }
-
-  /**
-   * Registra una nueva pesada.
-   */
-  async recordWeighing(dto: RecordWeighingDto): Promise<WeighingResponse> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const weighing = await this.weighingService.recordWeighing(dto).toPromise();
-      if (weighing) {
-        this._weighings.update(current => [...current, weighing]);
-        return weighing;
-      } else {
-        throw new Error('Respuesta inválida al registrar pesada');
+      this._weighings.set(await firstValueFrom(this.weighingService.getWeighingsByPicker(harvestPickerId)));
+    } catch (err: unknown) {
+      // Sin señal se muestran solo las pendientes guardadas en el teléfono.
+      if ((err as { status?: number }).status !== 0) {
+        this._error.set(apiErrorMessage(err, 'No se pudieron cargar las pesadas.'));
       }
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al registrar pesada');
-      throw err;
     } finally {
       this._isLoading.set(false);
     }
   }
 
-  /**
-   * Obtiene el total semanal de kilos.
-   */
-  async getWeeklyTotal(harvestPickerId: string): Promise<void> {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const startDate = weekAgo.toISOString().split('T')[0] + 'T00:00:00';
-    const endDate = new Date().toISOString().split('T')[0] + 'T23:59:59';
-
-    try {
-      const summary = await this.weighingService.getTotalKilogramsByPickerAndDateRange(
-        harvestPickerId,
-        startDate,
-        endDate
-      ).toPromise();
-      this._weeklyKilos.set(summary?.totalKilograms ?? 0);
-    } catch (err: any) {
-      this._weeklyKilos.set(0);
-    }
-  }
-
-  /**
-   * Obtiene el total del ciclo completo.
-   */
-  async getTotalKilos(harvestPickerId: string): Promise<void> {
-    try {
-      const summary = await this.weighingService.getTotalKilogramsByPicker(harvestPickerId).toPromise();
-      this._totalKilos.set(summary?.totalKilograms ?? 0);
-    } catch (err: any) {
-      this._totalKilos.set(0);
-    }
-  }
-
-  /**
-   * Limpia el error actual.
-   */
-  clearError(): void {
-    this._error.set(null);
-  }
-
-  /**
-   * Limpia el estado (útil al cambiar de recolector).
-   */
-  clearState(): void {
-    this._weighings.set([]);
-    this._todayWeighings.set([]);
-    this._weeklyKilos.set(0);
-    this._totalKilos.set(0);
-    this._error.set(null);
+  /** Avisar que la cola local cambió (SyncFacade lo llama al encolar o sincronizar). */
+  refreshPending(): void {
+    this.pendingTick.update((tick) => tick + 1);
   }
 }

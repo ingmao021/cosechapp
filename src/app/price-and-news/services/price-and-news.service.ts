@@ -17,6 +17,8 @@ export interface NotificationResponse {
   type: string;
   date: string;
   read: boolean;
+  /** Precio FNC publicado que generó la notificación. */
+  priceValue: number | null;
   createdAt: string;
 }
 

@@ -1,60 +1,66 @@
-import { Component, signal, inject, computed, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
-import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButtons } from '@ionic/angular/ion-buttons';
+import { IonBackButton } from '@ionic/angular/ion-back-button';
+import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonItem } from '@ionic/angular/ion-item';
-import { IonLabel } from '@ionic/angular/ion-label';
-import { IonInput } from '@ionic/angular/ion-input';
-import { IonList } from '@ionic/angular/ion-list';
-import { IonToast } from '@ionic/angular/ion-toast';
-import { IonChip } from '@ionic/angular/ion-chip';
+import { IonSpinner } from '@ionic/angular/ion-spinner';
+import { AlertController } from '@ionic/angular/alert-controller';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, addOutline, cashOutline, calculatorOutline, checkmarkCircleOutline } from 'ionicons/icons';
-import { HarvestFacade } from '../services/harvest.facade';
-import { SaleAndCostsFacade } from '@sale-and-costs/services/sale-and-costs.facade';
+import {
+  alertCircleOutline,
+  addOutline,
+  checkmarkCircleOutline,
+  lockClosedOutline,
+  cashOutline,
+  warningOutline,
+} from 'ionicons/icons';
+import { AppInputComponent, AppButtonPrimaryComponent } from '@shared/components';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
+import { HarvestFacade } from '../services/harvest.facade';
+import { HarvestService, HarvestResponse } from '../services/harvest.service';
+import { SaleAndCostsFacade } from '../../sale-and-costs/services/sale-and-costs.facade';
+import { NetworkService } from '../../network/services/network.service';
+import { apiErrorMessage } from '../../shared/utils';
+
+type Step = 'close' | 'sale' | 'costs';
+
+const today = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
 
 /**
- * Pantalla Cierre de Cosecha — Tarea 5.1.
- * Flujo guiado: Venta → Costos → Resumen final → Confirmar.
- * Conectado a HarvestFacade y SaleAndCostsFacade.
+ * Cierre de cosecha (Design System §1.8), en el orden que exige el negocio:
+ * 1. Cerrar: ya no se registran pesadas ni pagos (avisa si quedan saldos pendientes).
+ * 2. Venta: kilos secos vendidos y precio → ganancia bruta.
+ * 3. Costos de producción → ganancia de la cosecha.
+ * Con /harvest/close/:harvestId se retoma en el paso pendiente (ej. desde el historial).
  */
 @Component({
   selector: 'app-harvest-close',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     IonContent,
     IonHeader,
     IonToolbar,
-    IonTitle,
     IonButtons,
+    IonBackButton,
+    IonTitle,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
-    IonCardHeader,
-    IonCardTitle,
-    IonItem,
-    IonLabel,
-    IonInput,
-    IonList,
-    IonToast,
-    IonChip,
+    IonSpinner,
+    AppInputComponent,
+    AppButtonPrimaryComponent,
     CurrencyPipe,
     KilosPipe,
     DateFormatPipe,
@@ -63,347 +69,468 @@ import { DateFormatPipe } from '@shared/pipes/date.pipe';
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button fill="clear" (click)="goBack()">
-            <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
-          </ion-button>
+          <ion-back-button [defaultHref]="step() === 'close' ? '/home' : '/history'" text="" aria-label="Volver"></ion-back-button>
         </ion-buttons>
         <ion-title class="text-level-1">Cerrar cosecha</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      @if (saleAndCostsFacade.isLoading()) {
+    <ion-content>
+      @if (!harvest()) {
         <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
+          @if (loading()) {
+            <ion-spinner name="crescent"></ion-spinner>
+          } @else {
+            <p class="form-page__intro">No hay una cosecha para cerrar.</p>
+          }
         </div>
       } @else {
-        <!-- Header con info de la cosecha -->
-        @if (harvestFacade.hasActiveHarvest()) {
-          <div class="harvest-header">
-            <h2 class="text-level-2">{{ harvestFacade.activeHarvestName() }}</h2>
-            <p class="text-level-4">Kilos cereza totales: {{ totalCherryKilos() | kilos }} | Proyección: {{ saleAndCostsFacade.projectedDryKg() | kilos }} secos</p>
-          </div>
-        }
+        <div class="form-page">
+          <ol class="steps" aria-label="Pasos del cierre">
+            <li [class.current]="step() === 'close'" [class.done]="step() !== 'close'">1. Cerrar</li>
+            <li [class.current]="step() === 'sale'" [class.done]="step() === 'costs'">2. Venta</li>
+            <li [class.current]="step() === 'costs'">3. Costos</li>
+          </ol>
 
-        <!-- Paso 1: Venta -->
-        <ion-card class="step-card" [class.active]="currentStep() === 1">
-          <ion-card-header>
-            <ion-card-title class="text-level-2">
-              <ion-chip color="primary" size="small" mode="md">
-                <ion-label>1</ion-label>
-              </ion-chip>
-              Venta de la cosecha
-            </ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <div class="form-grid">
-              <ion-item>
-                <ion-label position="stacked">Kilos secos reales vendidos</ion-label>
-                <ion-input
+          @if (!network.isOnline()) {
+            <p class="form-error" role="alert">
+              <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+              <span>Necesitas conexión para cerrar la cosecha y registrar la venta.</span>
+            </p>
+          }
+
+          @if (errorMessage()) {
+            <p class="form-error" role="alert">
+              <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+              <span>{{ errorMessage() }}</span>
+            </p>
+          }
+
+          @switch (step()) {
+            @case ('close') {
+              <section class="card">
+                <h2 class="text-level-2">{{ harvest()!.name }}</h2>
+                <dl class="summary">
+                  <div><dt>Recolectores</dt><dd>{{ activePickers().length }}</dd></div>
+                  <div><dt>Café cereza recogido</dt><dd>{{ totalCherryKilograms() | kilos }}</dd></div>
+                  <div><dt>Pagado a recolectores</dt><dd>{{ totalPaid() | currency }}</dd></div>
+                </dl>
+              </section>
+
+              @if (pendingBalance() > 0) {
+                <p class="warning" role="status">
+                  <ion-icon name="warning-outline" aria-hidden="true"></ion-icon>
+                  <span>
+                    {{ pickersWithBalance() }} {{ pickersWithBalance() === 1 ? 'recolector tiene' : 'recolectores tienen' }}
+                    saldo pendiente por {{ pendingBalance() | currency }}. Después de cerrar ya no podrás pagarles desde la app.
+                  </span>
+                </p>
+              }
+
+              <p class="form-page__intro">
+                Al cerrar ya no se pueden registrar pesadas ni pagos. Luego registras la venta y los costos.
+              </p>
+
+              <app-button-primary
+                color="danger"
+                iconStart="lock-closed-outline"
+                [loading]="busy()"
+                loadingText="Cerrando..."
+                [disabled]="!network.isOnline()"
+                (buttonClick)="closeHarvest()"
+              >
+                Cerrar cosecha
+              </app-button-primary>
+            }
+
+            @case ('sale') {
+              <form class="form-page__fields" (ngSubmit)="recordSale()" #saleForm="ngForm" novalidate>
+                <p class="form-page__intro">
+                  Recogiste {{ totalCherryKilograms() | kilos }} de café cereza: se esperan unos
+                  {{ projectedDryKilograms() | kilos }} secos.
+                </p>
+                <app-input
+                  label="Kilos secos vendidos"
                   type="number"
+                  name="dryKilograms"
                   [(ngModel)]="dryKilograms"
-                  placeholder="Ej: 1.250"
+                  required
                   inputmode="decimal"
-                  step="0.1"
-                  min="0.1"
-                ></ion-input>
-              </ion-item>
-
-              <ion-item>
-                <ion-label position="stacked">Precio de venta (COP/kg)</ion-label>
-                <ion-input
+                  placeholder="Ej: 1250"
+                  errorMessage="Escribe los kilos secos que vendiste."
+                ></app-input>
+                <app-input
+                  label="Precio por kilo seco (COP)"
                   type="number"
+                  name="salePrice"
                   [(ngModel)]="salePrice"
-                  placeholder="Ej: 2.500"
+                  required
                   inputmode="numeric"
-                  min="1"
-                ></ion-input>
-              </ion-item>
-
-              <ion-item>
-                <ion-label position="stacked">Fecha de venta</ion-label>
-                <ion-input
-                  type="date"
+                  placeholder="Ej: 18000"
+                  errorMessage="Escribe el precio al que vendiste cada kilo."
+                ></app-input>
+                <app-input
+                  label="Fecha de la venta"
+                  name="saleDate"
                   [(ngModel)]="saleDate"
-                ></ion-input>
-              </ion-item>
-            </div>
-
-            @if (saleAndCostsFacade.hasSale()) {
-              <div class="result-box gross-profit">
-                <h3 class="text-level-3">Ganancia bruta</h3>
-                <p class="text-level-1 profit-value">{{ saleAndCostsFacade.grossProfit() | currency }}</p>
-                <p class="text-level-4">(Venta - Pagos a recolectores)</p>
-              </div>
-              <ion-button fill="solid" color="primary" expand="block" class="ion-margin-top" (click)="nextStep()">
-                <ion-icon name="calculator-outline" slot="start"></ion-icon>
-                Continuar a costos
-              </ion-button>
-            } @else {
-              <ion-button fill="solid" color="primary" expand="block" class="ion-margin-top" (click)="calculateGrossProfit()">
-                <ion-icon name="calculator-outline" slot="start"></ion-icon>
-                Calcular ganancia bruta
-              </ion-button>
-            }
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Paso 2: Costos de producción -->
-        <ion-card class="step-card" [class.active]="currentStep() === 2">
-          <ion-card-header>
-            <ion-card-title class="text-level-2">
-              <ion-chip color="secondary" size="small" mode="md">
-                <ion-label>2</ion-label>
-              </ion-chip>
-              Costos de producción
-            </ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <div class="cost-form">
-              <ion-item>
-                <ion-label position="stacked">Descripción</ion-label>
-                <ion-input
-                  type="text"
-                  [(ngModel)]="costDescription"
-                  placeholder="Ej: Fertilizantes, Mano de obra, Transporte"
-                  maxlength="200"
-                ></ion-input>
-              </ion-item>
-
-              <ion-item>
-                <ion-label position="stacked">Monto (COP)</ion-label>
-                <ion-input
-                  type="number"
-                  [(ngModel)]="costAmount"
-                  placeholder="Ej: 500000"
-                  inputmode="numeric"
-                  min="1"
-                ></ion-input>
-              </ion-item>
-
-              <ion-item>
-                <ion-label position="stacked">Fecha</ion-label>
-                <ion-input
-                  type="date"
-                  [(ngModel)]="costDate"
-                ></ion-input>
-              </ion-item>
-
-              <ion-button fill="solid" color="secondary" expand="block" class="ion-margin-top" (click)="addCost()">
-                <ion-icon name="add-outline" slot="start"></ion-icon>
-                Agregar costo
-              </ion-button>
-            </div>
-
-            @if (saleAndCostsFacade.costs().length > 0) {
-              <ion-list lines="full" class="ion-margin-top">
-                @for (cost of saleAndCostsFacade.costs(); track cost.id) {
-                  <ion-item>
-                    <ion-label>
-                      <h3 class="text-level-3">{{ cost.description }}</h3>
-                      <p class="text-level-4">{{ cost.date | dateFormat:'date' }}</p>
-                    </ion-label>
-                    <ion-note slot="end" color="danger">{{ cost.amount | currency }}</ion-note>
-                  </ion-item>
+                  required
+                  placeholder="AAAA-MM-DD"
+                  helperText="Formato año-mes-día. Por defecto, hoy."
+                  errorMessage="Escribe la fecha de la venta."
+                ></app-input>
+                @if (saleTotal() > 0) {
+                  <p class="form-page__intro">Total de la venta: <strong>{{ saleTotal() | currency }}</strong></p>
                 }
-              </ion-list>
+                <app-button-primary
+                  type="submit"
+                  iconStart="cash-outline"
+                  [loading]="busy()"
+                  loadingText="Guardando..."
+                  [disabled]="saleForm.invalid || !network.isOnline()"
+                >
+                  Registrar venta
+                </app-button-primary>
+              </form>
             }
 
-            @if (saleAndCostsFacade.actualProfit() !== 0 || saleAndCostsFacade.hasSale()) {
-              <div class="result-box actual-profit">
-                <h3 class="text-level-3">Ganancia de la cosecha</h3>
-                <p class="text-level-1 profit-value">{{ saleAndCostsFacade.actualProfit() | currency }}</p>
-                <p class="text-level-4">(Ganancia bruta - Costos de producción)</p>
-              </div>
-              <ion-button fill="solid" color="success" expand="block" class="ion-margin-top" (click)="confirmClose()" [disabled]="saleAndCostsFacade.isLoading()">
+            @case ('costs') {
+              <section class="card">
+                <dl class="summary">
+                  <div><dt>Venta</dt><dd>{{ profit()?.grossRevenue ?? 0 | currency }}</dd></div>
+                  <div><dt>Pagos a recolectores</dt><dd>− {{ profit()?.totalPickerPayments ?? 0 | currency }}</dd></div>
+                  <div class="strong"><dt>Ganancia bruta</dt><dd>{{ profit()?.grossProfit ?? 0 | currency }}</dd></div>
+                  <div><dt>Costos de producción</dt><dd>− {{ profit()?.totalProductionCosts ?? 0 | currency }}</dd></div>
+                  <div class="total">
+                    <dt>Ganancia de la cosecha</dt>
+                    <dd [class.loss]="(profit()?.actualProfit ?? 0) < 0">{{ profit()?.actualProfit ?? 0 | currency }}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <form class="form-page__fields" (ngSubmit)="addCost()" #costForm="ngForm" novalidate>
+                <h2 class="text-level-2">Agregar costo de producción</h2>
+                <app-input
+                  label="Descripción"
+                  name="costDescription"
+                  [(ngModel)]="costDescription"
+                  required
+                  maxlength="200"
+                  placeholder="Ej: Abono, transporte, beneficio"
+                  errorMessage="Escribe en qué gastaste."
+                ></app-input>
+                <app-input
+                  label="Valor (COP)"
+                  type="number"
+                  name="costAmount"
+                  [(ngModel)]="costAmount"
+                  required
+                  inputmode="numeric"
+                  placeholder="Ej: 500000"
+                  errorMessage="Escribe cuánto gastaste."
+                ></app-input>
+                <app-button-primary
+                  type="submit"
+                  fill="outline"
+                  iconStart="add-outline"
+                  [loading]="busy()"
+                  loadingText="Guardando..."
+                  [disabled]="costForm.invalid || !network.isOnline()"
+                >
+                  Agregar costo
+                </app-button-primary>
+              </form>
+
+              @if (saleAndCostsFacade.costs().length > 0) {
+                <ul class="rows">
+                  @for (cost of saleAndCostsFacade.costs(); track cost.id) {
+                    <li class="row">
+                      <span>{{ cost.description }}<small>{{ cost.date | dateFormat: 'date' }}</small></span>
+                      <strong>{{ cost.amount | currency }}</strong>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <ion-button expand="block" color="primary" (click)="finish()">
                 <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-                {{ saleAndCostsFacade.isLoading() ? 'Procesando...' : 'Confirmar y archivar cosecha' }}
+                Terminar
               </ion-button>
             }
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Toast error -->
-        <ion-toast
-          [isOpen]="showError()"
-          [message]="errorMessage()"
-          duration="3000"
-          position="bottom"
-          color="danger"
-          (didDismiss)="showError.set(false)"
-        ></ion-toast>
-
-        <!-- Toast éxito -->
-        <ion-toast
-          [isOpen]="showSuccess()"
-          [message]="'Cosecha cerrada y archivada correctamente'"
-          duration="3000"
-          position="bottom"
-          color="success"
-          (didDismiss)="showSuccess.set(false)"
-        ></ion-toast>
+          }
+        </div>
       }
     </ion-content>
   `,
   styles: [`
-    .step-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      margin-bottom: var(--spacing-md);
-      transition: border-color 0.2s;
-      border: 2px solid transparent;
-    }
-    .step-card.active {
-      border-color: var(--color-primary);
-    }
-    .form-grid {
+    .steps {
       display: flex;
-      flex-direction: column;
       gap: var(--spacing-sm);
+      margin: 0;
+      padding: 0;
+      list-style: none;
     }
-    .cost-form {
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-sm);
-    }
-    .result-box {
-      background: var(--color-surface);
-      border: 2px solid var(--color-primary);
-      border-radius: var(--radius-md);
-      padding: var(--spacing-md);
-      margin-top: var(--spacing-md);
+    .steps li {
+      flex: 1;
+      padding: var(--spacing-xs) 0;
+      border-bottom: 3px solid var(--color-border);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
       text-align: center;
     }
-    .result-box.gross-profit {
+    .steps li.done {
+      border-color: var(--color-primary-muted);
+    }
+    .steps li.current {
       border-color: var(--color-primary);
+      color: var(--color-text);
+      font-weight: var(--font-weight-bold);
     }
-    .result-box.actual-profit {
-      border-color: #28a745;
-    }
-    .profit-value {
-      font-family: var(--font-family-display);
-      color: var(--color-primary);
-      margin: var(--spacing-xs) 0;
-    }
-    .result-box.actual-profit .profit-value {
-      color: #28a745;
-    }
-    .harvest-header {
-      background: var(--color-surface);
-      border-radius: var(--radius-md);
+    .card {
       padding: var(--spacing-md);
-      margin-bottom: var(--spacing-lg);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
       box-shadow: var(--shadow-card);
+    }
+    .card h2 {
+      margin: 0 0 var(--spacing-sm);
+    }
+    .summary {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      font-family: var(--font-family-body);
+    }
+    .summary div {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+    }
+    .summary dt {
+      color: var(--color-text-muted);
+    }
+    .summary dd {
+      margin: 0;
+      font-weight: var(--font-weight-bold);
+    }
+    .summary .strong dt {
+      color: var(--color-text);
+    }
+    .summary .total {
+      padding-top: var(--spacing-sm);
+      border-top: 2px solid var(--color-primary);
+      font-size: var(--font-size-lg);
+    }
+    .summary .total dt {
+      color: var(--color-text);
+      font-weight: var(--font-weight-bold);
+    }
+    .summary .total dd {
+      color: var(--color-primary);
+    }
+    .summary dd.loss {
+      color: var(--color-accent-alert);
+    }
+    .warning {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin: 0;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-sm);
+      background: rgba(183, 121, 31, 0.12);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+    }
+    .warning ion-icon {
+      flex-shrink: 0;
+      font-size: 20px;
+      color: var(--ion-color-warning);
+    }
+    h2 {
+      margin: 0;
+    }
+    .rows {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-card);
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--spacing-md);
+      min-height: var(--list-row-height);
+      padding: var(--spacing-sm) var(--list-row-padding-h);
+      border-bottom: 1px solid var(--color-border);
+      font-family: var(--font-family-body);
+    }
+    .row:last-child {
+      border-bottom: none;
+    }
+    .row small {
+      display: block;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
     }
     .loading-center {
       display: flex;
       justify-content: center;
-      align-items: center;
-      min-height: 50vh;
+      padding: var(--spacing-xl);
     }
   `],
 })
 export class HarvestClosePage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly alertController = inject(AlertController);
+  private readonly harvestService = inject(HarvestService);
   protected readonly harvestFacade = inject(HarvestFacade);
   protected readonly saleAndCostsFacade = inject(SaleAndCostsFacade);
+  protected readonly network = inject(NetworkService);
 
-  currentStep = signal(1);
-  showError = signal(false);
-  errorMessage = signal('');
-  showSuccess = signal(false);
+  readonly harvest = signal<HarvestResponse | null>(null);
+  readonly loading = signal(true);
+  readonly busy = signal(false);
+  readonly errorMessage = signal<string | null>(null);
 
-  // Paso 1: Venta
-  dryKilograms = 0;
-  salePrice = 0;
-  saleDate = new Date().toISOString().split('T')[0];
+  readonly dryKilograms = signal<number | null>(null);
+  readonly salePrice = signal<number | null>(null);
+  readonly saleDate = signal(today());
+  readonly costDescription = signal('');
+  readonly costAmount = signal<number | null>(null);
 
-  // Paso 2: Costos
-  costDescription = '';
-  costAmount = 0;
-  costDate = new Date().toISOString().split('T')[0];
+  readonly profit = this.saleAndCostsFacade.profit;
 
-  // Mock: kilos cereza totales (se obtendría del backend)
-  private readonly totalCherryKilos = 6250;
+  readonly step = computed<Step>(() => {
+    if (this.harvest()?.status === 'active') return 'close';
+    return this.saleAndCostsFacade.hasSale() ? 'costs' : 'sale';
+  });
+
+  readonly activePickers = computed(() => this.harvestFacade.activeHarvestPickers().filter((p) => p.status === 'active'));
+  readonly totalPaid = computed(() => this.harvestFacade.activeHarvestPickers().reduce((sum, p) => sum + p.totalPaid, 0));
+  readonly pendingBalance = computed(() => this.activePickers().reduce((sum, p) => sum + p.balanceDue, 0));
+  readonly pickersWithBalance = computed(() => this.activePickers().filter((p) => p.balanceDue > 0).length);
+  readonly totalCherryKilograms = computed(() => {
+    const fromPickers = this.harvestFacade.activeHarvestPickers().reduce((sum, p) => sum + p.totalKilograms, 0);
+    // Ya cerrada, los recolectores salen de la cosecha activa: se usa lo que calculó el backend (secos × 5).
+    return this.harvest()?.status === 'active' ? fromPickers : (this.profit()?.projectedDryKilograms ?? 0) * 5;
+  });
+  readonly projectedDryKilograms = computed(() => this.totalCherryKilograms() / 5);
+  readonly saleTotal = computed(() => (this.dryKilograms() ?? 0) * (this.salePrice() ?? 0));
 
   constructor() {
-    addIcons({ arrowBackOutline, addOutline, cashOutline, calculatorOutline, checkmarkCircleOutline });
+    addIcons({ alertCircleOutline, addOutline, checkmarkCircleOutline, lockClosedOutline, cashOutline, warningOutline });
+    void this.load();
+  }
 
-    // Cargar proyección de kilos secos al inicializar
-    effect(() => {
-      if (this.harvestFacade.hasActiveHarvest()) {
-        this.saleAndCostsFacade.projectDryKilograms(this.totalCherryKilos);
+  async closeHarvest(): Promise<void> {
+    const harvest = this.harvest();
+    if (!harvest || !(await this.confirmClose(harvest.name))) return;
+
+    await this.runStep('No se pudo cerrar la cosecha.', async () => {
+      const closed = await this.harvestFacade.closeHarvest(harvest.id);
+      this.harvest.set(closed);
+      await this.saleAndCostsFacade.loadHarvestProfit(closed.id);
+      // Si sale de la pantalla, puede retomar desde el historial en el paso de la venta.
+      await this.router.navigate(['/harvest/close', closed.id], { replaceUrl: true });
+    });
+  }
+
+  async recordSale(): Promise<void> {
+    const harvest = this.harvest();
+    const dryKilograms = this.dryKilograms();
+    const salePrice = this.salePrice();
+    if (!harvest || !(dryKilograms! > 0) || !(salePrice! > 0)) {
+      this.errorMessage.set('Los kilos y el precio deben ser mayores que cero.');
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(this.saleDate())) {
+      this.errorMessage.set('Escribe la fecha como año-mes-día, por ejemplo 2026-10-01.');
+      return;
+    }
+    await this.runStep('No se pudo registrar la venta.', () =>
+      this.saleAndCostsFacade.recordSale({
+        harvestId: harvest.id,
+        actualDryKilograms: dryKilograms!,
+        salePrice: salePrice!,
+        date: this.saleDate(),
+      }),
+    );
+  }
+
+  async addCost(): Promise<void> {
+    const harvest = this.harvest();
+    const amount = this.costAmount();
+    if (!harvest || !this.costDescription().trim() || !(amount! > 0)) {
+      this.errorMessage.set('Escribe la descripción y un valor mayor que cero.');
+      return;
+    }
+    await this.runStep('No se pudo agregar el costo.', async () => {
+      await this.saleAndCostsFacade.addProductionCost({
+        harvestId: harvest.id,
+        description: this.costDescription().trim(),
+        amount: amount!,
+        date: today(),
+      });
+      this.costDescription.set('');
+      this.costAmount.set(null);
+    });
+  }
+
+  finish(): void {
+    const harvest = this.harvest();
+    this.router.navigate(harvest ? ['/harvest/history', harvest.id] : ['/history'], { replaceUrl: true });
+  }
+
+  private async load(): Promise<void> {
+    const harvestId = this.route.snapshot.paramMap.get('harvestId');
+    try {
+      if (harvestId) {
+        this.harvest.set(await firstValueFrom(this.harvestService.getHarvestById(harvestId)));
+      } else {
+        if (!this.harvestFacade.hasActiveHarvest()) await this.harvestFacade.loadActiveHarvest();
+        this.harvest.set(this.harvestFacade.activeHarvest());
       }
-    });
-  }
-
-  calculateGrossProfit(): void {
-    if (this.dryKilograms <= 0 || this.salePrice <= 0) {
-      this.errorMessage.set('Ingresa kilos secos y precio de venta válidos');
-      this.showError.set(true);
-      return;
+      const harvest = this.harvest();
+      if (harvest && harvest.status === 'closed') {
+        await this.saleAndCostsFacade.loadHarvestProfit(harvest.id);
+      } else {
+        this.saleAndCostsFacade.clearState();
+      }
+    } catch (err: unknown) {
+      this.errorMessage.set(apiErrorMessage(err, 'No se pudo cargar la cosecha.'));
+    } finally {
+      this.loading.set(false);
     }
+  }
 
-    this.saleAndCostsFacade.recordSale({
-      harvestId: this.harvestFacade.activeHarvest()!.id,
-      actualDryKilograms: this.dryKilograms,
-      salePrice: this.salePrice,
-      date: this.saleDate,
-    }).then(() => {
-      this.nextStep();
-    }).catch((err: any) => {
-      this.errorMessage.set(err?.error?.message ?? 'Error al registrar venta');
-      this.showError.set(true);
+  private async confirmClose(name: string): Promise<boolean> {
+    const alert = await this.alertController.create({
+      header: `¿Cerrar "${name}"?`,
+      message: 'Ya no podrás registrar pesadas ni pagos en esta cosecha. Esta acción no se puede deshacer.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Cerrar cosecha', role: 'confirm', cssClass: 'alert-button-danger' },
+      ],
     });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    return role === 'confirm';
   }
 
-  nextStep(): void {
-    this.currentStep.set(2);
-  }
-
-  addCost(): void {
-    if (!this.costDescription.trim() || this.costAmount <= 0) {
-      this.errorMessage.set('Ingresa descripción y monto válidos');
-      this.showError.set(true);
-      return;
-    }
-
-    this.saleAndCostsFacade.addProductionCost({
-      harvestId: this.harvestFacade.activeHarvest()!.id,
-      description: this.costDescription,
-      amount: this.costAmount,
-      date: this.costDate,
-    }).then(() => {
-      this.costDescription = '';
-      this.costAmount = 0;
-    }).catch((err: any) => {
-      this.errorMessage.set(err?.error?.message ?? 'Error al agregar costo');
-      this.showError.set(true);
-    });
-  }
-
-  confirmClose(): void {
-    const harvest = this.harvestFacade.activeHarvest();
-    if (!harvest) return;
-
-    this.showSuccess.set(true);
-    this.harvestFacade.closeHarvest(harvest.id).then(() => {
-      setTimeout(() => {
-        this.router.navigate(['/history']);
-      }, 2000);
-    }).catch((err: any) => {
-      this.errorMessage.set(err?.error?.message ?? 'Error al cerrar cosecha');
-      this.showError.set(true);
-      this.showSuccess.set(false);
-    });
-  }
-
-  goBack(): void {
-    if (this.currentStep() === 2) {
-      this.currentStep.set(1);
-    } else {
-      this.router.navigate(['/home']);
+  private async runStep(fallback: string, action: () => Promise<unknown>): Promise<void> {
+    this.errorMessage.set(null);
+    this.busy.set(true);
+    try {
+      await action();
+    } catch (err: unknown) {
+      this.errorMessage.set(apiErrorMessage(err, fallback));
+    } finally {
+      this.busy.set(false);
     }
   }
 }

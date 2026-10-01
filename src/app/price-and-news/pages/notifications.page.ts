@@ -1,9 +1,13 @@
 import { Component, effect, inject, computed } from '@angular/core';
+import { IonBadge } from '@ionic/angular/ion-badge';
+import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
+import { IonButtons } from '@ionic/angular/ion-buttons';
+import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
@@ -14,7 +18,7 @@ import { IonLabel } from '@ionic/angular/ion-label';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonList } from '@ionic/angular/ion-list';
 import { addIcons } from 'ionicons';
-import { pricetagOutline, chevronForwardOutline, checkmarkCircleOutline } from 'ionicons/icons';
+import { pricetagOutline, chevronForwardOutline, checkmarkCircleOutline, notificationsOffOutline } from 'ionicons/icons';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.facade';
@@ -28,6 +32,10 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   selector: 'app-notifications',
   standalone: true,
   imports: [
+    IonSpinner,
+    IonBadge,
+    IonButtons,
+    IonBackButton,
     CommonModule,
     IonContent,
     IonHeader,
@@ -47,6 +55,9 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   template: `
     <ion-header>
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button defaultHref="/price-news" text="" aria-label="Volver"></ion-back-button>
+        </ion-buttons>
         <ion-title class="text-level-1">Notificaciones</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -72,7 +83,9 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
                     <ion-chip [color]="n.read ? 'medium' : 'primary'" size="small">
                       <ion-label>{{ n.read ? 'Leída' : 'Nueva' }}</ion-label>
                     </ion-chip>
-                    <ion-badge color="primary" slot="end">{{ n.value | currency }}</ion-badge>
+                    @if (n.priceValue !== null) {
+                      <ion-badge color="primary" slot="end">{{ n.priceValue | currency }}</ion-badge>
+                    }
                   </div>
                   <div class="notification-body">
                     <p class="text-level-3">Cambio de precio del café FNC</p>
@@ -129,7 +142,7 @@ export class NotificationsPage {
   private readonly router = inject(Router);
 
   constructor() {
-    addIcons({ pricetagOutline, chevronForwardOutline, checkmarkCircleOutline });
+    addIcons({ pricetagOutline, chevronForwardOutline, checkmarkCircleOutline, notificationsOffOutline });
 
     // Cargar notificaciones al inicializar
     effect(() => {

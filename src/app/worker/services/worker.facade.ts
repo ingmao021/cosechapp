@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { WorkerService, CreateWorkerDto, UpdateWorkerDto, WorkerResponse } from './worker.service';
+import { OfflineStore } from '../../sync/services/offline-store';
+import { apiErrorMessage } from '../../shared/utils';
 
 /**
  * Facade de Catálogo de Trabajadores — Estado (Signals) + Orquestación.
@@ -21,7 +22,7 @@ import { WorkerService, CreateWorkerDto, UpdateWorkerDto, WorkerResponse } from 
 @Injectable({ providedIn: 'root' })
 export class WorkerFacade {
   private readonly workerService = inject(WorkerService);
-  private readonly router = inject(Router);
+  private readonly offlineStore = inject(OfflineStore);
 
   // Estado privado (signals)
   private readonly _workers = signal<WorkerResponse[]>([]);
@@ -46,19 +47,25 @@ export class WorkerFacade {
     try {
       const workers = await this.workerService.listWorkers().toPromise();
       this._workers.set(workers ?? []);
+      this.offlineStore.saveSnapshot('workers', workers ?? []);
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar trabajadores');
-      this._workers.set([]);
+      // Sin señal: el último catálogo guardado en el teléfono.
+      const snapshot = err?.status === 0 ? this.offlineStore.readSnapshot<WorkerResponse[]>('workers') : null;
+      if (snapshot) {
+        this._workers.set(snapshot.value);
+      } else {
+        this._error.set(apiErrorMessage(err, 'No se pudo cargar el catálogo de trabajadores.'));
+      }
     } finally {
       this._isLoading.set(false);
     }
   }
 
   /**
-   * Crea un nuevo trabajador en el catálogo.
-   * Navega a la lista tras éxito.
+   * Crea un trabajador en el catálogo y lo devuelve. La pantalla decide a dónde ir
+   * (al catálogo, o de vuelta a la cuadrilla si se creó desde "Agregar recolector").
    */
-  async createWorker(dto: CreateWorkerDto): Promise<void> {
+  async createWorker(dto: CreateWorkerDto): Promise<WorkerResponse> {
     this._isLoading.set(true);
     this._error.set(null);
 
@@ -66,12 +73,12 @@ export class WorkerFacade {
       const worker = await this.workerService.createWorker(dto).toPromise();
       if (worker) {
         this._workers.update(current => [...current, worker]);
-        await this.router.navigate(['/worker/catalog'], { replaceUrl: true });
+        return worker;
       } else {
         throw new Error('Respuesta inválida al crear trabajador');
       }
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al crear trabajador');
+      this._error.set(apiErrorMessage(err, 'Error al crear trabajador'));
       throw err;
     } finally {
       this._isLoading.set(false);
@@ -91,12 +98,11 @@ export class WorkerFacade {
         this._workers.update(current =>
           current.map(w => w.id === id ? worker : w)
         );
-        await this.router.navigate(['/worker/catalog'], { replaceUrl: true });
       } else {
         throw new Error('Respuesta inválida al actualizar trabajador');
       }
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al actualizar trabajador');
+      this._error.set(apiErrorMessage(err, 'Error al actualizar trabajador'));
       throw err;
     } finally {
       this._isLoading.set(false);
@@ -114,7 +120,7 @@ export class WorkerFacade {
       await this.workerService.deleteWorker(id).toPromise();
       this._workers.update(current => current.filter(w => w.id !== id));
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al eliminar trabajador');
+      this._error.set(apiErrorMessage(err, 'Error al eliminar trabajador'));
       throw err;
     } finally {
       this._isLoading.set(false);
@@ -139,7 +145,7 @@ export class WorkerFacade {
       const worker = await this.workerService.getWorker(id).toPromise();
       return worker ?? null;
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar trabajador');
+      this._error.set(apiErrorMessage(err, 'Error al cargar trabajador'));
       return null;
     } finally {
       this._isLoading.set(false);

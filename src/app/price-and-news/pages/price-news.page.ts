@@ -1,8 +1,9 @@
 import { Component, effect, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonLabel, IonBadge, IonButtons } from '@ionic/angular';
+import { Router } from '@angular/router';
+import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCardSubtitle, IonLabel, IonBadge, IonButtons, IonSpinner } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline } from 'ionicons/icons';
+import { pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline, notificationsOutline, openOutline } from 'ionicons/icons';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.facade';
 
@@ -18,6 +19,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   selector: 'app-price-news',
   standalone: true,
   imports: [
+    IonSpinner,
     CommonModule,
     IonContent,
     IonHeader,
@@ -62,18 +64,17 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
           <ion-spinner name="crescent"></ion-spinner>
         </div>
       } @else {
-        <!-- Precio FNC actual -->
+        <!-- Precio FNC actual: sin dato no se muestra "$ 0", que parecería un precio real -->
         <ion-card class="fnc-price-card">
-          <ion-card-content class="text-center">
-            <div class="price-value">{{ priceAndNewsFacade.formattedPrice() }}</div>
-            <div class="price-meta text-level-4">
-              Actualizado: {{ priceAndNewsFacade.priceDate() }}
-              @if (priceAndNewsFacade.coffeePrice()) {
-                <ion-badge color="medium" class="ion-margin-start">FNC</ion-badge>
-              } @else {
-                <ion-badge color="danger">Sin datos</ion-badge>
-              }
-            </div>
+          <ion-card-content>
+            <p class="price-label">Precio del café hoy · FNC</p>
+            @if (priceAndNewsFacade.coffeePrice()) {
+              <div class="price-value">{{ priceAndNewsFacade.formattedPrice() }}</div>
+              <p class="price-meta">Actualizado: {{ priceAndNewsFacade.priceDate() }}</p>
+            } @else {
+              <div class="price-empty">Aún no hay precio publicado</div>
+              <p class="price-meta">Desliza hacia abajo para actualizar.</p>
+            }
           </ion-card-content>
         </ion-card>
 
@@ -127,8 +128,22 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       --border-radius: var(--radius-md);
       --box-shadow: var(--shadow-card);
       margin: var(--spacing-md);
-      background: linear-gradient(135deg, var(--color-primary) 0%, #2a4d18 100%);
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--ion-color-primary-shade) 100%);
       color: var(--color-text-on-primary);
+    }
+    .fnc-price-card ion-card-content {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-lg) var(--spacing-md);
+    }
+    .price-label,
+    .price-meta {
+      margin: 0;
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-on-primary);
+      opacity: 0.9;
     }
     .price-value {
       font-family: var(--font-family-display);
@@ -136,10 +151,10 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       font-weight: var(--font-weight-bold);
       line-height: 1.1;
     }
-    .price-meta {
-      font-family: var(--font-family-body);
-      font-size: var(--font-size-sm);
-      opacity: 0.9;
+    .price-empty {
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-bold);
     }
     .notification-banner {
       --border-radius: var(--radius-md);
@@ -169,9 +184,10 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
 })
 export class PriceNewsPage {
   protected readonly priceAndNewsFacade = inject(PriceAndNewsFacade);
+  private readonly router = inject(Router);
 
   constructor() {
-    addIcons({ pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline });
+    addIcons({ pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline, notificationsOutline, openOutline });
 
     // Cargar todo al inicializar
     effect(() => {
@@ -186,8 +202,7 @@ export class PriceNewsPage {
   }
 
   goToNotifications(): void {
-    // TODO: navegar a /notifications (Tarea 6.2)
-    console.log('Ir a notificaciones');
+    this.router.navigate(['/price-and-news/notifications']);
   }
 
   openLink(url: string): void {

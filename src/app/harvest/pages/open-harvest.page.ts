@@ -1,4 +1,4 @@
-import { Component, signal, inject, computed } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -7,21 +7,15 @@ import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButtons } from '@ionic/angular/ion-buttons';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
-import { IonToast } from '@ionic/angular/ion-toast';
 import { AppInputComponent, AppButtonPrimaryComponent } from '@shared/components';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline } from 'ionicons/icons';
+import { addOutline, alertCircleOutline, arrowBackOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
 import { Router } from '@angular/router';
+import { apiErrorMessage } from '../../shared/utils';
 
 /**
- * Pantalla Abrir Nueva Cosecha — Tarea 2.3.
- * Formulario con nombre de cosecha y precio por kilo.
+ * Abrir cosecha — Template de formulario (Design System §2.1): nombre libre y precio por kilo.
  */
 @Component({
   selector: 'app-open-harvest',
@@ -35,12 +29,6 @@ import { Router } from '@angular/router';
     IonButtons,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardSubtitle,
-    IonToast,
     AppInputComponent,
     AppButtonPrimaryComponent,
   ],
@@ -48,7 +36,7 @@ import { Router } from '@angular/router';
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button fill="clear" (click)="goBack()">
+          <ion-button fill="clear" (click)="goBack()" aria-label="Volver">
             <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
           </ion-button>
         </ion-buttons>
@@ -56,97 +44,81 @@ import { Router } from '@angular/router';
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      <ion-card class="auth-card">
-        <ion-card-header class="text-center">
-          <ion-card-title class="text-level-1">Nueva cosecha</ion-card-title>
-          <ion-card-subtitle class="text-level-4">Define nombre y precio por kilo</ion-card-subtitle>
-        </ion-card-header>
+    <ion-content>
+      <form class="form-page" (ngSubmit)="onOpenHarvest()" #form="ngForm" novalidate>
+        <p class="form-page__intro">
+          Dale un nombre a la cosecha y define cuánto pagas por kilo recogido.
+        </p>
 
-        <ion-card-content>
-          <form (ngSubmit)="onOpenHarvest()" #form="ngForm">
-            <app-input
-              label="Nombre de la cosecha"
-              type="text"
-              name="name"
-              [(ngModel)]="name"
-              required
-              maxlength="100"
-              placeholder="Ej: Primer pasón, Mitaca 2026"
-            ></app-input>
+        <div class="form-page__fields">
+          <app-input
+            label="Nombre de la cosecha"
+            name="name"
+            [(ngModel)]="name"
+            required
+            maxlength="100"
+            placeholder="Ej: Primer pasón, Mitaca 2026"
+            errorMessage="Escribe un nombre para la cosecha."
+          ></app-input>
 
-            <app-input
-              label="Precio por kilo (COP)"
-              type="number"
-              name="pricePerKilogram"
-              [(ngModel)]="pricePerKilogram"
-              required
-              min="1"
-              inputmode="numeric"
-              autocomplete="off"
-            ></app-input>
+          <app-input
+            label="Precio por kilo (COP)"
+            type="number"
+            name="pricePerKilogram"
+            [(ngModel)]="pricePerKilogram"
+            required
+            inputmode="numeric"
+            placeholder="Ej: 1200"
+            helperText="Lo que pagas al recolector por cada kilo de café cereza."
+            errorMessage="Escribe el precio por kilo."
+          ></app-input>
+        </div>
 
-            <app-button-primary
-              type="submit"
-              [loading]="isLoading()"
-              [disabled]="form.invalid"
-              loadingText="Abriendo..."
-              iconStart="add-outline"
-            >
-              Abrir cosecha
-            </app-button-primary>
-          </form>
-        </ion-card-content>
-      </ion-card>
+        @if (errorMessage()) {
+          <p class="form-error" role="alert">
+            <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+            <span>{{ errorMessage() }}</span>
+          </p>
+        }
 
-      <!-- Toast error -->
-      <ion-toast
-        [isOpen]="showError()"
-        [message]="errorMessage()"
-        duration="3000"
-        position="bottom"
-        color="danger"
-        (didDismiss)="showError.set(false)"
-      ></ion-toast>
+        <app-button-primary
+          type="submit"
+          [loading]="isLoading()"
+          [disabled]="form.invalid"
+          loadingText="Abriendo..."
+          iconStart="add-outline"
+        >
+          Abrir cosecha
+        </app-button-primary>
+      </form>
     </ion-content>
   `,
-  styles: [`
-    .auth-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      max-width: 400px;
-      margin: var(--spacing-xl) auto;
-    }
-    .text-center {
-      text-align: center;
-    }
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-sm);
-    }
-  `],
 })
 export class OpenHarvestPage {
   private readonly harvestFacade = inject(HarvestFacade);
   private readonly router = inject(Router);
 
-  name = '';
-  pricePerKilogram = 0;
-  isLoading = this.harvestFacade.isLoading;
-  showError = signal(false);
-  errorMessage = signal('');
+  readonly name = signal('');
+  readonly pricePerKilogram = signal<number | null>(null);
+  readonly isLoading = this.harvestFacade.isLoading;
+  readonly errorMessage = signal<string | null>(null);
 
   constructor() {
-    addIcons({ arrowBackOutline });
+    addIcons({ addOutline, alertCircleOutline, arrowBackOutline });
   }
 
   async onOpenHarvest(): Promise<void> {
+    this.errorMessage.set(null);
+    const pricePerKilogram = this.pricePerKilogram();
+    if (pricePerKilogram === null || pricePerKilogram <= 0) {
+      this.errorMessage.set('El precio por kilo debe ser mayor que 0.');
+      return;
+    }
+
     try {
-      await this.harvestFacade.openHarvest(this.name, this.pricePerKilogram);
-    } catch (err: any) {
-      this.errorMessage.set(err?.message ?? 'Error al abrir cosecha');
-      this.showError.set(true);
+      await this.harvestFacade.openHarvest(this.name().trim(), pricePerKilogram);
+    } catch (err: unknown) {
+      this.errorMessage.set(apiErrorMessage(err, 'No se pudo abrir la cosecha. Intenta de nuevo.'));
     }
   }
 

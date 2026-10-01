@@ -1,8 +1,10 @@
 import { Component, effect, inject, signal } from '@angular/core';
+import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
+import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButtons } from '@ionic/angular/ion-buttons';
 import { IonButton } from '@ionic/angular/ion-button';
@@ -20,8 +22,9 @@ import { IonItemSliding } from '@ionic/angular/ion-item-sliding';
 import { IonList } from '@ionic/angular/ion-list';
 import { IonToast } from '@ionic/angular/ion-toast';
 import { addIcons } from 'ionicons';
-import { personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForwardOutline } from 'ionicons/icons';
+import { personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForwardOutline, peopleOutline } from 'ionicons/icons';
 import { WorkerFacade } from '../services/worker.facade';
+import { apiErrorMessage } from '../../shared/utils';
 
 /**
  * Pantalla Catálogo de Trabajadores — Tarea 3.1.
@@ -32,6 +35,8 @@ import { WorkerFacade } from '../services/worker.facade';
   selector: 'app-worker-catalog',
   standalone: true,
   imports: [
+    IonSpinner,
+    IonBackButton,
     IonContent,
     IonHeader,
     IonToolbar,
@@ -53,6 +58,9 @@ import { WorkerFacade } from '../services/worker.facade';
   template: `
     <ion-header>
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button defaultHref="/profile" text="" aria-label="Volver"></ion-back-button>
+        </ion-buttons>
         <ion-title class="text-level-1">Catálogo de trabajadores</ion-title>
         <ion-buttons slot="end">
           <ion-button fill="solid" color="primary" (click)="goToCreate()">
@@ -184,7 +192,7 @@ export class WorkerCatalogPage {
   workerToDelete = signal<any | null>(null);
 
   constructor() {
-    addIcons({ personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForwardOutline });
+    addIcons({ personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForwardOutline, peopleOutline });
 
     // Cargar trabajadores al inicializar
     effect(() => {
@@ -217,7 +225,7 @@ export class WorkerCatalogPage {
     try {
       await this.workerFacade.deleteWorker(worker.id);
     } catch (err: any) {
-      this.errorMessage.set(err?.error?.message ?? 'Error al eliminar trabajador');
+      this.errorMessage.set(apiErrorMessage(err, 'Error al eliminar trabajador'));
       this.showError.set(true);
     } finally {
       this.cancelDelete();

@@ -7,7 +7,9 @@ export type {
   CreateCrewDto,
   UpdateCrewDto,
   HarvestResponse,
+  HarvestSummaryResponse,
   HarvestDetailResponse,
   HarvestWorkerResponse,
+  PickerStatsResponse,
   CrewResponse,
 } from './harvest.service';

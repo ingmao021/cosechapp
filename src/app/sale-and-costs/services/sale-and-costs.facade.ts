@@ -1,5 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { SaleAndCostsService, RecordSaleDto, AddProductionCostDto, SaleResponse, ProductionCostResponse, ProfitResponse, DryKgProjectionResponse } from './sale-and-costs.service';
+import { apiErrorMessage } from '../../shared/utils';
 
 /**
  * Facade de Venta y Costos — Estado (Signals) + Orquestación.
@@ -26,6 +28,7 @@ export class SaleAndCostsFacade {
   private readonly saleAndCostsService = inject(SaleAndCostsService);
 
   // Estado privado (signals)
+  private readonly _profit = signal<ProfitResponse | null>(null);
   private readonly _sale = signal<SaleResponse | null>(null);
   private readonly _costs = signal<ProductionCostResponse[]>([]);
   private readonly _grossProfit = signal<number>(0);
@@ -35,6 +38,7 @@ export class SaleAndCostsFacade {
   private readonly _error = signal<string | null>(null);
 
   // Señales públicas de solo lectura
+  readonly profit = this._profit.asReadonly();
   readonly sale = this._sale.asReadonly();
   readonly costs = this._costs.asReadonly();
   readonly grossProfit = this._grossProfit.asReadonly();
@@ -47,23 +51,24 @@ export class SaleAndCostsFacade {
   readonly hasSale = computed(() => this._sale() !== null);
   readonly totalCosts = computed(() => this._costs().reduce((sum, c) => sum + c.amount, 0));
 
-  /**
-   * Carga el cálculo completo de ganancia para una cosecha.
-   */
+  /** Venta, costos y ganancia de una cosecha. */
   async loadHarvestProfit(harvestId: string): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
-      const profit = await this.saleAndCostsService.getHarvestProfit(harvestId).toPromise();
-      if (profit) {
-        this._sale.set(profit.sale);
-        this._costs.set(profit.costs);
-        this._grossProfit.set(profit.grossProfit);
-        this._actualProfit.set(profit.actualProfit);
-      }
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar ganancia de la cosecha');
+      const [profit, sale, costs] = await Promise.all([
+        firstValueFrom(this.saleAndCostsService.getHarvestProfit(harvestId)),
+        firstValueFrom(this.saleAndCostsService.getSale(harvestId)),
+        firstValueFrom(this.saleAndCostsService.getProductionCosts(harvestId)),
+      ]);
+      this._profit.set(profit);
+      this._sale.set(sale);
+      this._costs.set(costs);
+      this._grossProfit.set(profit.grossProfit);
+      this._actualProfit.set(profit.actualProfit);
+    } catch (err: unknown) {
+      this._error.set(apiErrorMessage(err, 'No se pudo cargar la ganancia de la cosecha.'));
     } finally {
       this._isLoading.set(false);
     }
@@ -81,11 +86,12 @@ export class SaleAndCostsFacade {
       if (result) {
         this._sale.set(result.sale);
         this._grossProfit.set(result.grossProfit);
+        await this.loadHarvestProfit(dto.harvestId);
       } else {
         throw new Error('Respuesta inválida al registrar venta');
       }
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al registrar venta');
+      this._error.set(apiErrorMessage(err, 'Error al registrar venta'));
       throw err;
     } finally {
       this._isLoading.set(false);
@@ -104,11 +110,12 @@ export class SaleAndCostsFacade {
       if (result) {
         this._costs.update(current => [...current, result.cost]);
         this._actualProfit.set(result.actualProfit);
+        await this.loadHarvestProfit(dto.harvestId);
       } else {
         throw new Error('Respuesta inválida al agregar costo');
       }
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al agregar costo de producción');
+      this._error.set(apiErrorMessage(err, 'Error al agregar costo de producción'));
       throw err;
     } finally {
       this._isLoading.set(false);
@@ -128,7 +135,7 @@ export class SaleAndCostsFacade {
         this._projectedDryKg.set(result.projectedDryKilograms);
       }
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al proyectar kilos secos');
+      this._error.set(apiErrorMessage(err, 'Error al proyectar kilos secos'));
     } finally {
       this._isLoading.set(false);
     }
@@ -145,6 +152,7 @@ export class SaleAndCostsFacade {
    * Limpia todo el estado (útil al cambiar de cosecha).
    */
   clearState(): void {
+    this._profit.set(null);
     this._sale.set(null);
     this._costs.set([]);
     this._grossProfit.set(0);

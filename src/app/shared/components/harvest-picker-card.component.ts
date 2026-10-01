@@ -1,75 +1,58 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
+import { IonIcon } from '@ionic/angular/ion-icon';
+import { addIcons } from 'ionicons';
+import { addOutline } from 'ionicons/icons';
 import { KilosPipe } from '../pipes/kilos.pipe';
-import { AppChipComponent } from './app-chip.component';
+import { CurrencyPipe } from '../pipes/currency.pipe';
 
-/**
- * Molécula: Tarjeta de recolector en lista de cuadrilla
- * Espec Design System: 64dp min alto, 16dp padding, radius 12dp, avatar/icono 24dp, nombre/alias + kilos día
- * Uso: <app-harvest-picker-card [picker]="pickerData" (cardClick)="onPickerClick()" (weighClick)="onWeigh()" />
- * Implementado con HTML puro + CSS Design Tokens (sin componentes Ionic)
- */
+/** Lo que la tarjeta necesita de un recolector (subconjunto de PickerStatsResponse). */
 export interface PickerCardData {
   id: string;
-  name: string;
-  alias?: string;
-  dailyKilos: number;
-  weeklyKilos: number;
-  totalKilos: number;
-  hasMeals: boolean;
-  mealDetail?: string;
-  avatarUrl?: string;
+  displayName: string;
+  firstName: string;
+  lastName: string;
+  alias: string | null;
+  todayKilograms: number;
+  balanceDue: number;
   status: 'active' | 'archived';
 }
 
+/**
+ * Molécula: tarjeta de recolector en la lista de una cuadrilla (Design System §1.4, §2.3).
+ * Nombre (o alias) + kilos de hoy + saldo pendiente, y el botón "Pesar" con ícono y texto.
+ */
 @Component({
   selector: 'app-harvest-picker-card',
   standalone: true,
-  imports: [KilosPipe, AppChipComponent],
+  imports: [IonIcon, KilosPipe, CurrencyPipe],
   template: `
-    <div
-      class="picker-card"
-      [class.clickable]="clickable()"
-      (click)="onCardClick($event)"
-    >
-      <div class="picker-avatar">
-        @if (picker().avatarUrl) {
-          <img [src]="picker().avatarUrl" [alt]="picker().name" />
-        } @else {
-          <span class="avatar-icon">👤</span>
-        }
-      </div>
+    <div class="picker-card" [class.clickable]="clickable()" (click)="onCardClick()">
+      <div class="picker-avatar" aria-hidden="true">{{ initials() }}</div>
 
       <div class="picker-info">
-        <h3 class="picker-name text-level-3">
-          {{ picker().alias || picker().name }}
-          @if (picker().alias) {
-            <span class="real-name text-level-4">({{ picker().name }})</span>
+        <p class="picker-name">{{ picker().displayName }}</p>
+        @if (picker().alias) {
+          <p class="picker-real-name">{{ picker().firstName }} {{ picker().lastName }}</p>
+        }
+        <p class="picker-meta">
+          <strong>{{ picker().todayKilograms | kilos }}</strong> hoy
+          @if (picker().balanceDue > 0) {
+            · Debes {{ picker().balanceDue | currency }}
           }
-        </h3>
-        <div class="picker-meta text-level-4">
-          <span class="daily-kilos">
-            <span class="icon">⚖️</span>
-            {{ picker().dailyKilos | kilos }}
-            hoy
-          </span>
-        </div>
+        </p>
       </div>
 
-      <div class="picker-actions">
-        <app-chip
-          [variant]="picker().hasMeals ? 'meal-with' : 'meal-without'"
-          [icon]="picker().hasMeals ? 'restaurant-outline' : 'restaurant-off-outline'"
-        >
-          {{ picker().hasMeals ? 'Con alimentación' : 'Sin alimentación' }}
-        </app-chip>
+      @if (picker().status === 'active') {
         <button
-          class="icon-btn"
+          type="button"
+          class="weigh-btn"
           (click)="onWeighClick($event)"
-          [attr.aria-label]="'Registrar pesada para ' + picker().name"
+          [attr.aria-label]="'Registrar pesada de ' + picker().displayName"
         >
-          <span class="icon">➕</span>
+          <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+          Pesar
         </button>
-      </div>
+      }
     </div>
   `,
   styles: [`
@@ -83,101 +66,70 @@ export interface PickerCardData {
       background: var(--color-surface);
       box-shadow: var(--shadow-card);
       margin-bottom: var(--card-gap-vertical);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .picker-card:hover,
-    .picker-card:active {
-      transform: scale(0.99);
-      box-shadow: 0 2px 6px rgba(43,36,32,0.16);
     }
     .picker-card.clickable {
       cursor: pointer;
     }
+    .picker-card.clickable:active {
+      transform: scale(0.99);
+    }
     .picker-avatar {
-      width: var(--picker-card-icon-size);
-      height: var(--picker-card-icon-size);
-      border-radius: var(--picker-card-radius);
-      background: var(--color-primary);
-      color: var(--color-text-on-primary);
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    .picker-avatar img {
-      width: 100%;
-      height: 100%;
-      border-radius: var(--picker-card-radius);
-      object-fit: cover;
-    }
-    .avatar-icon {
-      font-size: 24px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      color: var(--color-text-on-primary);
+      font-family: var(--font-family-body);
+      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-sm);
     }
     .picker-info {
+      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      gap: 4px;
-      min-width: 0;
-      flex: 1;
+      gap: 2px;
     }
-    .picker-name {
+    .picker-info p {
       margin: 0;
       font-family: var(--font-family-body);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .picker-name {
       font-size: var(--font-size-md);
       font-weight: var(--font-weight-bold);
       color: var(--color-text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
-    .real-name {
-      font-weight: var(--font-weight-regular);
-      opacity: 0.7;
-    }
+    .picker-real-name,
     .picker-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--font-family-body);
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
     }
-    .daily-kilos {
-      display: flex;
-      align-items: center;
-      gap: 4px;
+    .picker-meta strong {
+      color: var(--color-text);
     }
-    .daily-kilos .icon {
-      font-size: 14px;
-      color: var(--color-primary);
-    }
-    .picker-actions {
-      display: flex;
+    .weigh-btn {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .icon-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
+      gap: var(--spacing-xs);
+      min-height: var(--touch-target-min);
+      padding: 0 var(--spacing-md);
       border: none;
       border-radius: var(--radius-full);
       background: var(--color-primary);
       color: var(--color-text-on-primary);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-bold);
       cursor: pointer;
-      transition: background 0.2s ease;
     }
-    .icon-btn:hover,
-    .icon-btn:active {
-      background: var(--color-primary);
-      opacity: 0.9;
-    }
-    .icon-btn .icon {
+    .weigh-btn ion-icon {
       font-size: 20px;
     }
   `],
@@ -189,10 +141,17 @@ export class HarvestPickerCardComponent {
   cardClick = output<PickerCardData>();
   weighClick = output<PickerCardData>();
 
-  onCardClick(event: Event): void {
-    if (this.clickable()) {
-      this.cardClick.emit(this.picker());
-    }
+  readonly initials = computed(() => {
+    const { firstName, lastName } = this.picker();
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  });
+
+  constructor() {
+    addIcons({ addOutline });
+  }
+
+  onCardClick(): void {
+    if (this.clickable()) this.cardClick.emit(this.picker());
   }
 
   onWeighClick(event: Event): void {

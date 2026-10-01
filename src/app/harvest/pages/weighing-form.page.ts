@@ -1,222 +1,161 @@
-import { Component, signal, inject, computed, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
-import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButtons } from '@ionic/angular/ion-buttons';
-import { IonButton } from '@ionic/angular/ion-button';
+import { IonBackButton } from '@ionic/angular/ion-back-button';
+import { IonTitle } from '@ionic/angular/ion-title';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
-import { IonToast } from '@ionic/angular/ion-toast';
-import { AppInputComponent } from '@shared/components/app-input.component';
-import { AppButtonPrimaryComponent } from '@shared/components/app-button-primary.component';
+import { NavController } from '@ionic/angular/nav-controller';
+import { ToastController } from '@ionic/angular/toast-controller';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, scaleOutline } from 'ionicons/icons';
+import { alertCircleOutline, scaleOutline } from 'ionicons/icons';
+import { AppInputComponent, AppButtonPrimaryComponent, SyncStatusComponent } from '@shared/components';
+import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { HarvestFacade } from '../services/harvest.facade';
-import { WeighingFacade } from '@weighing/services/weighing.facade';
+import { SyncFacade } from '../../sync/services/sync.facade';
+import { apiErrorMessage, formatKilos } from '../../shared/utils';
+
+/** Máximo razonable para una sola pesada (mismo límite que valida el backend). */
+const MAX_KILOGRAMS = 1000;
 
 /**
- * Pantalla Registro de Pesada — Tarea 4.1.
- * Campo kilos + fecha/hora automática.
- * Conectado a WeighingFacade para registrar pesadas reales.
+ * Registro de pesada (Design System §1.6): campo de kilos, fecha y hora automáticas
+ * y confirmación visual al guardar. Funciona sin señal: la pesada queda en el teléfono
+ * y se envía sola al volver la conexión.
  */
 @Component({
   selector: 'app-weighing-form',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     IonContent,
     IonHeader,
     IonToolbar,
-    IonTitle,
     IonButtons,
-    IonButton,
+    IonBackButton,
+    IonTitle,
     IonIcon,
-    IonCard,
-    IonCardContent,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardSubtitle,
-    IonToast,
     AppInputComponent,
     AppButtonPrimaryComponent,
+    SyncStatusComponent,
+    KilosPipe,
   ],
   template: `
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button fill="clear" (click)="goBack()">
-            <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
-          </ion-button>
+          <ion-back-button [defaultHref]="pickerUrl" text="" aria-label="Volver"></ion-back-button>
         </ion-buttons>
         <ion-title class="text-level-1">Registrar pesada</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      @if (weighingFacade.isLoading()) {
-        <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
+    <ion-content>
+      <form class="form-page" (ngSubmit)="onSave()" #form="ngForm" novalidate>
+        <app-sync-status></app-sync-status>
+
+        <p class="form-page__intro">
+          Pesada de <strong>{{ pickerName() }}</strong>.
+          @if (todayKilograms() !== null) {
+            Hoy lleva {{ todayKilograms() | kilos }}.
+          }
+          La fecha y la hora se guardan solas.
+        </p>
+
+        <div class="form-page__fields">
+          <app-input
+            label="Kilos"
+            type="number"
+            name="kilograms"
+            [(ngModel)]="kilograms"
+            required
+            inputmode="decimal"
+            placeholder="Ej: 25.5"
+            helperText="Kilos de café cereza de esta pesada."
+            errorMessage="Escribe los kilos de la pesada."
+          ></app-input>
         </div>
-      } @else {
-        <ion-card class="auth-card">
-          <ion-card-header class="text-center">
-            <ion-card-title class="text-level-1">{{ pickerName }}</ion-card-title>
-            <ion-card-subtitle class="text-level-4">Nueva pesada</ion-card-subtitle>
-          </ion-card-header>
 
-          <ion-card-content>
-            <div class="info-chips">
-              <ion-chip color="primary">
-                <ion-icon name="scale-outline" slot="start"></ion-icon>
-                <ion-label>Acumulado hoy: {{ weighingFacade.todayTotalKilos() | kilos }}</ion-label>
-              </ion-chip>
-              <ion-chip color="medium">
-                <ion-icon name="time-outline" slot="start"></ion-icon>
-                <ion-label>{{ currentDate | dateFormat:'short' }}</ion-label>
-              </ion-chip>
-            </div>
+        @if (errorMessage()) {
+          <p class="form-error" role="alert">
+            <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+            <span>{{ errorMessage() }}</span>
+          </p>
+        }
 
-            <form (ngSubmit)="onSave()" #form="ngForm">
-              <app-input
-                label="Kilos"
-                type="number"
-                name="kilograms"
-                [(ngModel)]="kilograms"
-                required
-                min="0.1"
-                step="0.1"
-                inputmode="decimal"
-                placeholder="Ej: 25.5"
-              ></app-input>
-
-              <app-button-primary
-                type="submit"
-                [loading]="weighingFacade.isLoading()"
-                [disabled]="form.invalid"
-                loadingText="Guardando..."
-                iconStart="scale-outline"
-              >
-                Guardar pesada
-              </app-button-primary>
-            </form>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Toast error -->
-        <ion-toast
-          [isOpen]="showError()"
-          [message]="errorMessage()"
-          duration="3000"
-          position="bottom"
-          color="danger"
-          (didDismiss)="showError.set(false)"
-        ></ion-toast>
-
-        <!-- Toast éxito -->
-        <ion-toast
-          [isOpen]="showSuccess()"
-          [message]="'Pesada guardada correctamente'"
-          duration="2000"
-          position="bottom"
-          color="success"
-          (didDismiss)="showSuccess.set(false)"
-        ></ion-toast>
-      }
+        <app-button-primary
+          type="submit"
+          [loading]="isSaving()"
+          [disabled]="form.invalid"
+          loadingText="Guardando..."
+          iconStart="scale-outline"
+        >
+          Guardar pesada
+        </app-button-primary>
+      </form>
     </ion-content>
   `,
   styles: [`
-    .auth-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      max-width: 400px;
-      margin: var(--spacing-xl) auto;
-    }
-    .text-center {
-      text-align: center;
-    }
-    .info-chips {
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-md);
-    }
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-sm);
-    }
-    .loading-center {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 50vh;
+    app-sync-status:empty {
+      display: none;
     }
   `],
 })
 export class WeighingFormPage {
-  private readonly router = inject(Router);
+  private readonly harvestFacade = inject(HarvestFacade);
+  private readonly syncFacade = inject(SyncFacade);
   private readonly route = inject(ActivatedRoute);
-  protected readonly harvestFacade = inject(HarvestFacade);
-  protected readonly weighingFacade = inject(WeighingFacade);
+  private readonly navController = inject(NavController);
+  private readonly toastController = inject(ToastController);
 
-  pickerId = computed(() => this.route.snapshot.paramMap.get('pickerId'));
-  pickerName = 'Cargando...';
-  currentDate = new Date();
-  kilograms = 0;
-  showError = signal(false);
-  errorMessage = signal('');
-  showSuccess = signal(false);
+  private readonly pickerId = this.route.snapshot.paramMap.get('pickerId') ?? '';
+  protected readonly pickerUrl = `/harvest/pickers/${this.pickerId}`;
+
+  readonly kilograms = signal<number | null>(null);
+  readonly isSaving = signal(false);
+  readonly errorMessage = signal<string | null>(null);
+
+  private readonly picker = computed(() => this.harvestFacade.pickerById(this.pickerId));
+  readonly pickerName = computed(() => this.picker()?.displayName ?? 'el recolector');
+  readonly todayKilograms = computed(() => this.picker()?.todayKilograms ?? null);
 
   constructor() {
-    addIcons({ arrowBackOutline, scaleOutline });
-
-    effect(() => {
-      const id = this.pickerId();
-      if (id) {
-        this.loadPickerName(id);
-      }
-    });
-  }
-
-  async loadPickerName(id: string): Promise<void> {
-    const picker = this.harvestFacade.activeHarvestPickers().find(p => p.id === this.pickerId());
-    if (picker) {
-      this.pickerName = picker.harvestAlias ?? picker.workerId;
+    addIcons({ alertCircleOutline, scaleOutline });
+    if (!this.harvestFacade.hasActiveHarvest()) {
+      this.harvestFacade.loadActiveHarvest();
     }
   }
 
   async onSave(): Promise<void> {
-    const id = this.pickerId();
-    if (!id || this.kilograms <= 0) {
-      this.errorMessage.set('Los kilos deben ser mayores a 0');
-      this.showError.set(true);
+    this.errorMessage.set(null);
+    const kilograms = this.kilograms();
+    if (kilograms === null || !(kilograms > 0)) {
+      this.errorMessage.set('Los kilos deben ser mayores que cero.');
+      return;
+    }
+    if (kilograms > MAX_KILOGRAMS) {
+      this.errorMessage.set(`Revisa el valor: una pesada no puede pasar de ${formatKilos(MAX_KILOGRAMS)}.`);
       return;
     }
 
+    this.isSaving.set(true);
     try {
-      await this.weighingFacade.recordWeighing({
-        harvestPickerId: id!,
-        kilograms: this.kilograms,
-        dateTime: new Date().toISOString(),
-      });
-      this.showSuccess.set(true);
-      setTimeout(() => this.goBack(), 1500);
-    } catch (err: any) {
-      this.errorMessage.set(err?.error?.message ?? 'Error al guardar pesada');
-      this.showError.set(true);
+      const rounded = Math.round(kilograms * 1000) / 1000;
+      const outcome = await this.syncFacade.recordWeighing({ harvestPickerId: this.pickerId, kilograms: rounded });
+      const message =
+        outcome === 'sent'
+          ? `Pesada guardada: ${formatKilos(rounded)}.`
+          : `Pesada guardada en el teléfono: ${formatKilos(rounded)}. Se enviará al volver la señal.`;
+      const toast = await this.toastController.create({ message, color: 'success', duration: 2500, position: 'bottom' });
+      await toast.present();
+      this.navController.navigateBack(this.pickerUrl);
+    } catch (err: unknown) {
+      this.errorMessage.set(apiErrorMessage(err, 'No se pudo guardar la pesada. Intenta de nuevo.'));
+    } finally {
+      this.isSaving.set(false);
     }
-  }
-
-  goBack(): void {
-    this.router.navigate(['/harvest/crews']);
   }
 }

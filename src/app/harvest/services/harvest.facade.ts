@@ -1,319 +1,260 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { HarvestService, HarvestResponse, HarvestWorkerResponse, CrewResponse, OpenHarvestDto, AssignWorkerDto, CreateCrewDto, UpdateCrewDto } from './harvest.service';
+import { firstValueFrom } from 'rxjs';
+import { HarvestService, HarvestResponse, HarvestSummaryResponse, PickerStatsResponse, CrewResponse } from './harvest.service';
+import { apiErrorMessage } from '../../shared/utils';
+import { OfflineStore } from '../../sync/services/offline-store';
+
+/** Lo que se guarda en el teléfono para poder consultar la cosecha activa sin señal. */
+interface ActiveHarvestSnapshot {
+  harvest: HarvestResponse | null;
+  pickers: PickerStatsResponse[];
+  crews: CrewResponse[];
+}
+
+const SNAPSHOT_KEY = 'activeHarvest';
+
+const isOffline = (err: unknown) => err instanceof HttpErrorResponse && err.status === 0;
 
 /**
- * Facade de Cosecha — Estado (Signals) + Orquestación.
+ * Facade de Cosecha: estado (signals) de la cosecha activa, sus recolectores y cuadrillas.
  *
- * Expone signals de solo lectura hacia los componentes:
- * - activeHarvest: HarvestResponse | null
- * - activeHarvestPickers: HarvestWorkerResponse[]
- * - activeHarvestCrews: CrewResponse[]
- * - allHarvests: HarvestResponse[]
- * - isLoading: boolean
- * - error: string | null
- *
- * Métodos de acción:
- * - loadActiveHarvest(): carga cosecha activa al entrar a la app
- * - loadAllHarvests(): carga historial
- * - openHarvest(name, pricePerKilogram)
- * - closeHarvest(harvestId)
- * - assignWorkerToHarvest(workerId, harvestAlias?)
- * - archiveWorker(pickerId)
- * - createCrew(name)
- * - updateCrew(crewId, name)
- * - deleteCrew(crewId)
- * - loadPickers(harvestId)
- * - loadCrews(harvestId)
- *
- * Delega llamadas HTTP al HarvestService.
+ * Sin conexión, las lecturas usan la última copia guardada en el teléfono y
+ * `dataSavedAt` indica de cuándo es. Las escrituras (abrir, cerrar, asignar, cuadrillas)
+ * requieren conexión.
  */
 @Injectable({ providedIn: 'root' })
 export class HarvestFacade {
   private readonly harvestService = inject(HarvestService);
   private readonly router = inject(Router);
+  private readonly offlineStore = inject(OfflineStore);
 
-  // Estado privado (signals)
   private readonly _activeHarvest = signal<HarvestResponse | null>(null);
-  private readonly _activeHarvestPickers = signal<HarvestWorkerResponse[]>([]);
+  private readonly _activeHarvestPickers = signal<PickerStatsResponse[]>([]);
   private readonly _activeHarvestCrews = signal<CrewResponse[]>([]);
-  private readonly _allHarvests = signal<HarvestResponse[]>([]);
+  private readonly _allHarvests = signal<HarvestSummaryResponse[]>([]);
   private readonly _isLoading = signal(false);
   private readonly _error = signal<string | null>(null);
+  private readonly _dataSavedAt = signal<string | null>(null);
 
-  // Señales públicas de solo lectura
   readonly activeHarvest = this._activeHarvest.asReadonly();
   readonly activeHarvestPickers = this._activeHarvestPickers.asReadonly();
   readonly activeHarvestCrews = this._activeHarvestCrews.asReadonly();
   readonly allHarvests = this._allHarvests.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly error = this._error.asReadonly();
+  /** Fecha (ISO) de la copia local en pantalla; null si los datos vienen del servidor. */
+  readonly dataSavedAt = this._dataSavedAt.asReadonly();
 
-  // Computed para comodidad en templates
   readonly hasActiveHarvest = computed(() => this._activeHarvest() !== null);
   readonly activeHarvestName = computed(() => this._activeHarvest()?.name ?? '');
   readonly activeHarvestPrice = computed(() => this._activeHarvest()?.pricePerKilogram ?? 0);
-  readonly activeHarvestStatus = computed(() => this._activeHarvest()?.status ?? '');
 
-  /**
-   * Carga la cosecha activa al iniciar la app o al navegar a Home.
-   * Si no hay cosecha activa, navega a Home (que mostrará estado vacío).
-   */
+  pickerById(pickerId: string): PickerStatsResponse | null {
+    return this._activeHarvestPickers().find((picker) => picker.id === pickerId) ?? null;
+  }
+
+  crewById(crewId: string): CrewResponse | null {
+    return this._activeHarvestCrews().find((crew) => crew.id === crewId) ?? null;
+  }
+
+  /** Cosecha activa con sus recolectores y cuadrillas. Sin señal, usa la copia local. */
   async loadActiveHarvest(): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
-      const harvest = await this.harvestService.getActiveHarvest().toPromise();
-      this._activeHarvest.set(harvest ?? null);
-
-      if (harvest) {
-        await this.loadPickers(harvest.id);
-        await this.loadCrews(harvest.id);
-      } else {
-        this._activeHarvestPickers.set([]);
-        this._activeHarvestCrews.set([]);
+      const harvest = await firstValueFrom(this.harvestService.getActiveHarvest());
+      const [pickers, crews] = harvest
+        ? await Promise.all([
+            firstValueFrom(this.harvestService.getPickers(harvest.id)),
+            firstValueFrom(this.harvestService.listCrews(harvest.id)),
+          ])
+        : [[], []];
+      this.setActive({ harvest, pickers, crews });
+      this._dataSavedAt.set(null);
+    } catch (err: unknown) {
+      if (!isOffline(err) || !this.restoreSnapshot()) {
+        this._error.set(apiErrorMessage(err, 'No se pudo cargar la cosecha activa.'));
       }
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar cosecha activa');
-      this._activeHarvest.set(null);
-      this._activeHarvestPickers.set([]);
-      this._activeHarvestCrews.set([]);
     } finally {
       this._isLoading.set(false);
     }
   }
 
-  /**
-   * Carga todas las cosechas (para historial).
-   */
   async loadAllHarvests(): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
-
     try {
-      const harvests = await this.harvestService.getAllHarvests().toPromise();
-      this._allHarvests.set(harvests ?? []);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar historial de cosechas');
-      this._allHarvests.set([]);
+      this._allHarvests.set(await firstValueFrom(this.harvestService.getAllHarvests()));
+    } catch (err: unknown) {
+      this._error.set(apiErrorMessage(err, 'No se pudo cargar el historial de cosechas.'));
     } finally {
       this._isLoading.set(false);
     }
   }
 
-  /**
-   * Abre una nueva cosecha.
-   * Navega a Home tras éxito.
-   */
   async openHarvest(name: string, pricePerKilogram: number): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
+    await this.run('No se pudo abrir la cosecha.', async () => {
+      const harvest = await firstValueFrom(this.harvestService.openHarvest({ name, pricePerKilogram }));
+      this.setActive({ harvest, pickers: [], crews: [] });
+      await this.router.navigate(['/home'], { replaceUrl: true });
+    });
+  }
 
-    try {
-      const dto: OpenHarvestDto = { name, pricePerKilogram };
-      const harvest = await this.harvestService.openHarvest(dto).toPromise();
-
-      if (harvest) {
-        this._activeHarvest.set(harvest);
-        this._activeHarvestPickers.set([]);
-        this._activeHarvestCrews.set([]);
-        await this.router.navigate(['/home'], { replaceUrl: true });
-      } else {
-        throw new Error('Respuesta inválida al abrir cosecha');
-      }
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al abrir cosecha');
-      throw err;
-    } finally {
-      this._isLoading.set(false);
-    }
+  /** Cierra la cosecha: ya no se pueden registrar pesadas ni pagos. */
+  async closeHarvest(harvestId: string): Promise<HarvestResponse> {
+    return this.run('No se pudo cerrar la cosecha.', async () => {
+      const harvest = await firstValueFrom(this.harvestService.closeHarvest(harvestId));
+      this.setActive({ harvest: null, pickers: [], crews: [] });
+      return harvest;
+    });
   }
 
   /**
-   * Cierra la cosecha activa.
-   * Navega a flujo de cierre (venta/costos).
+   * Agrega un trabajador del catálogo a la cosecha activa, en una cuadrilla.
+   * Si ya estaba en la cosecha, lo mueve a esa cuadrilla.
    */
-  async closeHarvest(harvestId: string): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const harvest = await this.harvestService.closeHarvest(harvestId).toPromise();
-
-      if (harvest) {
-        this._activeHarvest.set(harvest);
-        // No navegar aquí - el componente decidirá a dónde ir (pantalla cierre)
-      } else {
-        throw new Error('Respuesta inválida al cerrar cosecha');
-      }
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cerrar cosecha');
-      throw err;
-    } finally {
-      this._isLoading.set(false);
-    }
-  }
-
-  /**
-   * Asigna un trabajador del catálogo a la cosecha activa.
-   */
-  async assignWorkerToHarvest(workerId: string, harvestAlias?: string): Promise<void> {
-    const harvest = this._activeHarvest();
-    if (!harvest) {
-      this._error.set('No hay cosecha activa');
-      throw new Error('No hay cosecha activa');
-    }
-
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const dto: AssignWorkerDto = { workerId, harvestAlias };
-      const picker = await this.harvestService.assignWorker(harvest.id, dto).toPromise();
-
-      if (picker) {
-        // Recargar pickers para obtener lista actualizada con el nuevo
-        await this.loadPickers(harvest.id);
-      } else {
-        throw new Error('Respuesta inválida al asignar trabajador');
-      }
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al asignar trabajador');
-      throw err;
-    } finally {
-      this._isLoading.set(false);
-    }
-  }
-
-  /**
-   * Archiva un recolector en la cosecha activa.
-   */
-  async archiveWorker(pickerId: string): Promise<void> {
-    const harvest = this._activeHarvest();
-    if (!harvest) {
-      this._error.set('No hay cosecha activa');
-      throw new Error('No hay cosecha activa');
-    }
-
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      await this.harvestService.archiveWorker(harvest.id, pickerId).toPromise();
+  async assignWorkerToHarvest(workerId: string, crewId?: string, harvestAlias?: string): Promise<void> {
+    const harvest = this.requireActive();
+    await this.run('No se pudo agregar el recolector.', async () => {
+      await firstValueFrom(this.harvestService.assignWorker(harvest.id, { workerId, crewId, harvestAlias }));
       await this.loadPickers(harvest.id);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al archivar recolector');
-      throw err;
-    } finally {
-      this._isLoading.set(false);
-    }
+    });
   }
 
-  /**
-   * Crea una cuadrilla en la cosecha activa.
-   */
+  async archiveWorker(pickerId: string): Promise<void> {
+    const harvest = this.requireActive();
+    await this.run('No se pudo archivar el recolector.', async () => {
+      await firstValueFrom(this.harvestService.archiveWorker(harvest.id, pickerId));
+      await this.loadPickers(harvest.id);
+    });
+  }
+
   async createCrew(name: string): Promise<void> {
-    const harvest = this._activeHarvest();
-    if (!harvest) {
-      this._error.set('No hay cosecha activa');
-      throw new Error('No hay cosecha activa');
-    }
-
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const dto: CreateCrewDto = { name };
-      await this.harvestService.createCrew(harvest.id, dto).toPromise();
+    const harvest = this.requireActive();
+    await this.run('No se pudo crear la cuadrilla.', async () => {
+      await firstValueFrom(this.harvestService.createCrew(harvest.id, { name }));
       await this.loadCrews(harvest.id);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al crear cuadrilla');
-      throw err;
-    } finally {
-      this._isLoading.set(false);
-    }
+    });
   }
 
-  /**
-   * Actualiza una cuadrilla.
-   */
   async updateCrew(crewId: string, name: string): Promise<void> {
-    const harvest = this._activeHarvest();
-    if (!harvest) {
-      this._error.set('No hay cosecha activa');
-      throw new Error('No hay cosecha activa');
-    }
-
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const dto: UpdateCrewDto = { name };
-      await this.harvestService.updateCrew(harvest.id, crewId, dto).toPromise();
+    const harvest = this.requireActive();
+    await this.run('No se pudo actualizar la cuadrilla.', async () => {
+      await firstValueFrom(this.harvestService.updateCrew(harvest.id, crewId, { name }));
       await this.loadCrews(harvest.id);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al actualizar cuadrilla');
-      throw err;
-    } finally {
-      this._isLoading.set(false);
-    }
+    });
   }
 
-  /**
-   * Elimina una cuadrilla.
-   */
   async deleteCrew(crewId: string): Promise<void> {
-    const harvest = this._activeHarvest();
-    if (!harvest) {
-      this._error.set('No hay cosecha activa');
-      throw new Error('No hay cosecha activa');
-    }
-
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      await this.harvestService.deleteCrew(harvest.id, crewId).toPromise();
+    const harvest = this.requireActive();
+    await this.run('No se pudo eliminar la cuadrilla.', async () => {
+      await firstValueFrom(this.harvestService.deleteCrew(harvest.id, crewId));
       await this.loadCrews(harvest.id);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al eliminar cuadrilla');
-      throw err;
-    } finally {
-      this._isLoading.set(false);
-    }
+    });
   }
 
-  /**
-   * Carga los recolectores de una cosecha.
-   */
   async loadPickers(harvestId: string): Promise<void> {
     try {
-      const pickers = await this.harvestService.getPickers(harvestId).toPromise();
-      this._activeHarvestPickers.set(pickers ?? []);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar recolectores');
-      this._activeHarvestPickers.set([]);
+      this._activeHarvestPickers.set(await firstValueFrom(this.harvestService.getPickers(harvestId)));
+      this.saveSnapshot();
+    } catch (err: unknown) {
+      if (!isOffline(err)) this._error.set(apiErrorMessage(err, 'No se pudieron cargar los recolectores.'));
     }
   }
 
-  /**
-   * Carga las cuadrillas de una cosecha.
-   */
   async loadCrews(harvestId: string): Promise<void> {
     try {
-      const crews = await this.harvestService.listCrews(harvestId).toPromise();
-      this._activeHarvestCrews.set(crews ?? []);
-    } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar cuadrillas');
-      this._activeHarvestCrews.set([]);
+      this._activeHarvestCrews.set(await firstValueFrom(this.harvestService.listCrews(harvestId)));
+      this.saveSnapshot();
+    } catch (err: unknown) {
+      if (!isOffline(err)) this._error.set(apiErrorMessage(err, 'No se pudieron cargar las cuadrillas.'));
     }
   }
 
   /**
-   * Limpia el error actual.
+   * Suma a los acumulados en pantalla una pesada guardada sin señal, para que el
+   * recolector vea sus kilos aunque todavía no lleguen al servidor.
    */
+  applyLocalWeighing(pickerId: string, kilograms: number): void {
+    const price = this.activeHarvestPrice();
+    this._activeHarvestPickers.update((pickers) =>
+      pickers.map((picker) =>
+        picker.id === pickerId
+          ? {
+              ...picker,
+              todayKilograms: picker.todayKilograms + kilograms,
+              weekKilograms: picker.weekKilograms + kilograms,
+              totalKilograms: picker.totalKilograms + kilograms,
+              balanceDue: picker.balanceDue + kilograms * price,
+            }
+          : picker,
+      ),
+    );
+    this.saveSnapshot();
+  }
+
+  /** Al cerrar sesión: no deben quedar en memoria datos de la cuenta anterior. */
+  reset(): void {
+    this._activeHarvest.set(null);
+    this._activeHarvestPickers.set([]);
+    this._activeHarvestCrews.set([]);
+    this._allHarvests.set([]);
+    this._dataSavedAt.set(null);
+    this._error.set(null);
+  }
+
   clearError(): void {
     this._error.set(null);
+  }
+
+  private setActive(snapshot: ActiveHarvestSnapshot): void {
+    this._activeHarvest.set(snapshot.harvest);
+    this._activeHarvestPickers.set(snapshot.pickers);
+    this._activeHarvestCrews.set(snapshot.crews);
+    this.saveSnapshot();
+  }
+
+  private saveSnapshot(): void {
+    this.offlineStore.saveSnapshot<ActiveHarvestSnapshot>(SNAPSHOT_KEY, {
+      harvest: this._activeHarvest(),
+      pickers: this._activeHarvestPickers(),
+      crews: this._activeHarvestCrews(),
+    });
+  }
+
+  private restoreSnapshot(): boolean {
+    const snapshot = this.offlineStore.readSnapshot<ActiveHarvestSnapshot>(SNAPSHOT_KEY);
+    if (!snapshot) return false;
+    this._activeHarvest.set(snapshot.value.harvest);
+    this._activeHarvestPickers.set(snapshot.value.pickers);
+    this._activeHarvestCrews.set(snapshot.value.crews);
+    this._dataSavedAt.set(snapshot.savedAt);
+    return true;
+  }
+
+  private requireActive(): HarvestResponse {
+    const harvest = this._activeHarvest();
+    if (!harvest) {
+      this._error.set('No hay cosecha activa.');
+      throw new Error('No hay cosecha activa');
+    }
+    return harvest;
+  }
+
+  /** Ejecuta una escritura con indicador de carga; deja el mensaje en `error` y relanza. */
+  private async run<T>(fallback: string, action: () => Promise<T>): Promise<T> {
+    this._isLoading.set(true);
+    this._error.set(null);
+    try {
+      return await action();
+    } catch (err: unknown) {
+      this._error.set(apiErrorMessage(err, fallback));
+      throw err;
+    } finally {
+      this._isLoading.set(false);
+    }
   }
 }

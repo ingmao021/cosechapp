@@ -1,223 +1,274 @@
-import { Component, effect, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
+import { IonButtons } from '@ionic/angular/ion-buttons';
+import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonLabel } from '@ionic/angular/ion-label';
-import { IonItem } from '@ionic/angular/ion-item';
-import { IonList } from '@ionic/angular/ion-list';
+import { IonSpinner } from '@ionic/angular/ion-spinner';
+import { AlertController } from '@ionic/angular/alert-controller';
+import { ToastController } from '@ionic/angular/toast-controller';
 import { addIcons } from 'ionicons';
-import { addOutline, cashOutline, timeOutline, chevronForwardOutline, alertCircleOutline } from 'ionicons/icons';
-import { AppChipComponent } from '@shared/components';
+import { addOutline, cashOutline, cloudUploadOutline, restaurantOutline } from 'ionicons/icons';
+import { HarvestFacade } from '../services/harvest.facade';
+import { WeighingFacade } from '../../weighing/services/weighing.facade';
+import { PaymentFacade } from '../../payment/services/payment.facade';
+import { PaymentPreviewResponse } from '../../payment/services/payment.service';
+import { NetworkService } from '../../network/services/network.service';
+import { SyncStatusComponent } from '@shared/components';
+import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
-import { KilosPipe } from '@shared/pipes/kilos.pipe';
-import { HarvestFacade } from '../services/harvest.facade';
-import { WeighingFacade } from '@weighing/services/weighing.facade';
-import { PaymentFacade } from '@payment/services/payment.facade';
+import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils';
 
 /**
- * Pantalla Detalle de Recolector — Tarea 3.4.
- * Pesadas del día, acumulados, chip alimentación, botón "Pagar ahora", historial pagos.
- * Conectado a HarvestFacade, WeighingFacade y PaymentFacade.
+ * Detalle del recolector en la cosecha (Design System §1.5): acumulados de hoy, la
+ * semana y el ciclo; saldo por pagar; pesadas de hoy; "Pagar ahora" con confirmación
+ * del monto (y alimentación) y el historial de pagos.
  */
 @Component({
   selector: 'app-picker-detail',
   standalone: true,
   imports: [
-    CommonModule,
     IonContent,
     IonHeader,
     IonToolbar,
+    IonButtons,
+    IonBackButton,
     IonTitle,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
-    IonCardHeader,
-    IonCardTitle,
-    IonLabel,
-    IonItem,
-    IonList,
-    AppChipComponent,
+    IonSpinner,
+    SyncStatusComponent,
+    KilosPipe,
     CurrencyPipe,
     DateFormatPipe,
-    KilosPipe,
   ],
   template: `
     <ion-header>
       <ion-toolbar>
-        <ion-title class="text-level-1">{{ pickerName }}</ion-title>
+        <ion-buttons slot="start">
+          <ion-back-button [defaultHref]="backUrl()" text="" aria-label="Volver"></ion-back-button>
+        </ion-buttons>
+        <ion-title class="text-level-1">{{ picker()?.displayName ?? 'Recolector' }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      @if (harvestFacade.isLoading() || weighingFacade.isLoading() || paymentFacade.isLoading()) {
-        <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
-        </div>
-      } @else {
-        <!-- Pesadas del día -->
-        <ion-card class="section-card">
-          <ion-card-header>
-            <ion-card-title class="text-level-2">Pesadas de hoy</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            @if (weighingFacade.todayWeighings().length === 0) {
-              <p class="text-level-4 text-center ion-padding">Sin pesadas hoy</p>
-            } @else {
-              <ion-list lines="full">
-                @for (w of weighingFacade.todayWeighings(); track w.id) {
-                  <ion-item lines="full">
-                    <ion-label>
-                      <h3 class="text-level-3">{{ w.kilograms | kilos }}</h3>
-                      <p class="text-level-4">{{ w.dateTime | dateFormat:'time' }}</p>
-                    </ion-label>
-                  </ion-item>
+    <ion-content>
+      <div class="page">
+        <app-sync-status></app-sync-status>
+
+        @if (!picker()) {
+          @if (harvestFacade.isLoading()) {
+            <div class="loading-center"><ion-spinner name="crescent"></ion-spinner></div>
+          } @else {
+            <p class="empty">No encontramos este recolector en la cosecha activa.</p>
+          }
+        } @else {
+          @if (picker()!.alias) {
+            <p class="form-page__intro">{{ picker()!.firstName }} {{ picker()!.lastName }}</p>
+          }
+
+          <section class="card totals" aria-label="Kilos recogidos">
+            <div class="total">
+              <span class="total__value">{{ picker()!.todayKilograms | kilos }}</span>
+              <span class="total__label">Hoy</span>
+            </div>
+            <div class="total">
+              <span class="total__value">{{ picker()!.weekKilograms | kilos }}</span>
+              <span class="total__label">Esta semana</span>
+            </div>
+            <div class="total">
+              <span class="total__value">{{ picker()!.totalKilograms | kilos }}</span>
+              <span class="total__label">Toda la cosecha</span>
+            </div>
+          </section>
+
+          <section class="card balance">
+            <div>
+              <p class="balance__label">Saldo por pagar</p>
+              <p class="balance__value">{{ picker()!.balanceDue | currency }}</p>
+              <p class="balance__meta">Pagado: {{ picker()!.totalPaid | currency }}
+                @if (picker()!.totalMealDeductions > 0) {
+                  · Alimentación descontada: {{ picker()!.totalMealDeductions | currency }}
                 }
-              </ion-list>
-            }
-            <ion-button fill="solid" color="primary" expand="block" class="ion-margin-top" (click)="addWeighing()">
+              </p>
+            </div>
+          </section>
+
+          <div class="actions">
+            <ion-button expand="block" color="primary" [disabled]="picker()!.status !== 'active'" (click)="addWeighing()">
               <ion-icon name="add-outline" slot="start"></ion-icon>
-              Agregar pesada
+              Registrar pesada
             </ion-button>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Acumulados -->
-        <ion-card class="section-card">
-          <ion-card-header>
-            <ion-card-title class="text-level-2">Acumulados</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <div class="accumulators-grid">
-              <div class="acc-item">
-                <p class="text-level-4">Esta semana</p>
-                <p class="text-level-3">{{ weighingFacade.weeklyKilos() | kilos }}</p>
-              </div>
-              <div class="acc-item">
-                <p class="text-level-4">Ciclo completo</p>
-                <p class="text-level-3">{{ weighingFacade.totalKilos() | kilos }}</p>
-              </div>
-            </div>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Alimentación -->
-        <ion-card class="section-card">
-          <ion-card-header>
-            <ion-card-title class="text-level-2">Alimentación</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <app-chip [variant]="currentPicker()?.hasMeals ? 'meal-with' : 'meal-without'" [icon]="currentPicker()?.hasMeals ? 'restaurant-outline' : 'restaurant-off-outline'">
-              {{ currentPicker()?.hasMeals ? 'Con alimentación' : 'Sin alimentación' }}
-            </app-chip>
-            @if (currentPicker()?.hasMeals && currentPicker()?.mealDetail) {
-              <p class="text-level-4 ion-margin-top">{{ currentPicker()?.mealDetail }}</p>
-            }
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Pagar ahora -->
-        <ion-card class="section-card pay-card">
-          <ion-card-header>
-            <ion-card-title class="text-level-2">Pagar ahora</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <div class="pay-summary">
-              <p class="text-level-3">Monto a pagar: <span class="pay-amount">{{ paymentFacade.payNowResult()?.amountDue ?? 0 | currency }}</span></p>
-              <p class="text-level-4">(Kilos totales × precio/kilo - alimentación)</p>
-              @if (paymentFacade.payNowResult()) {
-                <p class="text-level-4">Kilos: {{ paymentFacade.payNowResult()!.totalKilograms | kilos }}</p>
-              }
-            </div>
             <ion-button
-              fill="solid"
-              color="primary"
               expand="block"
-              class="ion-margin-top"
+              fill="outline"
+              color="primary"
+              [disabled]="!canPay()"
               (click)="payNow()"
-              [disabled]="paymentFacade.isLoading()"
             >
               <ion-icon name="cash-outline" slot="start"></ion-icon>
-              {{ paymentFacade.isLoading() ? 'Procesando...' : 'Pagar ahora' }}
+              Pagar ahora
             </ion-button>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Historial de pagos -->
-        <ion-card class="section-card">
-          <ion-card-header>
-            <ion-card-title class="text-level-2">Historial de pagos</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            @if (paymentFacade.payments().length === 0) {
-              <p class="text-level-4 text-center ion-padding">Sin pagos registrados</p>
-            } @else {
-              <ion-list lines="full">
-                @for (p of paymentFacade.payments(); track p.id) {
-                  <ion-item lines="full">
-                    <ion-label>
-                      <h3 class="text-level-3">{{ p.amount | currency }}</h3>
-                      <p class="text-level-4">{{ p.dateTime | dateFormat:'short' }}</p>
-                      @if (p.includesMeals) {
-                        <p class="text-level-4" style="color: var(--color-primary);">
-                          <ion-icon name="restaurant-outline" size="small"></ion-icon>
-                          Incluye alimentación
-                        </p>
-                      }
-                    </ion-label>
-                  </ion-item>
-                }
-              </ion-list>
+            @if (!network.isOnline()) {
+              <p class="hint">Necesitas conexión para pagar.</p>
+            } @else if (picker()!.balanceDue === 0) {
+              <p class="hint">No tiene saldo pendiente.</p>
             }
-          </ion-card-content>
-        </ion-card>
-      }
+          </div>
+
+          <section>
+            <h2 class="text-level-2">Pesadas de hoy</h2>
+            @if (weighingFacade.todayWeighings().length === 0) {
+              <p class="empty">Todavía no hay pesadas hoy.</p>
+            } @else {
+              <ul class="rows">
+                @for (weighing of weighingFacade.todayWeighings(); track weighing.id) {
+                  <li class="row">
+                    <span class="row__main">{{ weighing.kilograms | kilos }}</span>
+                    <span class="row__meta">
+                      @if (weighing.pending) {
+                        <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon> Por enviar ·
+                      }
+                      {{ weighing.dateTime | dateFormat: 'time' }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <section>
+            <h2 class="text-level-2">Pagos</h2>
+            @if (paymentFacade.payments().length === 0) {
+              <p class="empty">Aún no se le ha pagado en esta cosecha.</p>
+            } @else {
+              <ul class="rows">
+                @for (payment of paymentFacade.payments(); track payment.id) {
+                  <li class="row">
+                    <span class="row__main">{{ payment.amount | currency }}</span>
+                    <span class="row__meta">
+                      @if (payment.includesMeals) {
+                        <ion-icon name="restaurant-outline" aria-hidden="true"></ion-icon>
+                        −{{ payment.mealDeduction | currency }} ·
+                      }
+                      {{ payment.dateTime | dateFormat: 'short' }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+      </div>
     </ion-content>
   `,
   styles: [`
-    .section-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      margin-bottom: var(--spacing-md);
-    }
-    .accumulators-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    .page {
+      display: flex;
+      flex-direction: column;
       gap: var(--spacing-md);
+      max-width: 520px;
+      margin: 0 auto;
+      padding: var(--spacing-lg) var(--screen-margin) var(--spacing-xl);
     }
-    .acc-item {
+    .card {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+      padding: var(--spacing-md);
+    }
+    .totals {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--spacing-sm);
       text-align: center;
-      padding: var(--spacing-sm);
     }
-    .pay-card {
-      border: 2px solid var(--color-primary);
+    .total {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
     }
-    .pay-summary {
-      text-align: center;
-      margin-bottom: var(--spacing-sm);
-    }
-    .pay-amount {
+    .total__value {
       font-family: var(--font-family-display);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+    }
+    .total__label,
+    .balance__label,
+    .balance__meta,
+    .hint,
+    .row__meta {
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+    .balance p {
+      margin: 0;
+    }
+    .balance__value {
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-bold);
       color: var(--color-primary);
     }
-    .text-center {
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+    .hint {
+      margin: 0;
       text-align: center;
+    }
+    h2 {
+      margin: var(--spacing-sm) 0;
+    }
+    .rows {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: var(--list-row-height);
+      padding: 0 var(--list-row-padding-h);
+      border-bottom: 1px solid var(--color-border);
+      font-family: var(--font-family-body);
+    }
+    .row:last-child {
+      border-bottom: none;
+    }
+    .row__main {
+      font-weight: var(--font-weight-bold);
+    }
+    .row__meta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+    .row__meta ion-icon {
+      font-size: 16px;
+    }
+    .empty {
+      margin: 0;
+      font-family: var(--font-family-body);
+      color: var(--color-text-muted);
     }
     .loading-center {
       display: flex;
       justify-content: center;
-      align-items: center;
-      min-height: 50vh;
+      padding: var(--spacing-xl);
     }
   `],
 })
@@ -225,79 +276,135 @@ export class PickerDetailPage {
   protected readonly harvestFacade = inject(HarvestFacade);
   protected readonly weighingFacade = inject(WeighingFacade);
   protected readonly paymentFacade = inject(PaymentFacade);
+  protected readonly network = inject(NetworkService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly alertController = inject(AlertController);
+  private readonly toastController = inject(ToastController);
 
-  pickerId = computed(() => this.route.snapshot.paramMap.get('pickerId'));
-  pickerName = 'Cargando...';
+  private readonly pickerId = this.route.snapshot.paramMap.get('pickerId') ?? '';
 
-  currentPicker = computed(() => {
-    const id = this.pickerId();
-    if (!id) return null;
-    return this.harvestFacade.activeHarvestPickers().find((p: { id: string }) => p.id === id) ?? null;
+  readonly picker = computed(() =>
+    this.harvestFacade.activeHarvestPickers().find((picker) => picker.id === this.pickerId) ?? null,
+  );
+
+  readonly backUrl = computed(() => {
+    const crewId = this.picker()?.crewId;
+    return crewId ? `/harvest/crews/${crewId}` : '/harvest/crews';
+  });
+
+  readonly canPay = computed(() => {
+    const picker = this.picker();
+    return !!picker && picker.status === 'active' && picker.balanceDue > 0 && this.network.isOnline();
   });
 
   constructor() {
-    addIcons({ addOutline, cashOutline, timeOutline, chevronForwardOutline, alertCircleOutline });
-
-    // Cargar datos al navegar a la página
-    effect(() => {
-      const id = this.pickerId();
-      if (id) {
-        this.pickerName = 'Cargando...';
-        this.loadPickerData(id);
-      }
-    });
+    addIcons({ addOutline, cashOutline, cloudUploadOutline, restaurantOutline });
+    if (!this.harvestFacade.hasActiveHarvest()) {
+      this.harvestFacade.loadActiveHarvest();
+    }
   }
 
-  async loadPickerData(id: string): Promise<void> {
-    try {
-      // Buscar picker en la lista activa
-      const picker = this.harvestFacade.activeHarvestPickers().find((p: { id: string }) => p.id === id);
-      if (picker) {
-        this.pickerName = picker.harvestAlias ?? picker.workerId;
-
-        // Cargar datos en paralelo
-        await Promise.all([
-          this.weighingFacade.loadTodayWeighings(id),
-          this.weighingFacade.loadWeighingsForPicker(id),
-          this.weighingFacade.getWeeklyTotal(id),
-          this.weighingFacade.getTotalKilos(id),
-          this.paymentFacade.loadPaymentsForPicker(id),
-          this.paymentFacade.getTotalPaid(id),
-        ]);
-        this.pickerName = picker.harvestAlias ?? picker.workerId;
-      }
-    } catch (err: any) {
-      console.error('Error loading picker data:', err);
-    }
+  /** Al volver a la pantalla (ej. después de registrar una pesada) refresca los datos. */
+  ionViewWillEnter(): void {
+    const harvest = this.harvestFacade.activeHarvest();
+    if (harvest) void this.harvestFacade.loadPickers(harvest.id);
+    void this.weighingFacade.loadWeighingsForPicker(this.pickerId);
+    void this.paymentFacade.loadPaymentsForPicker(this.pickerId);
   }
 
   addWeighing(): void {
-    const id = this.pickerId();
-    if (id) {
-      this.router.navigate(['/harvest/pickers', id, 'weighing', 'new']);
+    this.router.navigate(['/harvest/pickers', this.pickerId, 'weighing', 'new']);
+  }
+
+  /** Pagar ahora: alimentación (con/sin y cuánto) → desglose con el neto → confirmar. */
+  async payNow(): Promise<void> {
+    const harvest = this.harvestFacade.activeHarvest();
+    const picker = this.picker();
+    if (!harvest || !picker) return;
+
+    const mealDeduction = await this.askMeals();
+    if (mealDeduction === undefined) return;
+
+    let preview: PaymentPreviewResponse;
+    try {
+      preview = await this.paymentFacade.preview(picker.id, harvest.id, mealDeduction);
+    } catch (err: unknown) {
+      await this.toast(apiErrorMessage(err, 'No se pudo calcular el pago. Intenta de nuevo.'), 'danger');
+      return;
+    }
+
+    if (!(await this.confirmPayment(picker.displayName, preview))) return;
+
+    try {
+      const result = await this.paymentFacade.payNow(picker.id, harvest.id, mealDeduction);
+      await this.toast(`Pago registrado: ${formatCurrency(result.payment.amount)} a ${picker.displayName}.`, 'success');
+      await this.harvestFacade.loadPickers(harvest.id);
+    } catch (err: unknown) {
+      await this.toast(apiErrorMessage(err, 'No se pudo registrar el pago. Intenta de nuevo.'), 'danger');
     }
   }
 
-  async payNow(): Promise<void> {
-    const id = this.pickerId();
-    const harvestId = this.harvestFacade.activeHarvest()?.id;
-    if (!id || !harvestId) return;
+  /** null = sin alimentación; número = valor a descontar; undefined = canceló. */
+  private async askMeals(): Promise<number | null | undefined> {
+    const choice = await this.alertController.create({
+      header: '¿Le diste alimentación?',
+      inputs: [
+        { type: 'radio', label: 'Sin alimentación', value: 'no', checked: true },
+        { type: 'radio', label: 'Con alimentación (descontar)', value: 'yes' },
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Continuar', role: 'confirm' },
+      ],
+    });
+    await choice.present();
+    const picked = await choice.onDidDismiss();
+    if (picked.role !== 'confirm') return undefined;
+    if (picked.data?.values !== 'yes') return null;
 
-    const picker = this.currentPicker();
-    const includesMeals = picker?.hasMeals ?? false;
-    const mealDetail = picker?.mealDetail ?? '';
+    const amount = await this.alertController.create({
+      header: 'Valor de la alimentación',
+      message: 'Cuánto le descuentas por la comida en este pago.',
+      inputs: [{ name: 'value', type: 'number', placeholder: 'Ej: 10000', min: 1, attributes: { inputmode: 'numeric' } }],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Continuar',
+          role: 'confirm',
+          handler: (data: { value: string }) => Number(data.value) > 0, // sin valor, el diálogo sigue abierto
+        },
+      ],
+    });
+    await amount.present();
+    const entered = await amount.onDidDismiss();
+    return entered.role === 'confirm' ? Math.round(Number(entered.data?.values?.value)) : undefined;
+  }
 
-    try {
-      await this.paymentFacade.payNow({
-        harvestPickerId: id,
-        harvestId,
-        includesMeals,
-        mealDetail,
-      });
-    } catch (err: any) {
-      console.error('Error paying:', err);
-    }
+  private async confirmPayment(name: string, preview: PaymentPreviewResponse): Promise<boolean> {
+    const lines = [
+      `${formatKilos(preview.totalKilograms)} en la cosecha: ${formatCurrency(preview.gross)}`,
+      preview.alreadyPaid > 0 ? `Ya pagado: −${formatCurrency(preview.alreadyPaid)}` : null,
+      preview.previousMealDeductions > 0 ? `Alimentación anterior: −${formatCurrency(preview.previousMealDeductions)}` : null,
+      preview.mealDeduction > 0 ? `Alimentación de este pago: −${formatCurrency(preview.mealDeduction)}` : null,
+    ].filter((line): line is string => line !== null);
+
+    const alert = await this.alertController.create({
+      header: `Pagar a ${name}`,
+      subHeader: `A pagar: ${formatCurrency(preview.net)}`,
+      message: lines.join(' · '),
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: `Pagar ${formatCurrency(preview.net)}`, role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    return role === 'confirm';
+  }
+
+  private async toast(message: string, color: 'success' | 'danger'): Promise<void> {
+    const toast = await this.toastController.create({ message, color, duration: 3000, position: 'bottom' });
+    await toast.present();
   }
 }

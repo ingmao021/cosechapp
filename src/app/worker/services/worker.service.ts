@@ -55,7 +55,7 @@ export class WorkerService {
     return this.http.patch<WorkerResponse>(`${this.baseUrl}/${id}`, dto);
   }
 
-  deleteWorker(id: string): Observable<{ success: boolean }> {
-    return this.http.delete<{ success: boolean }>(`${this.baseUrl}/${id}`);
+  deleteWorker(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

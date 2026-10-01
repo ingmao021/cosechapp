@@ -1,10 +1,13 @@
 import { Component, effect, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { IonNote } from '@ionic/angular/ion-note';
+import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
 import { IonTitle } from '@ionic/angular/ion-title';
+import { IonButtons } from '@ionic/angular/ion-buttons';
+import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonCard } from '@ionic/angular/ion-card';
@@ -15,7 +18,7 @@ import { IonLabel } from '@ionic/angular/ion-label';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonList } from '@ionic/angular/ion-list';
 import { addIcons } from 'ionicons';
-import { chevronForwardOutline, cashOutline, timeOutline, personOutline, restaurantOutline, calculatorOutline } from 'ionicons/icons';
+import { chevronForwardOutline, cashOutline, timeOutline, personOutline, restaurantOutline, calculatorOutline, alertCircleOutline, arrowBackOutline } from 'ionicons/icons';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
@@ -30,7 +33,10 @@ import { HistoryFacade } from '../services/history.facade';
   selector: 'app-harvest-history-detail',
   standalone: true,
   imports: [
-    CommonModule,
+    IonButtons,
+    IonBackButton,
+    IonSpinner,
+    IonNote,
     IonContent,
     IonHeader,
     IonToolbar,
@@ -51,6 +57,9 @@ import { HistoryFacade } from '../services/history.facade';
   template: `
     <ion-header>
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button defaultHref="/history" text="" aria-label="Volver"></ion-back-button>
+        </ion-buttons>
         <ion-title class="text-level-1">{{ harvestName() }}</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -71,10 +80,9 @@ import { HistoryFacade } from '../services/history.facade';
           </ion-button>
         </div>
       } @else {
-        <div class="detail-header">
-          <h2 class="text-level-2">{{ harvestName() }}</h2>
-          <p class="text-level-4">{{ openingDate() }} – {{ closingDate() }}</p>
-        </div>
+        <p class="detail-dates text-level-4">
+          {{ openingDate() | dateFormat: 'date' }} – {{ closingDate() | dateFormat: 'date' }}
+        </p>
 
         <!-- Recolectores y pagos -->
         <ion-card class="section-card">
@@ -89,17 +97,23 @@ import { HistoryFacade } from '../services/history.facade';
                 @for (p of pickers(); track p.id) {
                   <ion-item lines="full">
                     <ion-label>
-                      <h3 class="text-level-3">{{ p.harvestAlias ?? p.workerId }}</h3>
-                      <p class="text-level-4">{{ p.totalKilograms | kilos }} total • {{ p.totalPaid | currency }} pagado</p>
-                      @if (p.hasMeals) {
-                        <p class="text-level-4" style="color: var(--color-primary);">
-                          <ion-icon name="restaurant-outline" size="small"></ion-icon>
-                          Con alimentación: {{ p.mealDetail }}
+                      <h3 class="text-level-3">
+                        {{ p.displayName }}
+                        @if (p.status === 'archived') {
+                          <span class="archived">· Archivado</span>
+                        }
+                      </h3>
+                      <p class="text-level-4">{{ p.totalKilograms | kilos }} · Pagado {{ p.totalPaid | currency }}</p>
+                      @if (p.totalMealDeductions > 0) {
+                        <p class="text-level-4 meals">
+                          <ion-icon name="restaurant-outline" aria-hidden="true"></ion-icon>
+                          Alimentación descontada: {{ p.totalMealDeductions | currency }}
                         </p>
                       }
-                      <p class="text-level-4">Estado: {{ p.status }}</p>
+                      @if (p.balanceDue > 0) {
+                        <p class="text-level-4 due">Quedó debiendo: {{ p.balanceDue | currency }}</p>
+                      }
                     </ion-label>
-                    <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
                   </ion-item>
                 }
               </ion-list>
@@ -133,7 +147,11 @@ import { HistoryFacade } from '../services/history.facade';
                 </div>
               </div>
             } @else {
-              <p class="text-level-4 text-center ion-padding">Sin datos de venta</p>
+              <p class="text-level-4 text-center ion-padding">Todavía no registras la venta de esta cosecha.</p>
+              <ion-button expand="block" color="primary" (click)="resumeClose()">
+                <ion-icon name="cash-outline" slot="start"></ion-icon>
+                Registrar venta y costos
+              </ion-button>
             }
           </ion-card-content>
         </ion-card>
@@ -158,7 +176,7 @@ import { HistoryFacade } from '../services/history.facade';
               </ion-list>
               <div class="total-costs">
                 <span class="text-level-3">Total costos</span>
-                <span class="text-level-2" style="color: #dc3545;">{{ totalCosts() | currency }}</span>
+                <span class="text-level-2 cost-value">{{ totalCosts() | currency }}</span>
               </div>
             } @else {
               <p class="text-level-4 text-center ion-padding">Sin costos registrados</p>
@@ -174,12 +192,12 @@ import { HistoryFacade } from '../services/history.facade';
           <ion-card-content>
             <div class="profit-summary">
               <div class="summary-row">
-                <span class="text-level-4">Pagos a recolectores</span>
-                <span class="text-level-3">{{ totalPayments() | currency }}</span>
+                <span class="text-level-4">Ingreso por venta</span>
+                <span class="text-level-3">{{ selectedHarvest()?.sale?.grossRevenue ?? 0 | currency }}</span>
               </div>
               <div class="summary-row">
-                <span class="text-level-4">Ingreso por venta</span>
-                <span class="text-level-3">{{ selectedHarvest()?.sale?.grossRevenue | currency }}</span>
+                <span class="text-level-4">Pagos a recolectores</span>
+                <span class="text-level-3 cost-value">− {{ totalPayments() | currency }}</span>
               </div>
               <div class="summary-row">
                 <span class="text-level-4">Ganancia bruta</span>
@@ -187,11 +205,11 @@ import { HistoryFacade } from '../services/history.facade';
               </div>
               <div class="summary-row">
                 <span class="text-level-4">Costos de producción</span>
-                <span class="text-level-3" style="color: #dc3545;">{{ totalCosts() | currency }}</span>
+                <span class="text-level-3 cost-value">− {{ totalCosts() | currency }}</span>
               </div>
               <div class="summary-row final">
                 <span class="text-level-2">Ganancia de la cosecha</span>
-                <span class="text-level-1 profit-value" style="color: #28a745;">{{ selectedHarvest()?.actualProfit | currency }}</span>
+                <span class="text-level-1 profit-value" [class.loss]="(selectedHarvest()?.actualProfit ?? 0) < 0">{{ selectedHarvest()?.actualProfit | currency }}</span>
               </div>
             </div>
           </ion-card-content>
@@ -200,10 +218,28 @@ import { HistoryFacade } from '../services/history.facade';
     </ion-content>
   `,
   styles: [`
-    .detail-header {
-      margin-bottom: var(--spacing-lg);
-      padding-bottom: var(--spacing-md);
-      border-bottom: 1px solid var(--color-border);
+    .detail-dates {
+      margin: 0 0 var(--spacing-md);
+    }
+    .archived {
+      font-weight: var(--font-weight-regular);
+      color: var(--color-text-muted);
+    }
+    .meals {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+    .meals ion-icon {
+      font-size: 16px;
+    }
+    .due,
+    .cost-value,
+    .profit-value.loss {
+      color: var(--color-accent-alert);
+    }
+    .profit-value {
+      color: var(--color-primary);
     }
     .section-card {
       --border-radius: var(--radius-md);
@@ -240,7 +276,7 @@ import { HistoryFacade } from '../services/history.facade';
     }
     .summary-row.final {
       border-bottom: none;
-      border-top: 2px solid #28a745;
+      border-top: 2px solid var(--color-primary);
       padding-top: var(--spacing-sm);
       margin-top: var(--spacing-xs);
     }
@@ -273,6 +309,8 @@ export class HarvestHistoryDetailPage {
   });
 
   constructor() {
+    addIcons({ chevronForwardOutline, cashOutline, timeOutline, personOutline, restaurantOutline, calculatorOutline, alertCircleOutline, arrowBackOutline });
+
     // Cargar detalle al navegar a la página
     effect(() => {
       const id = this.harvestId();
@@ -284,8 +322,13 @@ export class HarvestHistoryDetailPage {
     });
   }
 
+  resumeClose(): void {
+    const id = this.harvestId();
+    if (id) this.router.navigate(['/harvest/close', id]);
+  }
+
   goBack(): void {
     this.historyFacade.clearSelectedHarvest();
-    this.router.navigate(['/history']);
+    this.router.navigate(['/history'], { replaceUrl: true });
   }
 }

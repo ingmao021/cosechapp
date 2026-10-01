@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-// DTOs matching backend SaleAndCostsController
+// Contrato de SaleAndCostsController: montos en positivo (COP).
 export interface RecordSaleDto {
   harvestId: string;
   actualDryKilograms: number;
@@ -40,12 +40,20 @@ export interface ProductionCostResponse {
   updatedAt: string;
 }
 
+/** Ganancia de una cosecha. Montos en positivo (COP). */
 export interface ProfitResponse {
+  harvestId: string;
+  /** Kilos secos vendidos × precio. */
+  grossRevenue: number;
+  /** Total pagado a recolectores. */
+  totalPickerPayments: number;
+  /** Venta − pagos a recolectores. */
   grossProfit: number;
-  totalCosts: number;
+  totalProductionCosts: number;
+  /** Ganancia de la cosecha: ganancia bruta − costos. */
   actualProfit: number;
-  sale: SaleResponse | null;
-  costs: ProductionCostResponse[];
+  projectedDryKilograms: number;
+  actualDryKilograms: number | null;
 }
 
 export interface DryKgProjectionResponse {

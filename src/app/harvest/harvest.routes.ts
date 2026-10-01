@@ -14,6 +14,10 @@ export const harvestRoutes: Routes = [
     loadComponent: () => import('./pages/crew-detail.page').then(m => m.CrewDetailPage),
   },
   {
+    path: 'crews/:crewId/add-picker',
+    loadComponent: () => import('./pages/add-picker.page').then(m => m.AddPickerPage),
+  },
+  {
     path: 'pickers/:pickerId',
     loadComponent: () => import('./pages/picker-detail.page').then(m => m.PickerDetailPage),
   },
@@ -23,6 +27,11 @@ export const harvestRoutes: Routes = [
   },
   {
     path: 'close',
+    loadComponent: () => import('./pages/harvest-close.page').then(m => m.HarvestClosePage),
+  },
+  {
+    // Retomar el cierre (venta y costos) de una cosecha ya cerrada, ej. desde el historial.
+    path: 'close/:harvestId',
     loadComponent: () => import('./pages/harvest-close.page').then(m => m.HarvestClosePage),
   },
   {

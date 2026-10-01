@@ -1,5 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { HarvestService, HarvestResponse, HarvestDetailResponse } from './harvest.service';
+import { firstValueFrom } from 'rxjs';
+import { HarvestService, HarvestSummaryResponse, HarvestDetailResponse } from './harvest.service';
+import { apiErrorMessage } from '../../shared/utils';
 
 /**
  * Facade de Historial de Cosechas — Estado (Signals) + Orquestación.
@@ -22,7 +24,7 @@ export class HistoryFacade {
   private readonly harvestService = inject(HarvestService);
 
   // Estado privado (signals)
-  private readonly _allHarvests = signal<HarvestResponse[]>([]);
+  private readonly _allHarvests = signal<HarvestSummaryResponse[]>([]);
   private readonly _selectedHarvest = signal<HarvestDetailResponse | null>(null);
   private readonly _isLoading = signal(false);
   private readonly _error = signal<string | null>(null);
@@ -34,7 +36,13 @@ export class HistoryFacade {
   readonly error = this._error.asReadonly();
 
   // Computed
-  readonly hasHarvests = computed(() => this._allHarvests().length > 0);
+  /** Historial = solo cosechas cerradas, la más reciente primero (Design System §1.9). */
+  readonly closedHarvests = computed(() =>
+    this._allHarvests()
+      .filter((harvest) => harvest.status === 'closed')
+      .sort((a, b) => (b.closingDate ?? '').localeCompare(a.closingDate ?? '')),
+  );
+  readonly hasHarvests = computed(() => this.closedHarvests().length > 0);
 
   /**
    * Carga todas las cosechas para el historial.
@@ -44,10 +52,9 @@ export class HistoryFacade {
     this._error.set(null);
 
     try {
-      const harvests = await this.harvestService.getAllHarvests().toPromise();
-      this._allHarvests.set(harvests ?? []);
+      this._allHarvests.set(await firstValueFrom(this.harvestService.getAllHarvests()));
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar historial de cosechas');
+      this._error.set(apiErrorMessage(err, 'Error al cargar historial de cosechas'));
       this._allHarvests.set([]);
     } finally {
       this._isLoading.set(false);
@@ -62,10 +69,9 @@ export class HistoryFacade {
     this._error.set(null);
 
     try {
-      const detail = await this.harvestService.getHarvestDetail(harvestId).toPromise();
-      this._selectedHarvest.set(detail ?? null);
+      this._selectedHarvest.set(await firstValueFrom(this.harvestService.getHarvestDetail(harvestId)));
     } catch (err: any) {
-      this._error.set(err?.error?.message ?? 'Error al cargar detalle de la cosecha');
+      this._error.set(apiErrorMessage(err, 'Error al cargar detalle de la cosecha'));
       this._selectedHarvest.set(null);
     } finally {
       this._isLoading.set(false);
