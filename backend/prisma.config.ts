@@ -1,7 +1,13 @@
-import { definePrismaConfig } from "prisma/config";
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
 
-export default definePrismaConfig({
-  skills: {
-    agents: ["claude", "cursor", "agents", "devin"],
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: {
+    path: 'prisma/migrations',
+  },
+  datasource: {
+    // Migrations need a direct (non-pooled) connection; the app uses DATABASE_URL.
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? '',
   },
 });

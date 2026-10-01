@@ -77,6 +77,8 @@ Thumbs.db
 # Backend
 backend/.env
 backend/.env.local
+backend/.env.test
+.env.test
 backend/node_modules
 backend/dist
 backend/coverage 
