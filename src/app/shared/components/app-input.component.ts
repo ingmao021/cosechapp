@@ -10,74 +10,76 @@ import {
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { IonInput, IonIcon, IonItem, IonLabel, IonButton } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
+import { IonInput } from '@ionic/angular/ion-input';
+import { IonInputPasswordToggle } from '@ionic/angular/ion-input-password-toggle';
 
 /**
  * Componente atómico: Input de texto/numérico
- * Espec Design System: 48dp alto mínimo, 16dp padding horizontal, radius 8dp
+ * Espec Design System: 48dp alto mínimo, 16dp padding horizontal, radius 8dp.
+ * Etiqueta siempre visible encima del campo (stacked): más clara que una etiqueta flotante
+ * para usuarios con baja alfabetización digital, y no se monta sobre el placeholder.
  * Uso: <app-input label="Cédula" type="text" [(ngModel)]="value" required minlength="5" maxlength="20" />
  */
 @Component({
   selector: 'app-input',
   standalone: true,
-  imports: [FormsModule, IonInput, IonIcon, IonItem, IonLabel, IonButton],
+  imports: [FormsModule, IonInput, IonInputPasswordToggle],
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => AppInputComponent), multi: true },
   ],
   template: `
-    <ion-item lines="full" class="input-wrapper" [class.error]="showError()">
-      <ion-label position="floating">{{ label() }}</ion-label>
-      <ion-input
-        [type]="showPassword() ? 'text' : type()"
-        [placeholder]="placeholder()"
-        [value]="currentValue()"
-        [disabled]="isDisabled()"
-        [readonly]="readonly()"
-        [required]="required()"
-        [minlength]="minlength()"
-        [maxlength]="maxlength()"
-        [inputmode]="inputmode()"
-        [autocomplete]="autocomplete()"
-        (ionInput)="onInput($event)"
-        (ionBlur)="onBlur()"
-        (ionFocus)="onFocus()"
-      ></ion-input>
+    <ion-input
+      class="field"
+      fill="outline"
+      labelPlacement="stacked"
+      [label]="label()"
+      [type]="type()"
+      [placeholder]="placeholder()"
+      [value]="currentValue()"
+      [disabled]="isDisabled()"
+      [readonly]="readonly()"
+      [required]="required()"
+      [minlength]="minlength()"
+      [maxlength]="maxlength()"
+      [inputmode]="inputmode()"
+      [autocomplete]="autocomplete()"
+      [helperText]="helperText()"
+      [errorText]="errorMessage()"
+      [class.ion-touched]="touched()"
+      [class.ion-invalid]="showError()"
+      [class.ion-valid]="!showError()"
+      (ionInput)="onInput($event)"
+      (ionBlur)="onBlur()"
+      (ionFocus)="onFocus()"
+    >
       @if (type() === 'password' && !readonly()) {
-        <ion-button fill="clear" slot="end" (click)="togglePassword()" aria-label="Mostrar/ocultar contraseña">
-          <ion-icon [name]="showPassword() ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-        </ion-button>
+        <ion-input-password-toggle slot="end" showLabel="Mostrar contraseña" hideLabel="Ocultar contraseña"></ion-input-password-toggle>
       }
-      @if (showError() && errorMessage()) {
-        <div class="error-text" slot="error">{{ errorMessage() }}</div>
-      }
-    </ion-item>
+    </ion-input>
   `,
   styles: [`
-    .input-wrapper {
-      --padding-start: var(--input-padding-h);
-      --padding-end: var(--input-padding-h);
-      --border-radius: var(--input-radius);
-      min-height: var(--input-min-height);
+    :host {
+      display: block;
+    }
+    .field {
       --background: var(--color-surface);
       --color: var(--color-text);
       --placeholder-color: var(--color-text-muted);
+      --placeholder-opacity: 1;
+      --border-color: var(--color-border);
+      --border-radius: var(--input-radius);
+      --padding-start: var(--input-padding-h);
+      --padding-end: var(--input-padding-h);
       --highlight-color-focused: var(--color-primary);
+      --highlight-color-valid: var(--color-primary);
       --highlight-color-invalid: var(--color-accent-alert);
-    }
-    .input-wrapper.error {
-      --highlight-color-focused: var(--color-accent-alert);
-    }
-    .error-text {
+      min-height: var(--input-min-height);
       font-family: var(--font-family-body);
-      font-size: var(--font-size-xs);
-      color: var(--color-accent-alert);
-      margin-top: 4px;
+      font-size: var(--font-size-md);
     }
-    ion-icon {
-      font-size: 20px;
-      color: var(--color-text-muted);
+    .field::part(label) {
+      color: var(--color-text);
+      font-weight: var(--font-weight-bold);
     }
   `],
 })
@@ -95,6 +97,8 @@ export class AppInputComponent implements ControlValueAccessor {
   inputmode = input<'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url'>('text');
   autocomplete = input<string>('off');
   errorMessage = input<string>('');
+  /** Texto de ayuda bajo el campo (se reemplaza por errorMessage cuando hay error). */
+  helperText = input<string>('');
 
   // Outputs
   valueChange = output<string>();
@@ -104,7 +108,6 @@ export class AppInputComponent implements ControlValueAccessor {
   // Estado interno: se inicializa desde los inputs y lo actualizan el usuario o el formulario (ngModel)
   readonly currentValue = linkedSignal(() => this.value() ?? '');
   readonly isDisabled = linkedSignal(() => this.disabled());
-  showPassword = signal(false);
   touched = signal(false);
   focused = signal(false);
 
@@ -131,10 +134,6 @@ export class AppInputComponent implements ControlValueAccessor {
   private onChange: (value: string | number | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;
 
-  constructor() {
-    addIcons({ eyeOutline, eyeOffOutline });
-  }
-
   onInput(event: Event): void {
     const val = (event.target as HTMLInputElement | null)?.value ?? '';
     this.currentValue.set(val);
@@ -152,10 +151,6 @@ export class AppInputComponent implements ControlValueAccessor {
   onFocus(): void {
     this.focused.set(true);
     this.inputFocus.emit();
-  }
-
-  togglePassword(): void {
-    this.showPassword.set(!this.showPassword());
   }
 
   // ControlValueAccessor

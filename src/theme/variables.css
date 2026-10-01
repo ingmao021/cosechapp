@@ -10,7 +10,7 @@
    ========================================================================== */
 @font-face {
   font-family: 'Zilla Slab';
-  src: url('../assets/fonts/ZillaSlab-Regular.ttf') format('truetype');
+  src: url('../assets/fonts/ZillaSlab-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -18,7 +18,7 @@
 
 @font-face {
   font-family: 'Zilla Slab';
-  src: url('../assets/fonts/ZillaSlab-Bold.ttf') format('truetype');
+  src: url('../assets/fonts/ZillaSlab-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -26,7 +26,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('../assets/fonts/Inter-Regular.ttf') format('truetype');
+  src: url('../assets/fonts/Inter-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -34,7 +34,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('../assets/fonts/Inter-Bold.ttf') format('truetype');
+  src: url('../assets/fonts/Inter-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -53,6 +53,67 @@
   --color-text: #2B2420;           /* texto de cuerpo — marrón oscuro propio para legibilidad */
   --color-border: #D8D2C0;         /* bordes sutiles */
   --color-accent-alert: #7A2E22;   /* rojo tierra — alertas puntuales (botón cerrar cosecha, errores) */
+
+  /* Paleta de Ionic mapeada a la marca: sin esto, color="primary" etc. usan el azul
+     por defecto de Ionic (Ionic aplica el color por clase, no por atributo). */
+  --ion-color-primary: #32591B;
+  --ion-color-primary-rgb: 50, 89, 27;
+  --ion-color-primary-contrast: #FFFFFF;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #2C4E18;
+  --ion-color-primary-tint: #476A32;
+
+  --ion-color-secondary: #8C694C;
+  --ion-color-secondary-rgb: 140, 105, 76;
+  --ion-color-secondary-contrast: #FFFFFF;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #7B5C43;
+  --ion-color-secondary-tint: #98785E;
+
+  --ion-color-success: #32591B;
+  --ion-color-success-rgb: 50, 89, 27;
+  --ion-color-success-contrast: #FFFFFF;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #2C4E18;
+  --ion-color-success-tint: #476A32;
+
+  --ion-color-warning: #B7791F;
+  --ion-color-warning-rgb: 183, 121, 31;
+  --ion-color-warning-contrast: #FFFFFF;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #A16A1B;
+  --ion-color-warning-tint: #BE8635;
+
+  --ion-color-danger: #7A2E22;
+  --ion-color-danger-rgb: 122, 46, 34;
+  --ion-color-danger-contrast: #FFFFFF;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #6B281E;
+  --ion-color-danger-tint: #874338;
+
+  --ion-color-medium: #6B625D;
+  --ion-color-medium-rgb: 107, 98, 93;
+  --ion-color-medium-contrast: #FFFFFF;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #5E5652;
+  --ion-color-medium-tint: #7A726D;
+
+  --ion-color-light: #F2EFF2;
+  --ion-color-light-rgb: 242, 239, 242;
+  --ion-color-light-contrast: #2B2420;
+  --ion-color-light-contrast-rgb: 43, 36, 32;
+  --ion-color-light-shade: #D5D2D5;
+  --ion-color-light-tint: #F3F1F3;
+
+  --ion-background-color: #F2EFF2;
+  --ion-background-color-rgb: 242, 239, 242;
+  --ion-text-color: #2B2420;
+  --ion-text-color-rgb: 43, 36, 32;
+  --ion-font-family: 'Inter', sans-serif;
+  --ion-toolbar-background: #FFFFFF;
+  --ion-tab-bar-background: #FFFFFF;
+  --ion-item-background: #FFFFFF;
+  --ion-card-background: #FFFFFF;
 
   /* Estados derivados */
   --color-text-muted: rgba(43, 36, 32, 0.6);   /* metadata, Nivel 4 */
@@ -263,6 +324,10 @@ ion-button {
   --padding-end: var(--btn-primary-padding-h);
   height: var(--btn-primary-height);
   min-height: var(--btn-primary-height);
+  /* Texto en oración, igual que enlaces y títulos (el modo md de Ionic lo pone en MAYÚSCULAS). */
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: var(--font-weight-bold);
 }
 
 ion-button[color="primary"] {
@@ -331,13 +396,73 @@ ion-icon {
   font-size: var(--list-row-icon-size);
 }
 
-/* Asegurar touch targets mínimos */
+/* Asegurar touch targets mínimos. El área táctil va en el control, no en el ícono:
+   un ion-icon decorativo con 48px mínimo descuadra filas, inputs y botones. */
 button,
 ion-button,
-ion-icon,
 ion-chip,
 a,
 [role="button"] {
   min-height: var(--touch-target-min);
   min-width: var(--touch-target-min);
+}
+/* ==========================================================================
+   PATRÓN: TEMPLATE DE FORMULARIO (Design System §2.1 Templates, §4)
+   Toolbar con "volver" + título (único) → texto de ayuda → campos → error → acción.
+   ========================================================================== */
+.form-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--screen-margin);
+}
+
+.form-page__intro {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.form-page__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Error de envío: visible hasta el siguiente intento (no un toast que desaparece). */
+.form-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  background: rgba(122, 46, 34, 0.08);
+  color: var(--color-accent-alert);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.form-error ion-icon {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+/* Diálogos (ion-alert): mismo criterio que los botones, texto en oración. */
+ion-alert .alert-button {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: var(--font-weight-bold);
+}
+ion-alert .alert-button:not(.alert-button-role-cancel) {
+  color: var(--color-primary);
+}
+ion-alert .alert-button-role-cancel {
+  color: var(--color-text-muted);
 }

@@ -1,5 +1,7 @@
-import { Component, input, output, HostBinding } from '@angular/core';
+import { Component, booleanAttribute, input, output, HostBinding } from '@angular/core';
 import { IonButton, IonIcon } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { refreshCircleOutline } from 'ionicons/icons';
 
 /**
  * Componente atómico: Botón primario
@@ -43,7 +45,7 @@ import { IonButton, IonIcon } from '@ionic/angular';
       --padding-end: var(--btn-primary-padding-h);
       height: var(--btn-primary-height);
       min-height: var(--btn-primary-height);
-      font-family: var(--font-family-display);
+      font-family: var(--font-family-body);
       font-size: var(--font-size-md);
       font-weight: var(--font-weight-bold);
       --background: var(--color-primary);
@@ -78,14 +80,18 @@ export class AppButtonPrimaryComponent {
   expand = input<'block' | 'full' | ''>('block');
   fill = input<'solid' | 'outline' | 'clear'>('solid');
   color = input<'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'medium' | 'light' | 'dark'>('primary');
-  disabled = input<boolean>(false);
-  loading = input<boolean>(false);
+  disabled = input(false, { transform: booleanAttribute }); // acepta form.invalid (boolean | null)
+  loading = input(false, { transform: booleanAttribute });
   loadingText = input<string>('Cargando...');
   iconStart = input<string | null>(null);
   iconEnd = input<string | null>(null);
 
   // Output
   buttonClick = output<Event>();
+
+  constructor() {
+    addIcons({ refreshCircleOutline });
+  }
 
   onClick(event: Event): void {
     if (!this.disabled() && !this.loading()) {

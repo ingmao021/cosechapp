@@ -37,4 +37,6 @@
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import "@ionic/angular/css/palettes/dark.system.css";
+/* Sin modo oscuro: el Design System define solo tema claro (uso a pleno sol en el cafetal).
+   Activar el oscuro de Ionic sin tokens oscuros propios mezcla superficies claras y oscuras. */
+/* @import "@ionic/angular/css/palettes/dark.system.css"; */

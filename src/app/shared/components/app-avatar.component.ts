@@ -1,5 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import { IonAvatar, IonIcon } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { personOutline } from 'ionicons/icons';
 
 /**
  * Componente atómico: Avatar / Foto de perfil
@@ -61,6 +63,10 @@ export class AppAvatarComponent {
   clickable = input<boolean>(false);
 
   avatarClick = output<Event>();
+
+  constructor() {
+    addIcons({ personOutline });
+  }
 
   onClick(event: Event): void {
     if (this.clickable()) {

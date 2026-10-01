@@ -24,8 +24,8 @@ describe('AppInputComponent', () => {
   it('should render label', () => {
     fixture.componentRef.setInput('label', 'Cédula');
     fixture.detectChanges();
-    const label = fixture.debugElement.query(By.css('ion-label'));
-    expect(label.nativeElement.textContent).toContain('Cédula');
+    const ionInput = fixture.debugElement.query(By.css('ion-input'));
+    expect(ionInput.nativeElement.label).toBe('Cédula');
   });
 
   it('should emit valueChange on input', () => {
@@ -60,17 +60,15 @@ describe('AppInputComponent', () => {
     expect(component.showError()).toBe(false);
   });
 
-  it('should toggle password visibility', () => {
+  it('should offer the show/hide toggle only for passwords', () => {
+    expect(fixture.debugElement.query(By.css('ion-input-password-toggle'))).toBeNull();
+
     fixture.componentRef.setInput('type', 'password');
     fixture.detectChanges();
 
-    expect(component.showPassword()).toBe(false);
-
-    const toggleButton = fixture.debugElement.query(By.css('ion-button[slot="end"]'));
-    toggleButton.triggerEventHandler('click', {});
-    fixture.detectChanges();
-
-    expect(component.showPassword()).toBe(true);
+    const toggle = fixture.debugElement.query(By.css('ion-input-password-toggle'));
+    expect(toggle).toBeTruthy();
+    expect(toggle.attributes['showLabel']).toBe('Mostrar contraseña');
   });
 
   it('should respect minlength validation', () => {
