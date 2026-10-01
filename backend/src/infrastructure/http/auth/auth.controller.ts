@@ -1,9 +1,9 @@
-import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { IsString, MinLength, MaxLength, IsOptional } from 'class-validator';
 
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RegisterDto, LoginDto, ChangePasswordDto } from './auth.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -30,6 +30,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with national ID and password' })
   async login(@Body() dto: LoginDto) {
     const result = await this.authService.login({
@@ -57,32 +58,17 @@ export class AuthController {
       nationalId: req.user.nationalId,
     };
   }
-}
 
-export class RegisterDto {
-  @IsString()
-  @MinLength(5)
-  @MaxLength(20)
-  nationalId!: string;
-
-  @IsString()
-  @MinLength(6)
-  @MaxLength(50)
-  password!: string;
-
-  @IsOptional()
-  @IsString()
-  profilePhoto?: string;
-}
-
-export class LoginDto {
-  @IsString()
-  @MinLength(5)
-  @MaxLength(20)
-  nationalId!: string;
-
-  @IsString()
-  @MinLength(6)
-  @MaxLength(50)
-  password!: string;
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Change the current user password' })
+  async changePassword(@Request() req: any, @Body() dto: ChangePasswordDto) {
+    await this.authService.changePassword({
+      coffeeGrowerId: req.user.userId,
+      currentPassword: dto.currentPassword,
+      newPassword: dto.newPassword,
+    });
+  }
 }

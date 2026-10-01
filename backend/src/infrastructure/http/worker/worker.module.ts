@@ -1,3 +1,4 @@
+import { useCaseProvider } from '@infrastructure/http/use-case.provider';
 import { Module } from '@nestjs/common';
 import { WorkerController } from './worker.controller';
 import { WorkerService } from './worker.service';
@@ -13,11 +14,11 @@ import { PersistenceModule } from '@infrastructure/persistence/persistence.modul
   controllers: [WorkerController],
   providers: [
     WorkerService,
-    CreateWorkerUseCase,
-    GetWorkerUseCase,
-    ListWorkersUseCase,
-    UpdateWorkerUseCase,
-    DeleteWorkerUseCase,
+    useCaseProvider(CreateWorkerUseCase, ['WORKER_REPOSITORY']),
+    useCaseProvider(GetWorkerUseCase, ['WORKER_REPOSITORY']),
+    useCaseProvider(ListWorkersUseCase, ['WORKER_REPOSITORY']),
+    useCaseProvider(UpdateWorkerUseCase, ['WORKER_REPOSITORY']),
+    useCaseProvider(DeleteWorkerUseCase, ['WORKER_REPOSITORY']),
   ],
   exports: [WorkerService],
 })

@@ -1,7 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import { Weighing } from '@domain/weighing/weighing.entity';
 import { WeighingRepository } from '@domain/weighing/weighing.repository';
 import { PrismaService } from './prisma.service';
 
+@Injectable()
 export class PrismaWeighingRepository implements WeighingRepository {
   constructor(private readonly prisma: PrismaService) {}
 

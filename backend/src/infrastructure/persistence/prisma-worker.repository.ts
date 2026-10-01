@@ -1,7 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import { CatalogWorker } from '@domain/worker/worker.entity';
 import { WorkerRepository } from '@domain/worker/worker.repository';
 import { PrismaService } from './prisma.service';
 
+@Injectable()
 export class PrismaWorkerRepository implements WorkerRepository {
   constructor(private readonly prisma: PrismaService) {}
 

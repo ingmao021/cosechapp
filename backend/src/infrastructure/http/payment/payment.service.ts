@@ -1,26 +1,35 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Payment } from '@domain/payment/payment.entity';
 import { PaymentRepository } from '@domain/payment/payment.repository';
-import { PayNowUseCase } from '@domain/payment/use-cases/pay-now.use-case';
-import { PaymentCalculatorStrategy } from '@domain/payment/payment-calculator';
+import { PayNowUseCase, PayNowUseCaseInput, PaymentPreview } from '@domain/payment/use-cases/pay-now.use-case';
+import { OwnershipService } from '@infrastructure/http/ownership.service';
+import { AuthUser } from '@infrastructure/http/harvest/harvest.service';
 
 @Injectable()
 export class PaymentService {
   constructor(
-    private readonly paymentRepository: PaymentRepository,
+    @Inject('PAYMENT_REPOSITORY') private readonly paymentRepository: PaymentRepository,
     private readonly payNowUseCase: PayNowUseCase,
-    @Inject('PAYMENT_CALCULATOR') private readonly paymentCalculator: PaymentCalculatorStrategy,
+    private readonly ownership: OwnershipService,
   ) {}
 
-  async payNow(input: { harvestPickerId: string; harvestId: string; includesMeals: boolean; mealDetail: string | null }) {
+  async preview(user: AuthUser, input: PayNowUseCaseInput): Promise<PaymentPreview> {
+    await this.ownership.harvestFor(input.harvestId, user.farmId);
+    return this.payNowUseCase.preview(input);
+  }
+
+  async payNow(user: AuthUser, input: PayNowUseCaseInput) {
+    await this.ownership.harvestFor(input.harvestId, user.farmId);
     return this.payNowUseCase.execute(input);
   }
 
-  async getPaymentsByPicker(harvestPickerId: string): Promise<Payment[]> {
+  async getPaymentsByPicker(user: AuthUser, harvestPickerId: string): Promise<Payment[]> {
+    await this.ownership.pickerFor(harvestPickerId, user.farmId);
     return this.paymentRepository.findAllByHarvestPickerId(harvestPickerId);
   }
 
-  async getTotalPaidByPicker(harvestPickerId: string): Promise<number> {
+  async getTotalPaidByPicker(user: AuthUser, harvestPickerId: string): Promise<number> {
+    await this.ownership.pickerFor(harvestPickerId, user.farmId);
     return this.paymentRepository.findTotalPaidByHarvestPickerId(harvestPickerId);
   }
 }

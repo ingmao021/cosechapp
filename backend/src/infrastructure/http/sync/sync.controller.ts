@@ -1,10 +1,15 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { IsArray, IsString, IsEnum, ValidateNested, IsOptional } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Controller, Post, Body, UseGuards, Request, Res, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { Response } from 'express';
 
-import { SyncService, SyncItem, SyncResult } from './sync.service';
+import { SyncService } from './sync.service';
 import { JwtAuthGuard } from '@infrastructure/http/auth/guards/jwt-auth.guard';
+import { AuthUser } from '@infrastructure/http/harvest/harvest.service';
+import { SyncWeighingsDto } from './sync.dto';
+
+interface AuthRequest {
+  user: AuthUser;
+}
 
 @ApiTags('sync')
 @Controller('sync')
@@ -13,30 +18,18 @@ import { JwtAuthGuard } from '@infrastructure/http/auth/guards/jwt-auth.guard';
 export class SyncController {
   constructor(private readonly syncService: SyncService) {}
 
-  @Post('batch')
-  @ApiOperation({ summary: 'Batch sync offline data' })
-  async batchSync(@Request() req: any, @Body() dto: BatchSyncDto): Promise<SyncResult> {
-    return this.syncService.processBatch(dto.items, req.user.userId);
+  @Post('weighings')
+  @ApiOperation({ summary: 'Sync weighings recorded offline (idempotent by id)' })
+  @ApiResponse({ status: 200, description: 'All weighings saved (or already saved)' })
+  @ApiResponse({ status: 207, description: 'Some weighings failed: see each item status' })
+  async syncWeighings(
+    @Request() req: AuthRequest,
+    @Body() dto: SyncWeighingsDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const results = await this.syncService.syncWeighings(req.user, dto.weighings);
+    const allSaved = results.every((result) => result.status < 300);
+    res.status(allSaved ? HttpStatus.OK : HttpStatus.MULTI_STATUS);
+    return { results };
   }
-}
-
-export class BatchSyncDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SyncItemDto)
-  items!: SyncItemDto[];
-}
-
-export class SyncItemDto {
-  @IsString()
-  entity!: string;
-
-  @IsEnum(['create', 'update', 'delete'])
-  operation!: 'create' | 'update' | 'delete';
-
-  @IsOptional()
-  data!: any;
-
-  @IsString()
-  timestamp!: string;
 }

@@ -1,40 +1,21 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
-  private client: any;
+  private readonly client: PrismaClient;
 
-  constructor() {
-    // PrismaClient will be available after prisma generate
-    // For now, we use a mock that will be replaced
-    this.client = {
-      $connect: async () => {},
-      $disconnect: async () => {},
-      coffeeGrower: {
-        upsert: async () => {},
-        findUnique: async () => null,
-      },
-      farm: {
-        upsert: async () => {},
-        findUnique: async () => null,
-      },
-      harvest: {
-        upsert: async () => {},
-        findUnique: async () => null,
-        findFirst: async () => null,
-        findMany: async () => [],
-      },
-      worker: {
-        upsert: async () => {},
-        findUnique: async () => null,
-        findMany: async () => [],
-        findFirst: async () => null,
-        delete: async () => {},
-      },
-    };
+  constructor(configService: ConfigService) {
+    const connectionString = configService.get<string>('DATABASE_URL');
+    if (!connectionString) {
+      throw new Error('DATABASE_URL is not set');
+    }
+    this.client = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
   }
 
-  getClient(): any {
+  getClient(): PrismaClient {
     return this.client;
   }
 

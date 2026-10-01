@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { PrismaHarvestQueries } from '@infrastructure/persistence/prisma-harvest-queries';
+import { WorkerHasHarvestHistoryError } from '@shared/errors/domain-errors';
 import { CatalogWorker } from '@domain/worker/worker.entity';
 import { WorkerRepository } from '@domain/worker/worker.repository';
 import { CreateWorkerUseCase } from '@domain/worker/use-cases/create-worker.use-case';
@@ -10,12 +12,13 @@ import { DeleteWorkerUseCase } from '@domain/worker/use-cases/delete-worker.use-
 @Injectable()
 export class WorkerService {
   constructor(
-    private readonly workerRepository: WorkerRepository,
+    @Inject('WORKER_REPOSITORY') private readonly workerRepository: WorkerRepository,
     private readonly createWorkerUseCase: CreateWorkerUseCase,
     private readonly getWorkerUseCase: GetWorkerUseCase,
     private readonly listWorkersUseCase: ListWorkersUseCase,
     private readonly updateWorkerUseCase: UpdateWorkerUseCase,
     private readonly deleteWorkerUseCase: DeleteWorkerUseCase,
+    private readonly queries: PrismaHarvestQueries,
   ) {}
 
   async createWorker(input: { coffeeGrowerId: string; firstName: string; lastName: string; alias?: string; phoneNumber?: string }): Promise<CatalogWorker> {
@@ -39,6 +42,10 @@ export class WorkerService {
   }
 
   async deleteWorker(workerId: string, coffeeGrowerId: string): Promise<void> {
+    // El borrado es en cascada en la base de datos: protegemos pesadas y pagos ya registrados.
+    if (await this.queries.workerHasHarvestHistory(workerId)) {
+      throw new WorkerHasHarvestHistoryError();
+    }
     await this.deleteWorkerUseCase.execute({ workerId, coffeeGrowerId });
   }
 }

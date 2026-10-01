@@ -1,7 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import { ProductionCost } from '@domain/sale-and-costs/production-cost.entity';
 import { ProductionCostRepository } from '@domain/sale-and-costs/production-cost.repository';
 import { PrismaService } from './prisma.service';
 
+@Injectable()
 export class PrismaProductionCostRepository implements ProductionCostRepository {
   constructor(private readonly prisma: PrismaService) {}
 

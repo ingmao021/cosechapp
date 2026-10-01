@@ -1,10 +1,10 @@
-import { Controller, Post, Get, Patch, Delete, Param, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Param, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { IsString, IsOptional, MaxLength, MinLength } from 'class-validator';
 
 import { WorkerService } from './worker.service';
 import { CatalogWorker } from '@domain/worker/worker.entity';
 import { JwtAuthGuard } from '@infrastructure/http/auth/guards/jwt-auth.guard';
+import { CreateWorkerDto, UpdateWorkerDto } from './worker.dto';
 
 @ApiTags('workers')
 @Controller('workers')
@@ -57,11 +57,11 @@ export class WorkerController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a worker from the catalog' })
   @ApiParam({ name: 'id', description: 'Worker ID' })
   async deleteWorker(@Request() req: any, @Param('id') id: string) {
     await this.workerService.deleteWorker(id, req.user.userId);
-    return { success: true };
   }
 
   private toResponse(worker: CatalogWorker) {
@@ -76,48 +76,4 @@ export class WorkerController {
       updatedAt: worker.updatedAt,
     };
   }
-}
-
-export class CreateWorkerDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(50)
-  firstName!: string;
-
-  @IsString()
-  @MinLength(1)
-  @MaxLength(50)
-  lastName!: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  alias?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  phoneNumber?: string;
-}
-
-export class UpdateWorkerDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(50)
-  firstName!: string;
-
-  @IsString()
-  @MinLength(1)
-  @MaxLength(50)
-  lastName!: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  alias?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  phoneNumber?: string;
 }

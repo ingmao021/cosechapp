@@ -1,7 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import { CoffeeGrower } from '@domain/auth/coffee-grower.entity';
 import { CoffeeGrowerRepository } from '@domain/auth/coffee-grower.repository';
 import { PrismaService } from './prisma.service';
 
+@Injectable()
 export class PrismaCoffeeGrowerRepository implements CoffeeGrowerRepository {
   constructor(private readonly prisma: PrismaService) {}
 

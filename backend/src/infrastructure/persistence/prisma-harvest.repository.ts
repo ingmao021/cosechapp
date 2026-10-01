@@ -1,8 +1,10 @@
+import { Injectable } from '@nestjs/common';
 import { Harvest } from '@domain/harvest/harvest.entity';
 import { HarvestRepository } from '@domain/harvest/harvest.repository';
 import { HarvestStatus } from '@domain/harvest/harvest-status.enum';
 import { PrismaService } from './prisma.service';
 
+@Injectable()
 export class PrismaHarvestRepository implements HarvestRepository {
   constructor(private readonly prisma: PrismaService) {}
 

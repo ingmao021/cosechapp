@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { SyncController } from './sync.controller';
 import { SyncService } from './sync.service';
-import { PersistenceModule } from '@infrastructure/persistence/persistence.module';
+import { WeighingModule } from '@infrastructure/http/weighing/weighing.module';
 
 @Module({
-  imports: [PersistenceModule],
+  imports: [WeighingModule],
   controllers: [SyncController],
   providers: [SyncService],
-  exports: [SyncService],
 })
 export class SyncModule {}

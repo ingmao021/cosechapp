@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { PrismaHarvestQueries } from './prisma-harvest-queries';
 import { PrismaCoffeeGrowerRepository } from './prisma-coffee-grower.repository';
 import { PrismaFarmRepository } from './prisma-farm.repository';
 import { PrismaHarvestRepository } from './prisma-harvest.repository';
@@ -16,6 +17,7 @@ import { PrismaNotificationRepository } from './prisma-notification.repository';
 @Module({
   providers: [
     PrismaService,
+    PrismaHarvestQueries,
     {
       provide: 'COFFEE_GROWER_REPOSITORY',
       useClass: PrismaCoffeeGrowerRepository,
@@ -79,6 +81,7 @@ import { PrismaNotificationRepository } from './prisma-notification.repository';
     'COFFEE_PRICE_REPOSITORY',
     'NOTIFICATION_REPOSITORY',
     PrismaService,
+    PrismaHarvestQueries,
   ],
 })
 export class PersistenceModule {}

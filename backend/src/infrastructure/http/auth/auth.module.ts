@@ -7,9 +7,11 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { BcryptService } from './bcrypt.service';
+import { PersistenceModule } from '@infrastructure/persistence/persistence.module';
 
 @Module({
   imports: [
+    PersistenceModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
