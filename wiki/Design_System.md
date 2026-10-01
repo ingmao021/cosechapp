@@ -9,22 +9,31 @@ Taller de Design System aplicado a **CosechApp**, la app móvil de recolección 
 Define qué información y elementos se muestran en cada pantalla de CosechApp, con base en las funcionalidades ya definidas en el PRD.
 
 ### 1.0 Splash
-- Imagen de fondo `Cosech.png` a pantalla completa (1591×2250px de origen — más alta que ancha; se ajusta con `object-fit: cover` centrado, ya que la relación de aspecto del archivo no coincide exactamente con la de un celular Android, para evitar franjas vacías).
-- Sin controles ni texto interactivo — es una pantalla de transición, no requiere acción del usuario.
-- Duración: el tiempo que tome verificar si ya existe una sesión activa (ver lógica en Navegación, sección 3.1) — no un tiempo fijo arbitrario.
-- Debe usarse como Splash nativo de Capacitor (configurado en `capacitor.config.ts` / recursos nativos de Android), no solo como una pantalla más de Angular, para que se vea desde el instante en que se abre la app y no solo después de que el WebView cargue.
+Arranque en dos tiempos, sin saltos visuales entre uno y otro:
+1. **Splash nativo** (Android): ícono de la app (grano de café) sobre fondo blanco `#FFFFFF`. Lo muestra el sistema desde el primer instante, mientras carga el WebView. Configurado en `capacitor.config.ts` (`SplashScreen`, `launchAutoHide: false`) y en `styles.xml` (`windowSplashScreenBackground` blanco, también con el teléfono en modo oscuro).
+2. **Animación de marca** (`resources/img/CosechAPP_animado.svg`, copia optimizada en `src/assets/brand/cosechapp-animado.svg`): taza + logotipo que aparece de izquierda a derecha (animación SMIL de 2,9 s). Se muestra a pantalla completa con `object-fit: cover`. El SVG arranca en blanco, así que el relevo desde el splash nativo no se nota.
+- Sin controles ni texto interactivo: es una pantalla de transición, no requiere acción del usuario.
+- Duración: lo que tarde **lo más largo** entre la animación (~3,3 s) y la verificación de sesión (ver sección 3.1). Si el SVG no carga en 2 s, se sigue sin esperar la animación.
 
 ### 1.1 Login / Registro
-- Campo cédula, campo contraseña.
-- Foto de perfil (opcional).
-- Botón "Ingresar" / enlace "Crear cuenta".
+**Login:**
+- Logo (`src/assets/brand/logo.png`, versión con fondo transparente de `LOGO.png`) y una frase corta de propósito.
+- Campo cédula (teclado numérico) y campo contraseña con botón mostrar/ocultar.
+- Botón "Ingresar" y enlace "Crear cuenta".
+
+**Registro:** los mismos campos más "Confirmar contraseña", con la regla de la contraseña visible como texto de ayuda ("Mínimo 6 caracteres").
+
+**Reglas para ambas pantallas:**
+- **Sin foto de perfil.** Una foto "opcional" en el formulario de entrada distrae y no aporta nada para ingresar; la foto vive solo en Perfil (§1.12).
 - Sin campos de verificación adicionales (sin correo ni teléfono), por la baja alfabetización digital del usuario objetivo.
+- Sin barra superior con título: el logo es el encabezado, y el título de la tarjeta ("Ingresar" / "Crear cuenta") aparece una sola vez.
+- Los errores se muestran dentro del formulario, en español y en lenguaje del usuario (ver §2.6), no como un aviso que desaparece.
 
 ### 1.2 Inicio (cosecha activa)
-- Nombre de la cosecha activa (ej. "Primer pasón") y su precio por kilo.
+- Nombre de la cosecha activa (ej. "Primer pasón") y su precio por kilo, con la etiqueta explícita ("Pagas $ 1.200 COP por kilo").
 - Acceso directo a "Pesar" (lleva a Cuadrillas).
-- Aviso del precio actual publicado por la FNC, con fecha del último dato.
-- Indicador de última sincronización (si hay pesadas/pagos aún sin sincronizar).
+- Precio actual publicado por la FNC, con fecha del último dato. **Solo si existe un dato real**; nunca un valor de ejemplo ni "$ 0".
+- Indicador de conexión: "En línea" o "Sin conexión · se guarda en el teléfono". Cuando la sincronización offline esté implementada, este indicador pasa a mostrar las pesadas/pagos pendientes de sincronizar. Nunca se muestra "Sincronizado" si no es verdad.
 - Botón "Cerrar cosecha" (lleva al flujo de venta y costos).
 - Si no hay cosecha activa: invitación a abrir una nueva, con campo de nombre libre.
 
@@ -34,22 +43,31 @@ Define qué información y elementos se muestran en cada pantalla de CosechApp, 
 - Cada cuadrilla se crea desde cero en cada cosecha.
 
 ### 1.4 Detalle de cuadrilla
-- Lista de recolectores asignados (nombre/alias).
-- Acumulado de kilos del día por recolector, visible en la misma fila.
-- Botón para agregar un recolector a la cuadrilla (desde el catálogo de trabajadores o nuevo).
+- Lista de recolectores asignados: iniciales, nombre (o alias, con el nombre real debajo), kilos de hoy y saldo por pagar.
+- Botón "Pesar" (ícono + texto) en cada fila; tocar la fila abre el detalle del recolector.
+- Botón "Agregar recolector" (requiere conexión), que abre la pantalla **Agregar recolector**:
+  - Buscador por nombre o alias sobre el catálogo de trabajadores.
+  - Cada trabajador con su situación: disponible (tocar = agregar), "En esta cuadrilla" (inactivo), "En Cuadrilla X" (tocar = confirmar mover; pesadas y pagos se conservan) o "Archivado".
+  - "Crear trabajador nuevo": abre el formulario del trabajador y, al guardarlo, queda de una vez en la cuadrilla.
 
 ### 1.5 Detalle de recolector (dentro de la cosecha)
 - Nombre/alias del recolector.
-- Lista de pesadas del día, con botón "+" para agregar cuantas sean necesarias.
-- Acumulado de la semana y acumulado del ciclo completo.
-- Indicador de alimentación (con/sin), con precio por comida o total del día.
-- Botón "Pagar ahora" (muestra el monto calculado antes de confirmar).
-- Historial de pagos ya realizados a ese recolector en esta cosecha.
+- Acumulados: hoy, esta semana y toda la cosecha.
+- Saldo por pagar (kilos × precio − pagado − alimentación descontada), con lo pagado y la alimentación descontada debajo.
+- Botón "Registrar pesada" y lista de pesadas de hoy (las guardadas sin señal aparecen como "Por enviar").
+- Botón "Pagar ahora" (requiere conexión; inactivo si no hay saldo). Confirmación en tres pasos:
+  1. ¿Le diste alimentación? (sin / con).
+  2. Si fue con alimentación: valor a descontar en este pago.
+  3. Desglose y confirmación: kilos y bruto, ya pagado, alimentación anterior, alimentación de este pago y **monto a pagar**; el botón dice "Pagar $X".
+- Solo se paga lo pendiente: los kilos ya pagados no se vuelven a pagar, y la alimentación descontada cuenta como saldada.
+- Historial de pagos de esta cosecha (monto en efectivo y alimentación descontada).
 
 ### 1.6 Registro de pesada
-- Campo numérico de kilos.
-- Fecha y hora (automática).
-- Confirmación visual al guardar (funciona sin conexión).
+- Campo numérico de kilos (mayor que 0, máximo 1.000 por pesada).
+- Fecha y hora automáticas (las del teléfono al guardar, también si se envía después).
+- Confirmación visual al guardar, que distingue: "Pesada guardada" o "Pesada guardada en el teléfono. Se enviará al volver la señal."
+- **Sin señal:** la pesada queda en una cola en el teléfono con un id propio, se suma de inmediato a los acumulados en pantalla y se envía sola al recuperar la señal (también al abrir la app). Reenviarla nunca la duplica.
+- Si el servidor rechaza una pesada pendiente (ej. el recolector fue archivado), se muestra un aviso con el motivo hasta que el usuario lo descarte.
 
 ### 1.7 Catálogo de trabajadores
 - Lista global de trabajadores (nombre, apellido, alias, teléfono).
@@ -57,18 +75,18 @@ Define qué información y elementos se muestran en cada pantalla de CosechApp, 
 - Acceso desde aquí para asignarlo a una cuadrilla de la cosecha activa.
 
 ### 1.8 Cierre de cosecha
-- Campo de kilos secos reales vendidos y precio de venta.
-- Ganancia bruta calculada automáticamente (venta − pagos a recolectores).
-- Sección de costos de producción: lista de gastos que el caficultor va agregando (descripción + monto).
-- Ganancia de la cosecha (ganancia bruta − costos), mostrada con esa etiqueta explícita para no confundirla con la rentabilidad total de la finca.
-- Confirmación para archivar la cosecha en el historial.
+Tres pasos, en el orden que exige el negocio (la venta ocurre cuando la cosecha terminó):
+1. **Cerrar**: resumen (recolectores, kilos de café cereza, pagado). Si quedan saldos pendientes, aviso con el total. Confirmación: "Ya no podrás registrar pesadas ni pagos".
+2. **Venta**: kilos secos vendidos, precio por kilo seco y fecha (por defecto hoy), con la proyección de kilos secos (cereza ÷ 5) como referencia y el total de la venta.
+3. **Costos**: lista de gastos (descripción + valor) y el resumen: venta − pagos = ganancia bruta − costos = **ganancia de la cosecha** (con esa etiqueta explícita para no confundirla con la rentabilidad de la finca).
+- Si el usuario sale a mitad, retoma desde el detalle del historial ("Registrar venta y costos").
 
 ### 1.9 Historial de cosechas
 - Lista de cosechas cerradas (nombre, fechas, ganancia de la cosecha).
 - Acceso al detalle de cada una (recolectores, pagos, venta, costos).
 
 ### 1.10 Precio y noticias
-- Precio actual del café publicado por la FNC, con fecha.
+- Precio actual del café publicado por la FNC, con fecha. Sin dato: "Aún no hay precio publicado" (nunca "$ 0 COP", que parecería un precio real).
 - Lista de noticias/tips (fuentes: FNC y Cenicafé), cada una con resumen corto y enlace a la fuente original.
 
 ### 1.11 Notificaciones
@@ -95,9 +113,10 @@ Design System — CosechApp
 │   ├── Botón de alerta (ej. "Cerrar cosecha")
 │   ├── Input numérico (kilos, precios)
 │   ├── Input de texto (nombre, alias, nombre de cosecha)
-│   ├── Etiqueta de estado (activa / cerrada / archivado)
+│   ├── Etiqueta de estado (activa / cerrada / archivado; "En línea" / "Sin conexión"). Informativa, no parece botón
 │   ├── Icono (recolector, cuadrilla, balanza, pago, venta, precio, noticia, notificación)
-│   ├── Avatar / foto de perfil
+│   ├── Avatar / foto de perfil (solo en Perfil)
+│   ├── Logo (encabezado de Login/Registro) e ícono de la app (grano de café)
 │   └── Color y tipografía (ver Design Tokens)
 │
 ├── Moléculas
@@ -119,7 +138,8 @@ Design System — CosechApp
 ├── Templates
 │   ├── Template de lista (header + lista de tarjetas + botón agregar) → Cuadrillas, Trabajadores, Historial
 │   ├── Template de detalle (header + bloques de información + acciones) → Detalle de recolector, Detalle de cosecha
-│   └── Template de formulario (campos + botón de acción) → Registro de pesada, Cierre de cosecha, Login
+│   ├── Template de formulario (texto de ayuda + campos + error + botón de acción) → Abrir cosecha, Registro de pesada, Trabajador, Cambiar contraseña, Cierre de cosecha
+│   └── Template de autenticación (logo + tarjeta con formulario + enlace alterno) → Login, Registro
 │
 └── Páginas
     ├── Login / Registro
@@ -142,7 +162,7 @@ Elegidos deliberadamente a partir del propio contexto de CosechApp: reemplaza un
 
 **Colores**
 
-Paleta de marca real, tomada del logo (`LOGO.png`) y del splash (`Cosech.png`), reemplazando la paleta provisional del primer borrador:
+Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranque (`CosechAPP_animado.svg`), reemplazando la paleta provisional del primer borrador:
 
 ```
 --color-primary: #32591B       /* verde oscuro de marca — texto/botones principales */
@@ -161,6 +181,30 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y del splash (`Cosech.png`), 
 > - `#8e716d` → contraste **3.9:1** — no cumple AA ni siquiera para texto grande de forma consistente. Reservar para bordes, iconos decorativos y el trazo del logo, **nunca para texto**.
 > - Por eso `--color-text` usa un marrón oscuro propio (#2B2420) en vez de `#8e716d`: mantiene el aire cálido de la marca sin sacrificar legibilidad, algo crítico aquí porque la app se usa a plena luz del sol en el cafetal.
 
+**Paleta de Ionic mapeada a la marca.** Los componentes de Ionic (`color="primary"`, `"danger"`, etc.) no leen los tokens `--color-*`; usan `--ion-color-*`. Sin mapearlos, todos los botones "primary" salen en el azul por defecto de Ionic. En `src/theme/variables.css`:
+
+| Color Ionic | Token de marca | Uso |
+|---|---|---|
+| `primary` / `success` | `#32591B` | Acciones principales, confirmaciones |
+| `secondary` | `#8C694C` | Acentos secundarios |
+| `danger` | `#7A2E22` (`--color-accent-alert`) | "Cerrar cosecha", errores |
+| `warning` | `#B7791F` | Avisos (sin conexión) |
+| `medium` | `#6B625D` | Íconos y texto secundario |
+| `light` | `#F2EFF2` | Fondos claros |
+
+No se usan colores escritos a mano en las páginas (ej. el verde `#28a745` o el rojo `#dc3545` de Bootstrap): siempre un token.
+
+**Tema único claro.** No hay modo oscuro: la app se usa a pleno sol, y activar la paleta oscura de Ionic sin tokens oscuros propios mezcla superficies claras y oscuras. Por eso `dark.system.css` no se importa en `global.scss`.
+
+**Marca**
+```
+Ícono de la app:   grano de café del logo, color #873C18 (el óxido de la taza del splash) sobre #F2EFF2
+                   fuente: resources/icon-only.png, icon-foreground.png, icon-background.png
+                   generado con: npx @capacitor/assets generate --android
+Logo:              src/assets/brand/logo.png (LOGO.png con fondo transparente)
+Animación splash:  src/assets/brand/cosechapp-animado.svg (optimizado con svgo, 1,5 MB)
+```
+
 **Tipografía**
 ```
 --font-family-display: "Zilla Slab"   /* títulos — remite al cuaderno/libro de registro */
@@ -173,6 +217,8 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y del splash (`Cosech.png`), 
 --font-weight-regular: 400
 --font-weight-bold: 700
 ```
+
+Las fuentes van **empaquetadas en la app** (`src/assets/fonts/*.woff2`, subconjunto latin con tildes y ñ, licencia OFL) para que funcionen sin conexión. Zilla Slab es solo para títulos de pantalla y de tarjeta; botones, campos y todo el texto de UI van en Inter.
 
 **Espaciado** (grid base de 4dp)
 ```
@@ -192,7 +238,11 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y del splash (`Cosech.png`), 
 --touch-target-min: 48dp  /* mínimo de Material Design en Android — corregido desde el borrador inicial, que usaba 44px (estándar iOS, no aplica aquí) */
 ```
 
-> **Nota de unidades:** en Android, las dimensiones y espaciados se expresan en **dp** (density-independent pixels), y los tamaños de tipografía en **sp** (scale-independent pixels), para que respeten el ajuste de tamaño de fuente del sistema. Todos los tokens de esta sección deben leerse con esas unidades, no como píxeles CSS fijos.
+> **Nota de unidades:** en Android, las dimensiones y espaciados se expresan en **dp** (density-independent pixels), y los tamaños de tipografía en **sp** (scale-independent pixels), para que respeten el ajuste de tamaño de fuente del sistema.
+>
+> **Implementación:** la app corre en un WebView, donde `dp`/`sp` no existen en CSS. Un `px` de CSS ya equivale a 1 dp (el WebView aplica la densidad de pantalla), así que los tamaños van en `px`, y la tipografía en `rem` para respetar el tamaño de fuente del sistema. Ejemplos: 48dp → `48px`; 16sp → `1rem`.
+>
+> **Área táctil:** los 48dp mínimos aplican al control (botón, chip, enlace), **no al ícono**. Un `ion-icon` decorativo con 48px mínimo descuadra filas, campos y botones.
 
 ### 2.3 Especificaciones pixel-perfect por componente
 
@@ -202,7 +252,7 @@ Medidas exactas listas para implementación, siguiendo la grilla base de 4dp:
 |---|---|---|---|---|
 | Botón primario | 48dp | 24dp horizontal | 24dp (pill) | 20dp si lleva ícono |
 | Botón de ícono ("+") | 48dp × 48dp | — | 24dp (circular) | 24dp |
-| Input de texto/numérico | 48dp mínimo | 16dp horizontal | 8dp | — |
+| Input de texto/numérico | 48dp mínimo, con borde (outline) y etiqueta siempre visible encima (no flotante) | 16dp horizontal | 8dp | — |
 | Tarjeta de recolector | 64dp mínimo | 16dp | 12dp | 24dp (avatar/ícono) |
 | Fila de la lista (cuadrillas, trabajadores) | 56dp | 16dp horizontal | — | 24dp |
 | Chip ("con alimentación") | 28dp | 12dp horizontal | 999dp (pill) | 16dp si lleva ícono |
@@ -234,6 +284,62 @@ No se define un breakpoint de tablet en esta versión, ya que el PRD define la a
 
 Los íconos acompañan siempre al texto (nunca solos) en las acciones principales, dada la prioridad de simplicidad visual para usuarios con baja alfabetización digital.
 
+### 2.6 Patrones de pantalla
+
+Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en ninguna, se agrega el patrón aquí antes de construirla.
+
+**Encabezado**
+- **Nivel 1 (pestañas: Inicio, Precio y Noticias, Historial, Perfil):** barra superior con el título de la pantalla, sin botón de volver.
+- **Nivel 2 en adelante:** barra con botón "volver" (`ion-back-button` con ruta de respaldo) y el título.
+- **Un solo título por pantalla.** La tarjeta del contenido no repite el título de la barra (antes: "Abrir cosecha" arriba y "Nueva cosecha" en la tarjeta).
+
+**Formulario** (clases globales `.form-page`, `.form-page__intro`, `.form-page__fields`, `.form-error` en `variables.css`)
+1. Una línea de ayuda que explica para qué sirve el formulario.
+2. Campos con etiqueta visible; los ejemplos van como placeholder ("Ej: 1200") y las reglas como texto de ayuda bajo el campo.
+3. Campos numéricos vacíos al empezar: nunca un "0" precargado que hay que borrar.
+4. Validación por campo al salir de él, con un mensaje que dice qué hacer ("Escribe el precio por kilo.").
+5. Error de envío dentro del formulario, sobre el botón. Se mantiene visible hasta el siguiente intento.
+6. Un solo botón principal, con el verbo de la acción ("Abrir cosecha", "Guardar trabajador"), que se desactiva mientras el formulario es inválido.
+
+**Estado vacío**: ícono + título corto + una frase + **una sola** acción. Si la pantalla también tiene un botón de "agregar" en el encabezado, ese botón se oculta mientras la lista está vacía.
+
+**Mensajes de error**: siempre en español y en lenguaje del usuario. Nunca se muestran textos técnicos (URL, código HTTP, mensaje en inglés del backend). El backend devuelve un código de error de dominio (`HarvestAlreadyActiveError`, etc.) y `apiErrorMessage()` (`src/app/shared/utils`) lo traduce; si no lo conoce, usa el mensaje de respaldo de la acción ("No se pudo abrir la cosecha. Intenta de nuevo."). Sin conexión: "No hay conexión con el servidor. Revisa tu internet e intenta de nuevo."
+
+**Confirmación**: aviso breve (toast verde de 2 s) solo para acciones que no cambian de pantalla por sí solas, o antes de volver automáticamente (ej. "Contraseña actualizada.").
+
+**Diálogo**: para crear algo que solo necesita un dato (ej. el nombre de una cuadrilla) se usa un diálogo (`ion-alert`) con el campo ya sugerido ("Cuadrilla 1"), en lugar de una pantalla completa.
+
+**Datos reales o nada**: ninguna pantalla muestra valores de ejemplo como si fueran reales (precios, estados de sincronización, nombres). Si falta el dato, se dice ("Aún no hay precio publicado").
+
+**Sin señal** (componente `app-sync-status`, arriba de las pantallas de campo): "Sin conexión. Puedes seguir registrando pesadas. Datos de las HH:MM", "N pesadas por enviar" y, si alguna fue rechazada, la lista con el motivo. Las acciones que requieren conexión (pagar, abrir/cerrar cosecha, agregar recolectores) se desactivan y dicen "Necesitas conexión para…".
+
+### 2.7 Contrato de API
+
+Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/api.e2e-spec.ts` contra una rama de Neon.
+
+**Datos**
+- Estados en minúscula: cosecha `active` / `closed`; recolector `active` / `archived`.
+- Montos siempre en positivo (COP), tal como los ve el usuario: lo pagado, los costos, la alimentación. (La base de datos guarda pagos y costos en negativo; la conversión es del backend.)
+- Fechas en ISO 8601. "Hoy" y "esta semana" se calculan en hora de Colombia (UTC−5), sin importar la zona del servidor.
+
+**Códigos de estado**
+
+| Código | Cuándo |
+|---|---|
+| 200 | Lectura o actualización correcta; login; reenvío de una pesada ya guardada (mismo `id`); trabajador movido de cuadrilla |
+| 201 | Se creó algo: cuenta, cosecha, cuadrilla, trabajador, recolector, pesada, pago, venta, costo |
+| 204 | Sin contenido: borrar, cambiar contraseña, o una consulta sin dato (sin cosecha activa, sin venta, sin precio FNC) |
+| 207 | Sincronización de pesadas donde alguna falló (cada una trae su propio código) |
+| 400 | Datos inválidos (validación) |
+| 401 | Sin sesión o sesión vencida (la app vuelve a Login) |
+| 403 | Falta la clave de administrador (publicar el precio FNC) |
+| 404 | No existe **o es de otro usuario** (no se revela que exista) |
+| 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos |
+| 422 | Regla de negocio: nada pendiente por pagar, alimentación mayor que el saldo, cosecha cerrada, contraseña actual incorrecta |
+| 500 / 503 | Falla del servidor / base de datos caída (`GET /health`) |
+
+**Errores**: `{ statusCode, error, message }`. `error` es el código de dominio (ej. `HarvestAlreadyActiveError`), que la app traduce al español con `apiErrorMessage()`; `message` está en inglés y nunca se muestra al usuario. Un 401 en cambiar contraseña cerraría la sesión, por eso "contraseña actual incorrecta" es 422.
+
 ---
 
 ## 3. Navegación
@@ -243,7 +349,7 @@ Los íconos acompañan siempre al texto (nunca solos) en las acciones principale
 Navegación principal por barra inferior de pestañas (patrón estándar en apps Android), con 4 accesos directos y flujos de profundización (drill-down) dentro de cada uno:
 
 ```
-Splash (Cosech.png)
+Splash (ícono nativo → animación CosechAPP_animado.svg)
    │ (la app consulta al backend si hay una sesión válida)
    ├── Sesión válida ──────────────┐
    │                               ▼
@@ -291,14 +397,14 @@ Perfil
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).
 
 ### 3.4 Niveles de navegación
-1. **Nivel -1 — Splash:** pantalla de arranque con `Cosech.png`, mientras se verifica la sesión contra el backend.
+1. **Nivel -1 — Splash:** ícono nativo y luego la animación de marca (`CosechAPP_animado.svg`), mientras se verifica la sesión contra el backend (ver §1.0).
 2. **Nivel 0 — Autenticación:** Login/Registro (fuera de la barra de pestañas), solo si no hay sesión válida.
 3. **Nivel 1 — Pestañas principales:** Inicio, Precio y Noticias, Historial, Perfil.
 4. **Nivel 2 — Listas:** Cuadrillas, Catálogo de trabajadores, lista de cosechas cerradas.
 5. **Nivel 3 — Detalle:** Detalle de cuadrilla, Detalle de cosecha cerrada.
 6. **Nivel 4 — Acción puntual:** Detalle de recolector, Registro de pesada, Pagar ahora, Cierre de cosecha (venta y costos).
 
-> **Nota sobre el timeout de sesión:** como el timeout se maneja en el backend (decisión ya confirmada), el frontend no calcula expiración por su cuenta. En el Splash, la app hace una llamada autenticada (con el token guardado) a un endpoint del backend (ej. `GET /auth/me`); si responde 200, va a Inicio, si responde 401 (sesión expirada o inválida), va a Login. El frontend solo reacciona a la respuesta del backend, nunca decide por sí mismo que la sesión venció.
+> **Nota sobre el timeout de sesión:** como el timeout se maneja en el backend (decisión ya confirmada), el frontend no calcula expiración por su cuenta. En el Splash, la app hace una llamada autenticada (con el token guardado) a un endpoint del backend (ej. `GET /auth/me`); si responde 200, va a Inicio, si responde 401 (sesión expirada o inválida), va a Login con el aviso "Tu sesión expiró. Ingresa de nuevo.". **Sin conexión** (el backend no responde), la sesión se conserva y la app va a Inicio: la app debe funcionar en el cafetal sin señal, y no poder verificar la sesión no significa que haya vencido. El frontend solo reacciona a la respuesta del backend, nunca decide por sí mismo que la sesión venció.
 
 ---
 
