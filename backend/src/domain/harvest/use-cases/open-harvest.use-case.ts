@@ -1,6 +1,6 @@
 import { Harvest } from '@domain/harvest/harvest.entity';
 import { HarvestRepository } from '@domain/harvest/harvest.repository';
-import { HarvestAlreadyActiveError } from '@shared/errors/domain-errors';
+import { HarvestAlreadyActiveError, ResourceNotFoundError } from '@shared/errors/domain-errors';
 import { FarmRepository } from '@domain/farm/farm.repository';
 
 export interface OpenHarvestUseCaseInput {
@@ -22,7 +22,7 @@ export class OpenHarvestUseCase {
   async execute(input: OpenHarvestUseCaseInput): Promise<OpenHarvestUseCaseOutput> {
     const farm = await this.farmRepository.findById(input.farmId);
     if (!farm) {
-      throw new Error('Farm not found');
+      throw new ResourceNotFoundError('Farm not found');
     }
 
     const activeHarvest = await this.harvestRepository.findActiveByFarmId(input.farmId);

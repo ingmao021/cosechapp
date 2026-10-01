@@ -1,4 +1,4 @@
-import { SaleAlreadyRecordedError } from '@shared/errors/domain-errors';
+import { BusinessRuleViolationError } from '@shared/errors/domain-errors';
 
 export class Sale {
   private constructor(
@@ -19,10 +19,10 @@ export class Sale {
     date: Date = new Date(),
   ): Sale {
     if (actualDryKilograms <= 0) {
-      throw new Error('Actual dry kilograms must be positive');
+      throw new BusinessRuleViolationError('Actual dry kilograms must be positive');
     }
     if (salePrice <= 0) {
-      throw new Error('Sale price must be positive');
+      throw new BusinessRuleViolationError('Sale price must be positive');
     }
     const now = new Date();
     return new Sale(id, harvestId, actualDryKilograms, salePrice, date, now, now);

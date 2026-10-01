@@ -1,3 +1,4 @@
+import { BusinessRuleViolationError } from '@shared/errors/domain-errors';
 export class CoffeePrice {
   private constructor(
     public readonly id: string,
@@ -12,7 +13,7 @@ export class CoffeePrice {
     queryDate: Date = new Date(),
   ): CoffeePrice {
     if (value <= 0) {
-      throw new Error('Coffee price must be positive');
+      throw new BusinessRuleViolationError('Coffee price must be positive');
     }
     const now = new Date();
     return new CoffeePrice(id, value, queryDate, now);
@@ -33,7 +34,7 @@ export class CoffeePrice {
 
   updateValue(newValue: number): CoffeePrice {
     if (newValue <= 0) {
-      throw new Error('Coffee price must be positive');
+      throw new BusinessRuleViolationError('Coffee price must be positive');
     }
     return CoffeePrice.reconstitute(this.id, newValue, new Date(), this.createdAt);
   }

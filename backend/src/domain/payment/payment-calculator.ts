@@ -1,4 +1,3 @@
-import { WeighingRepository } from '@domain/weighing/weighing.repository';
 
 export interface PaymentCalculatorStrategy {
   calculate(

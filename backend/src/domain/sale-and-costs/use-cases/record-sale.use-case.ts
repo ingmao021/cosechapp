@@ -4,8 +4,7 @@ import { HarvestRepository } from '@domain/harvest/harvest.repository';
 import { PaymentRepository } from '@domain/payment/payment.repository';
 import { WeighingRepository } from '@domain/weighing/weighing.repository';
 import { HarvestWorkerRepository } from '@domain/harvest/harvest-worker.repository';
-import { SaleAlreadyRecordedError } from '@shared/errors/domain-errors';
-import { HarvestStatus } from '@domain/harvest/harvest-status.enum';
+import { SaleAlreadyRecordedError, BusinessRuleViolationError, ResourceNotFoundError } from '@shared/errors/domain-errors';
 
 export interface RecordSaleUseCaseInput {
   harvestId: string;
@@ -31,10 +30,10 @@ export class RecordSaleUseCase {
   async execute(input: RecordSaleUseCaseInput): Promise<RecordSaleUseCaseOutput> {
     const harvest = await this.harvestRepository.findById(input.harvestId);
     if (!harvest) {
-      throw new Error('Harvest not found');
+      throw new ResourceNotFoundError('Harvest not found');
     }
     if (!harvest.isClosed()) {
-      throw new Error('Harvest must be closed before recording sale');
+      throw new BusinessRuleViolationError('Harvest must be closed before recording sale');
     }
 
     const existingSale = await this.saleRepository.findByHarvestId(input.harvestId);

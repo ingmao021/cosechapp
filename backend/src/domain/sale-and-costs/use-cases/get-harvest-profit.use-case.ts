@@ -1,3 +1,4 @@
+import { ResourceNotFoundError } from '@shared/errors/domain-errors';
 import { SaleRepository } from '../sale.repository';
 import { PaymentRepository } from '@domain/payment/payment.repository';
 import { WeighingRepository } from '@domain/weighing/weighing.repository';
@@ -33,7 +34,7 @@ export class GetHarvestProfitUseCase {
   async execute(input: GetHarvestProfitUseCaseInput): Promise<GetHarvestProfitUseCaseOutput> {
     const harvest = await this.harvestRepository.findById(input.harvestId);
     if (!harvest) {
-      throw new Error('Harvest not found');
+      throw new ResourceNotFoundError('Harvest not found');
     }
 
     const sale = await this.saleRepository.findByHarvestId(input.harvestId);

@@ -3,7 +3,6 @@ import { HarvestWorkerRepository } from '../harvest-worker.repository';
 import { HarvestRepository } from '../harvest.repository';
 import { Harvest } from '../harvest.entity';
 import { HarvestWorker } from '../harvest-worker.entity';
-import { HarvestStatus } from '../harvest-status.enum';
 import { HarvestPickerStatus } from '../harvest-picker-status.enum';
 import { HarvestNotActiveError } from '@shared/errors/domain-errors';
 

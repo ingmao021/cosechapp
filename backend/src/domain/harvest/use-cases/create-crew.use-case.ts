@@ -1,8 +1,7 @@
 import { Crew } from '../crew.entity';
 import { CrewRepository } from '../crew.repository';
 import { HarvestRepository } from '../harvest.repository';
-import { HarvestNotActiveError } from '@shared/errors/domain-errors';
-import { HarvestStatus } from '../harvest-status.enum';
+import { HarvestNotActiveError, BusinessRuleViolationError } from '@shared/errors/domain-errors';
 
 export interface CreateCrewUseCaseInput {
   harvestId: string;
@@ -25,7 +24,7 @@ export class CreateCrewUseCase {
       throw new HarvestNotActiveError();
     }
     if (!harvest.isActive()) {
-      throw new Error('Cannot create crews in a closed harvest');
+      throw new BusinessRuleViolationError('Cannot create crews in a closed harvest');
     }
 
     const crew = Crew.create(

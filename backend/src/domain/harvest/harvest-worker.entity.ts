@@ -1,3 +1,4 @@
+import { BusinessRuleViolationError } from '@shared/errors/domain-errors';
 import { HarvestPickerStatus } from './harvest-picker-status.enum';
 
 export class HarvestWorker {
@@ -56,7 +57,7 @@ export class HarvestWorker {
 
   archive(): HarvestWorker {
     if (this.status === HarvestPickerStatus.ARCHIVED) {
-      throw new Error('Harvest worker is already archived');
+      throw new BusinessRuleViolationError('Harvest worker is already archived');
     }
     return HarvestWorker.reconstitute(
       this.id,

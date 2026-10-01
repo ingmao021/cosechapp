@@ -1,7 +1,7 @@
 import { HarvestWorker } from '../harvest-worker.entity';
 import { HarvestWorkerRepository } from '../harvest-worker.repository';
 import { HarvestRepository } from '../harvest.repository';
-import { HarvestNotActiveError } from '@shared/errors/domain-errors';
+import { HarvestNotActiveError, BusinessRuleViolationError, ResourceNotFoundError } from '@shared/errors/domain-errors';
 
 export interface ArchiveWorkerUseCaseInput {
   harvestWorkerId: string;
@@ -29,11 +29,11 @@ export class ArchiveWorkerUseCase {
       input.harvestId,
     );
     if (!harvestWorker) {
-      throw new Error('Harvest worker not found');
+      throw new ResourceNotFoundError('Harvest worker not found');
     }
 
     if (!harvestWorker.isActive()) {
-      throw new Error('Harvest worker is already archived');
+      throw new BusinessRuleViolationError('Harvest worker is already archived');
     }
 
     const archived = harvestWorker.archive();

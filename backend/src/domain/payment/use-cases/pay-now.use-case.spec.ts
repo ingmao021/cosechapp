@@ -9,7 +9,6 @@ import { Harvest } from '@domain/harvest/harvest.entity';
 import { HarvestWorker } from '@domain/harvest/harvest-worker.entity';
 import { HarvestStatus } from '@domain/harvest/harvest-status.enum';
 import { HarvestPickerStatus } from '@domain/harvest/harvest-picker-status.enum';
-import { InvalidPaymentAmountError } from '@shared/errors/domain-errors';
 
 describe('PayNowUseCase', () => {
   let useCase: PayNowUseCase;
@@ -71,12 +70,11 @@ describe('PayNowUseCase', () => {
   it('should create a payment for a picker', async () => {
     const harvest = Harvest.create('harvest-1', 'farm-1', 'Test Harvest', 5000);
     const harvestWorker = HarvestWorker.create('hw-1', 'harvest-1', 'worker-1');
-    const payment = Payment.create('payment-1', 'hw-1', -250000);
 
     mockHarvestRepository.findById.mockResolvedValue(harvest);
     mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(harvestWorker);
     mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(50);
-    mockPaymentRepository.findTotalPaidByHarvestPickerId.mockResolvedValue(0);
+    mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([]);
     mockCalculator.calculate.mockReturnValue(-250000);
     mockPaymentRepository.save.mockImplementation(async (p) => p);
 
@@ -91,25 +89,19 @@ describe('PayNowUseCase', () => {
     expect(result.payment.amount).toBe(-250000);
     expect(result.totalKilograms).toBe(50);
     expect(result.amountDue).toBe(250000);
-    expect(mockCalculator.calculate).toHaveBeenCalledWith(
-      50,
-      5000,
-      false,
-      null,
-    );
+    expect(mockCalculator.calculate).toHaveBeenCalledWith(50, 5000, false, null);
     expect(mockPaymentRepository.save).toHaveBeenCalled();
   });
 
   it('should include meal deduction when specified', async () => {
     const harvest = Harvest.create('harvest-1', 'farm-1', 'Test Harvest', 5000);
     const harvestWorker = HarvestWorker.create('hw-1', 'harvest-1', 'worker-1');
-    const payment = Payment.create('payment-1', 'hw-1', -230000);
 
     mockHarvestRepository.findById.mockResolvedValue(harvest);
     mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(harvestWorker);
     mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(50);
-    mockPaymentRepository.findTotalPaidByHarvestPickerId.mockResolvedValue(0);
-    mockCalculator.calculate.mockReturnValue(-230000);
+    mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([]);
+    mockCalculator.calculate.mockReturnValue(-250000);
     mockPaymentRepository.save.mockImplementation(async (p) => p);
 
     const result = await useCase.execute({
@@ -120,12 +112,106 @@ describe('PayNowUseCase', () => {
     });
 
     expect(result.payment.amount).toBe(-230000);
-    expect(mockCalculator.calculate).toHaveBeenCalledWith(
-      50,
-      5000,
-      true,
-      '20000',
+    expect(result.payment.mealDetail).toBe('20000');
+  });
+
+  it('should only pay the pending balance, not kilos already paid', async () => {
+    const harvest = Harvest.create('harvest-1', 'farm-1', 'Test Harvest', 5000);
+    mockHarvestRepository.findById.mockResolvedValue(harvest);
+    mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(
+      HarvestWorker.create('hw-1', 'harvest-1', 'worker-1'),
     );
+    // 60 kg en total; ya se le pagaron 50 kg (-250000)
+    mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(60);
+    mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([Payment.create('prev', 'hw-1', -250000)]);
+    mockCalculator.calculate.mockReturnValue(-300000);
+    mockPaymentRepository.save.mockImplementation(async (p) => p);
+
+    const result = await useCase.execute({
+      harvestPickerId: 'hw-1',
+      harvestId: 'harvest-1',
+      includesMeals: false,
+      mealDetail: null,
+    });
+
+    expect(result.payment.amount).toBe(-50000);
+    expect(result.amountDue).toBe(50000);
+  });
+
+  it('should refuse to pay twice for the same kilos', async () => {
+    const harvest = Harvest.create('harvest-1', 'farm-1', 'Test Harvest', 5000);
+    mockHarvestRepository.findById.mockResolvedValue(harvest);
+    mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(
+      HarvestWorker.create('hw-1', 'harvest-1', 'worker-1'),
+    );
+    mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(50);
+    mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([Payment.create('prev', 'hw-1', -250000)]);
+    mockCalculator.calculate.mockReturnValue(-250000);
+
+    await expect(
+      useCase.execute({ harvestPickerId: 'hw-1', harvestId: 'harvest-1', includesMeals: false, mealDetail: null }),
+    ).rejects.toThrow('Nothing to pay for this picker');
+    expect(mockPaymentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should treat meals deducted in earlier payments as settled', async () => {
+    const harvest = Harvest.create('harvest-1', 'farm-1', 'Test Harvest', 1200);
+    mockHarvestRepository.findById.mockResolvedValue(harvest);
+    mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(
+      HarvestWorker.create('hw-1', 'harvest-1', 'worker-1'),
+    );
+    // 30 kg × 1200 = 36000; se pagaron 31000 en efectivo + 5000 en alimentación
+    mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(30);
+    mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([
+      Payment.create('prev', 'hw-1', -31000, true, '5000'),
+    ]);
+    mockCalculator.calculate.mockReturnValue(-36000);
+
+    await expect(
+      useCase.execute({ harvestPickerId: 'hw-1', harvestId: 'harvest-1', includesMeals: false, mealDetail: null }),
+    ).rejects.toThrow('Nothing to pay for this picker');
+  });
+
+  it('should reject a meal deduction equal to or above the amount due', async () => {
+    const harvest = Harvest.create('harvest-1', 'farm-1', 'Test Harvest', 5000);
+    mockHarvestRepository.findById.mockResolvedValue(harvest);
+    mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(
+      HarvestWorker.create('hw-1', 'harvest-1', 'worker-1'),
+    );
+    mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(2);
+    mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([]);
+    mockCalculator.calculate.mockReturnValue(-10000);
+
+    await expect(
+      useCase.preview({ harvestPickerId: 'hw-1', harvestId: 'harvest-1', includesMeals: true, mealDetail: '10000' }),
+    ).rejects.toThrow('Meal deduction must be less than the amount due');
+  });
+
+  it('should return the payment breakdown in preview', async () => {
+    const harvest = Harvest.create('harvest-1', 'farm-1', 'Test Harvest', 5000);
+    mockHarvestRepository.findById.mockResolvedValue(harvest);
+    mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(
+      HarvestWorker.create('hw-1', 'harvest-1', 'worker-1'),
+    );
+    mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(60);
+    mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([Payment.create('prev', 'hw-1', -250000)]);
+    mockCalculator.calculate.mockReturnValue(-300000);
+
+    const preview = await useCase.preview({
+      harvestPickerId: 'hw-1',
+      harvestId: 'harvest-1',
+      includesMeals: true,
+      mealDetail: '5000',
+    });
+
+    expect(preview).toEqual({
+      totalKilograms: 60,
+      gross: 300000,
+      alreadyPaid: 250000,
+      previousMealDeductions: 0,
+      mealDeduction: 5000,
+      net: 45000,
+    });
   });
 
   it('should throw error when harvest not found', async () => {
@@ -213,7 +299,8 @@ describe('PayNowUseCase', () => {
     mockHarvestRepository.findById.mockResolvedValue(harvest);
     mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(harvestWorker);
     mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(50);
-    mockPaymentRepository.findTotalPaidByHarvestPickerId.mockResolvedValue(-250000);
+    mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([Payment.create('prev', 'hw-1', -250000)]);
+    mockCalculator.calculate.mockReturnValue(-250000);
 
     await expect(
       useCase.execute({

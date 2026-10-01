@@ -1,3 +1,4 @@
+import { BusinessRuleViolationError } from '@shared/errors/domain-errors';
 export class ProductionCost {
   private constructor(
     public readonly id: string,
@@ -17,10 +18,10 @@ export class ProductionCost {
     date: Date = new Date(),
   ): ProductionCost {
     if (amount >= 0) {
-      throw new Error('Production cost amount must be negative');
+      throw new BusinessRuleViolationError('Production cost amount must be negative');
     }
     if (!description || description.trim() === '') {
-      throw new Error('Description is required');
+      throw new BusinessRuleViolationError('Description is required');
     }
     const now = new Date();
     return new ProductionCost(id, harvestId, description, amount, date, now, now);
@@ -40,7 +41,7 @@ export class ProductionCost {
 
   updateDetails(description: string, amount: number): ProductionCost {
     if (amount >= 0) {
-      throw new Error('Production cost amount must be negative');
+      throw new BusinessRuleViolationError('Production cost amount must be negative');
     }
     return ProductionCost.reconstitute(
       this.id,

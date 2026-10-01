@@ -1,8 +1,8 @@
+import { BusinessRuleViolationError, ResourceNotFoundError } from '@shared/errors/domain-errors';
 import { ProductionCost } from '../production-cost.entity';
 import { ProductionCostRepository } from '../production-cost.repository';
 import { HarvestRepository } from '@domain/harvest/harvest.repository';
 import { SaleRepository } from '../sale.repository';
-import { HarvestStatus } from '@domain/harvest/harvest-status.enum';
 
 export interface AddProductionCostUseCaseInput {
   harvestId: string;
@@ -26,19 +26,19 @@ export class AddProductionCostUseCase {
   async execute(input: AddProductionCostUseCaseInput): Promise<AddProductionCostUseCaseOutput> {
     const harvest = await this.harvestRepository.findById(input.harvestId);
     if (!harvest) {
-      throw new Error('Harvest not found');
+      throw new ResourceNotFoundError('Harvest not found');
     }
     if (!harvest.isClosed()) {
-      throw new Error('Harvest must be closed before adding production costs');
+      throw new BusinessRuleViolationError('Harvest must be closed before adding production costs');
     }
 
     const sale = await this.saleRepository.findByHarvestId(input.harvestId);
     if (!sale) {
-      throw new Error('Sale must be recorded before adding production costs');
+      throw new BusinessRuleViolationError('Sale must be recorded before adding production costs');
     }
 
     if (input.amount >= 0) {
-      throw new Error('Production cost amount must be negative');
+      throw new BusinessRuleViolationError('Production cost amount must be negative');
     }
 
     const cost = ProductionCost.create(

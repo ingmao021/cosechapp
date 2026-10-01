@@ -77,3 +77,26 @@ export class InvalidCredentialsError extends DomainError {
     super('Invalid national ID or password');
   }
 }
+export class ResourceNotFoundError extends DomainError {}
+
+export class BusinessRuleViolationError extends DomainError {}
+
+export class IncorrectCurrentPasswordError extends DomainError {
+  constructor() {
+    super('Current password is incorrect');
+  }
+}
+
+/** Un id generado por el cliente ya existe con otros datos. */
+export class IdempotencyKeyConflictError extends DomainError {
+  constructor() {
+    super('The given id already exists with different data');
+  }
+}
+
+/** El trabajador ya participó en cosechas: borrarlo eliminaría sus pesadas y pagos. */
+export class WorkerHasHarvestHistoryError extends DomainError {
+  constructor() {
+    super('Worker has harvest history and cannot be deleted');
+  }
+}

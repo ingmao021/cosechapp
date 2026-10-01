@@ -3,7 +3,6 @@ import { CoffeePriceRepository } from '../coffee-price.repository';
 import { Notification } from '../notification.entity';
 import { NotificationRepository } from '../notification.repository';
 import { CoffeeGrowerRepository } from '@domain/auth/coffee-grower.repository';
-import { CoffeeGrower } from '@domain/auth/coffee-grower.entity';
 import { NotificationType } from '../notification.entity';
 
 export interface UpdateCoffeePriceUseCaseInput {

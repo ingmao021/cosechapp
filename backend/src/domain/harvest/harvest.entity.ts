@@ -1,3 +1,4 @@
+import { BusinessRuleViolationError } from '@shared/errors/domain-errors';
 import { HarvestStatus } from './harvest-status.enum';
 
 export class Harvest {
@@ -59,7 +60,7 @@ export class Harvest {
 
   close(closingDate: Date = new Date()): Harvest {
     if (this.status === HarvestStatus.CLOSED) {
-      throw new Error('Harvest is already closed');
+      throw new BusinessRuleViolationError('Harvest is already closed');
     }
     return Harvest.reconstitute(
       this.id,
