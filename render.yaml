@@ -1,0 +1,29 @@
+# Render Blueprint — backend de CosechApp (NestJS + Prisma sobre Neon).
+# La base de datos vive en Neon (rama prod, us-east-2), por eso la región es ohio.
+services:
+  - type: web
+    name: cosechapp-backend
+    runtime: node
+    plan: free
+    region: ohio
+    rootDir: backend
+    branch: main
+    # prisma y @nestjs/cli son devDependencies; las migraciones van en el build
+    # porque el plan free no admite preDeployCommand.
+    buildCommand: npm ci --include=dev && npx prisma migrate deploy && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL # Neon prod, conexión pooled
+        sync: false
+      - key: DIRECT_URL # Neon prod, conexión directa (migraciones)
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 7d
+      - key: ADMIN_API_KEY
+        generateValue: true
