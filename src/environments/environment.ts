@@ -2,9 +2,15 @@
 // `ng build` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
+import { Capacitor } from '@capacitor/core';
+
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000', // Backend local (NestJS en puerto 3000)
+  // Backend local (NestJS en puerto 3000). Desde el emulador Android, la PC es 10.0.2.2.
+  apiUrl: Capacitor.isNativePlatform() ? 'http://10.0.2.2:3000' : 'http://localhost:3000',
+  // Activar solo cuando exista android/app/google-services.json (Firebase). Sin él,
+  // PushNotifications.register() cierra la app nativa (FirebaseApp no inicializado).
+  pushNotificationsEnabled: false,
 };
 
 /*

@@ -1,9 +1,16 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  // Splash: página de arranque que verifica sesión y navega a home o login
+  // Splash: página de arranque que verifica sesión y navega a home o login.
+  // Ruta propia: si compartiera path '' con el layout de tabs, ion-router-outlet no la
+  // retira al navegar a /home y la animación queda encima de Inicio.
   {
     path: '',
+    pathMatch: 'full',
+    redirectTo: 'splash',
+  },
+  {
+    path: 'splash',
     loadComponent: () => import('./auth/pages/splash.page').then(m => m.SplashPage),
   },
   // Autenticación (login/registro) — fuera de tabs

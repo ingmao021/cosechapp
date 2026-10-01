@@ -9,7 +9,11 @@ import type { Mock } from 'vitest';
 describe('LoginPage', () => {
   let component: LoginPage;
   let fixture: ComponentFixture<LoginPage>;
-  let authFacadeMock: { login: Mock<AuthFacade['login']>; isLoading: WritableSignal<boolean> };
+  let authFacadeMock: {
+    login: Mock<AuthFacade['login']>;
+    isLoading: WritableSignal<boolean>;
+    error: WritableSignal<string | null>;
+  };
   let routerMock: { navigate: Mock<Router['navigate']> };
 
   // Simula la escritura del usuario: el componente es OnPush (por defecto en Angular 22),
@@ -32,6 +36,7 @@ describe('LoginPage', () => {
     authFacadeMock = {
       login: vi.fn<AuthFacade['login']>(),
       isLoading: signal(false),
+      error: signal<string | null>(null),
     };
     routerMock = { navigate: vi.fn<Router['navigate']>() };
 
@@ -107,20 +112,24 @@ describe('LoginPage', () => {
     expect(authFacadeMock.login).toHaveBeenCalledWith('123456789', 'password123');
   });
 
-  it('should show error toast on login failure', async () => {
-    authFacadeMock.login.mockRejectedValue({ message: 'Credenciales inválidas' });
+  it('should show the error inside the form on failure', async () => {
+    authFacadeMock.login.mockImplementation(async () => {
+      authFacadeMock.error.set('Credenciales inválidas');
+      throw new Error('Credenciales inválidas');
+    });
     await fillForm('123456789', 'wrong');
 
     const form = fixture.debugElement.query(By.css('form'));
     form.triggerEventHandler('ngSubmit', {});
     await fixture.whenStable();
 
-    expect(component.showError()).toBe(true);
     expect(component.errorMessage()).toBe('Credenciales inválidas');
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.css('.form-error')).nativeElement.textContent).toContain('Credenciales inválidas');
   });
 
   it('should navigate to register page on "Crear cuenta" click', () => {
-    const registerLink = fixture.debugElement.query(By.css('.register-link ion-button'));
+    const registerLink = fixture.debugElement.query(By.css('.auth__switch ion-button'));
     registerLink.triggerEventHandler('click', {});
     expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/register']);
   });

@@ -1,0 +1,86 @@
+/* Layout compartido de Login y Registro (Design System §4.1 — pantallas de autenticación). */
+
+.auth {
+  --background: var(--color-background);
+}
+
+.auth__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  width: 100%;
+  max-width: 420px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--screen-margin);
+}
+
+.auth__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  text-align: center;
+}
+
+.auth__logo {
+  width: min(280px, 85%);
+  height: auto;
+}
+
+.auth__tagline {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.auth__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.auth__title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.auth__submit {
+  margin-top: var(--spacing-sm);
+}
+
+.auth__switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.auth__switch ion-button {
+  --padding-start: var(--spacing-sm);
+  --padding-end: var(--spacing-sm);
+  --color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  text-transform: none;
+  letter-spacing: normal;
+}

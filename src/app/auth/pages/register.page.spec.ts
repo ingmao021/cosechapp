@@ -9,7 +9,11 @@ import type { Mock } from 'vitest';
 describe('RegisterPage', () => {
   let component: RegisterPage;
   let fixture: ComponentFixture<RegisterPage>;
-  let authFacadeMock: { register: Mock<AuthFacade['register']>; isLoading: WritableSignal<boolean> };
+  let authFacadeMock: {
+    register: Mock<AuthFacade['register']>;
+    isLoading: WritableSignal<boolean>;
+    error: WritableSignal<string | null>;
+  };
   let routerMock: { navigate: Mock<Router['navigate']> };
 
   // Simula la escritura del usuario: el componente es OnPush (por defecto en Angular 22),
@@ -33,6 +37,7 @@ describe('RegisterPage', () => {
     authFacadeMock = {
       register: vi.fn<AuthFacade['register']>(),
       isLoading: signal(false),
+      error: signal<string | null>(null),
     };
     routerMock = { navigate: vi.fn<Router['navigate']>() };
 
@@ -117,30 +122,33 @@ describe('RegisterPage', () => {
     form.triggerEventHandler('ngSubmit', {});
     await fixture.whenStable();
 
-    expect(authFacadeMock.register).toHaveBeenCalledWith('123456789', 'password123', undefined);
+    expect(authFacadeMock.register).toHaveBeenCalledWith('123456789', 'password123');
   });
 
-  it('should show error toast on register failure', async () => {
-    authFacadeMock.register.mockRejectedValue({ message: 'Error al crear cuenta' });
+  it('should show the error inside the form on failure', async () => {
+    authFacadeMock.register.mockImplementation(async () => {
+      authFacadeMock.error.set('Error al crear cuenta');
+      throw new Error('Error al crear cuenta');
+    });
     await fillForm('123456789', 'password123', 'password123');
 
     const form = fixture.debugElement.query(By.css('form'));
     form.triggerEventHandler('ngSubmit', {});
     await fixture.whenStable();
 
-    expect(component.showError()).toBe(true);
     expect(component.errorMessage()).toBe('Error al crear cuenta');
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.css('.form-error')).nativeElement.textContent).toContain('Error al crear cuenta');
   });
 
   it('should navigate to login page on "Ingresar" click', () => {
-    const loginLink = fixture.debugElement.query(By.css('.login-link ion-button'));
+    const loginLink = fixture.debugElement.query(By.css('.auth__switch ion-button'));
     loginLink.triggerEventHandler('click', {});
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/login']);
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/login'], { replaceUrl: true });
   });
 
-  it('should navigate back to login on back button click', () => {
-    const backButton = fixture.debugElement.query(By.css('ion-buttons[slot="start"] ion-button'));
-    backButton.triggerEventHandler('click', {});
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/login']);
+  it('should not ask for a profile photo (Design System §1.1)', () => {
+    expect(fixture.debugElement.query(By.css('app-avatar'))).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Foto');
   });
 });

@@ -60,14 +60,6 @@ export class AuthService {
   }
 
   changePassword(dto: ChangePasswordRequest): Observable<void> {
-    // TODO: Backend endpoint no existe aún - ver wiki/frontend-findings.md
-    // return this.http.post<void>(`${this.baseUrl}/change-password`, dto);
-    // Por ahora simulamos éxito para no bloquear el frontend
-    return new Observable(subscriber => {
-      setTimeout(() => {
-        subscriber.next();
-        subscriber.complete();
-      }, 500);
-    });
+    return this.http.post<void>(`${this.baseUrl}/change-password`, dto);
   }
 }

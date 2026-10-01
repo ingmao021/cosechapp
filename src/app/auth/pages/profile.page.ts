@@ -6,13 +6,13 @@ import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonAvatar } from '@ionic/angular/ion-avatar';
-import { IonLabel } from '@ionic/angular/ion-label';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonChip } from '@ionic/angular/ion-chip';
 import { addIcons } from 'ionicons';
-import { personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline } from 'ionicons/icons';
+import { personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline, openOutline } from 'ionicons/icons';
 import { AuthFacade } from '../services/auth.facade';
+import { SyncFacade } from '../../sync/services/sync.facade';
+import { AlertController } from '@ionic/angular/alert-controller';
 import { Router } from '@angular/router';
 
 /**
@@ -26,7 +26,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonAvatar, IonLabel, IonCard, IonCardContent, IonChip],
+  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonAvatar, IonCard, IonCardContent],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -48,10 +48,9 @@ import { Router } from '@angular/router';
               }
             </ion-avatar>
             <div class="profile-info">
+              <p class="text-level-4 profile-label">Cédula</p>
               <h2 class="text-level-2">{{ userNationalId() }}</h2>
-              <ion-chip color="medium" class="role-chip">
-                <ion-label>Caficultor</ion-label>
-              </ion-chip>
+              <p class="text-level-4 profile-label">Caficultor</p>
             </div>
           </div>
 
@@ -125,11 +124,9 @@ import { Router } from '@angular/router';
     .profile-info {
       flex: 1;
     }
-    .role-chip {
-      --height: var(--chip-height);
-      --border-radius: var(--chip-radius);
-      font-family: var(--font-family-body);
-      font-size: var(--font-size-xs);
+    .profile-info h2,
+    .profile-label {
+      margin: 0;
     }
     .profile-actions {
       display: flex;
@@ -152,12 +149,14 @@ import { Router } from '@angular/router';
 export class ProfilePage {
   private readonly authFacade = inject(AuthFacade);
   private readonly router = inject(Router);
+  private readonly syncFacade = inject(SyncFacade);
+  private readonly alertController = inject(AlertController);
 
   readonly userNationalId = this.authFacade.userNationalId;
   readonly profilePhoto = this.authFacade.userProfilePhoto;
 
   constructor() {
-    addIcons({ personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline });
+    addIcons({ personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline, openOutline });
   }
 
   changePassword(): void {
@@ -172,7 +171,22 @@ export class ProfilePage {
     this.router.navigate(['/auth/privacy']);
   }
 
+  /** Al cerrar sesión se borran los datos del teléfono: si hay pesadas sin enviar, se perderían. */
   async logout(): Promise<void> {
-    await this.authFacade.logout();
+    const pending = this.syncFacade.pendingCount();
+    const alert = await this.alertController.create({
+      header: '¿Cerrar sesión?',
+      message:
+        pending > 0
+          ? `Tienes ${pending} ${pending === 1 ? 'pesada' : 'pesadas'} sin enviar. Si cierras sesión ahora se perderán. Conéctate a internet para enviarlas primero.`
+          : 'Para volver a entrar necesitarás tu cédula y contraseña.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: pending > 0 ? 'Cerrar y perder pesadas' : 'Cerrar sesión', role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    if (role === 'confirm') await this.authFacade.logout();
   }
 }

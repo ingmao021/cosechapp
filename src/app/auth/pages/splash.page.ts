@@ -1,58 +1,73 @@
-import { Component, effect, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { AuthFacade } from '../services/auth.facade';
 
+/** Duración de la animación de marca (begin 0.3s + dur 2.6s del SVG) más una pausa corta. */
+const BRAND_ANIMATION_MS = 3300;
+/** Si el SVG no carga, no retener al usuario. */
+const IMAGE_LOAD_TIMEOUT_MS = 2000;
+
 /**
- * Página Splash — Pantalla de arranque con Cosech.png nativo.
+ * Splash — animación de marca (CosechAPP_animado.svg) mientras se verifica la sesión.
  *
  * Flujo:
- * 1. Capacitor muestra el splash nativo (configurado en capacitor.config.ts) ANTES de que Angular cargue.
- * 2. Esta página se monta mientras AuthFacade.initSession() verifica la sesión contra el backend.
- * 3. Al terminar initSession(), el facade navega a /home o /auth/login.
- * 4. Esta página solo existe para evitar parpadeo blanco si el WebView tarda en hidratar;
- *    el splash real es el nativo de Capacitor.
+ * 1. El splash nativo (fondo blanco liso) cubre el arranque del WebView.
+ * 2. Cuando el SVG está listo se oculta el nativo; como ambos son blancos no hay salto.
+ * 3. Se navega cuando terminan las dos cosas: la animación y AuthFacade.initSession().
  */
 @Component({
   selector: 'app-splash',
   standalone: true,
   imports: [IonContent],
   template: `
-    <ion-content class="splash-content" [class.hidden]="navigated">
-      <!-- Contenido vacío: el splash real es el nativo de Capacitor (Cosech.png).
-           Esto evita flash blanco si Angular tarda en bootstrap. -->
+    <ion-content [fullscreen]="true" class="splash">
+      <img
+        class="splash__art"
+        src="assets/brand/cosechapp-animado.svg"
+        alt="CosechApp"
+        (load)="onArtReady()"
+        (error)="onArtReady()"
+      />
     </ion-content>
   `,
   styles: [`
-    .splash-content {
-      --background: var(--color-background);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+    .splash {
+      --background: #FFFFFF;
     }
-    .splash-content.hidden {
-      display: none;
+    .splash__art {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
     }
   `],
 })
 export class SplashPage implements OnInit {
   private readonly authFacade = inject(AuthFacade);
-  protected navigated = false;
+  private readonly router = inject(Router);
 
-  constructor() {
-    // Effect que reacciona cuando initSession termina (isLoading pasa a false)
-    effect(() => {
-      if (!this.authFacade.isLoading() && !this.navigated) {
-        this.navigated = true;
-        // Ocultar splash nativo de Capacitor una vez navegado
-        SplashScreen.hide().catch(() => { /* ignorar */ });
-      }
-    });
-  }
+  private resolveArtReady!: () => void;
+  private readonly artReady = new Promise<void>((resolve) => (this.resolveArtReady = resolve));
 
   async ngOnInit(): Promise<void> {
-    // Iniciar verificación de sesión (lee token + GET /auth/me)
-    await this.authFacade.initSession();
+    setTimeout(() => this.onArtReady(), IMAGE_LOAD_TIMEOUT_MS);
+
+    const animationDone = this.artReady.then(() => delay(BRAND_ANIMATION_MS));
+    const [destination] = await Promise.all([this.authFacade.initSession(), animationDone]);
+
+    await this.router.navigateByUrl(destination, { replaceUrl: true });
   }
+
+  onArtReady(): void {
+    this.resolveArtReady();
+    SplashScreen.hide({ fadeOutDuration: 150 }).catch(() => { /* web: no hay splash nativo */ });
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
