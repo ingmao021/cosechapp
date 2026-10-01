@@ -13,12 +13,13 @@ const config: CapacitorConfig = {
     webContentsDebuggingEnabled: false,
   },
   plugins: {
-    // Splash nativo con Cosech.png (object-fit: cover centrado)
+    // Splash nativo: fondo blanco liso que cubre el arranque del WebView. La animación
+    // de marca (CosechAPP_animado.svg) la muestra SplashPage, que oculta este splash
+    // cuando el SVG está listo; ambos son blancos, así que el relevo no se nota.
     SplashScreen: {
-      launchShowDuration: 0, // duramos lo que tarde la verificación de sesión
-      launchAutoHide: false, // lo ocultamos manualmente desde el código tras verificar sesión
-      backgroundColor: '#F2EFF2', // color de marca mientras carga
-      androidScaleType: 'CENTER_CROP', // object-fit: cover centrado
+      launchShowDuration: 0,
+      launchAutoHide: false, // lo oculta SplashPage
+      backgroundColor: '#FFFFFF', // mismo blanco con el que arranca el SVG
       splashFullScreen: true,
       splashImmersive: true,
     },
