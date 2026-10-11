@@ -32,7 +32,9 @@ export class UpdateCoffeePriceUseCase {
 
     if (latestPrice && latestPrice.hasChanged(input.value)) {
       hasChanged = true;
-      coffeePrice = latestPrice.updateValue(input.value);
+      // Cada cambio es una fila nueva: el historial alimenta el análisis de tendencia
+      // y el precio asociado a cada notificación.
+      coffeePrice = CoffeePrice.create(crypto.randomUUID(), input.value, input.queryDate ?? new Date());
       await this.coffeePriceRepository.save(coffeePrice);
 
       // Create notifications for all coffee growers
