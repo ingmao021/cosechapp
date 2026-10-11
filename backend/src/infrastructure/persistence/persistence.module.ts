@@ -13,6 +13,8 @@ import { PrismaSaleRepository } from './prisma-sale.repository';
 import { PrismaProductionCostRepository } from './prisma-production-cost.repository';
 import { PrismaCoffeePriceRepository } from './prisma-coffee-price.repository';
 import { PrismaNotificationRepository } from './prisma-notification.repository';
+import { PrismaNewsArticleRepository } from './prisma-news-article.repository';
+import { PrismaPriceInsightRepository } from './prisma-price-insight.repository';
 
 @Module({
   providers: [
@@ -66,6 +68,14 @@ import { PrismaNotificationRepository } from './prisma-notification.repository';
       provide: 'NOTIFICATION_REPOSITORY',
       useClass: PrismaNotificationRepository,
     },
+    {
+      provide: 'NEWS_ARTICLE_REPOSITORY',
+      useClass: PrismaNewsArticleRepository,
+    },
+    {
+      provide: 'PRICE_INSIGHT_REPOSITORY',
+      useClass: PrismaPriceInsightRepository,
+    },
   ],
   exports: [
     'COFFEE_GROWER_REPOSITORY',
@@ -80,6 +90,8 @@ import { PrismaNotificationRepository } from './prisma-notification.repository';
     'PRODUCTION_COST_REPOSITORY',
     'COFFEE_PRICE_REPOSITORY',
     'NOTIFICATION_REPOSITORY',
+    'NEWS_ARTICLE_REPOSITORY',
+    'PRICE_INSIGHT_REPOSITORY',
     PrismaService,
     PrismaHarvestQueries,
   ],

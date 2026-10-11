@@ -1,0 +1,32 @@
+# Actualiza cada mañana el precio FNC, las noticias, el análisis del precio y los tips del mes
+# (Gemini en el backend). En el plan free de Render el servidor se duerme, por eso el disparo
+# viene de afuera: la llamada lo despierta y espera a que termine.
+#
+# Secretos del repo: API_URL (ej. https://cosechapp-backend.onrender.com) y ADMIN_API_KEY.
+name: Coffee intel (Gemini)
+
+on:
+  schedule:
+    - cron: '0 12 * * *' # 7:00 a. m. en Colombia
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Wake up the backend
+        run: |
+          for i in 1 2 3 4 5 6; do
+            curl -fsS --max-time 60 "${{ secrets.API_URL }}/health" && exit 0
+            sleep 20
+          done
+          exit 1
+
+      - name: Refresh price, news, analysis and tips
+        run: |
+          curl -fsS --max-time 300 -X POST \
+            -H "x-admin-key: ${{ secrets.ADMIN_API_KEY }}" \
+            "${{ secrets.API_URL }}/price-and-news/ai/refresh" | tee result.json
+          echo
+          node -e "const r=require('./result.json'); if(!r.enabled){console.error('GEMINI_API_KEY no está configurada en el backend');process.exit(1)}"

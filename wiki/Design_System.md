@@ -10,8 +10,8 @@ Define qué información y elementos se muestran en cada pantalla de CosechApp, 
 
 ### 1.0 Splash
 Arranque en dos tiempos, sin saltos visuales entre uno y otro:
-1. **Splash nativo** (Android): ícono de la app (grano de café) sobre fondo blanco `#FFFFFF`. Lo muestra el sistema desde el primer instante, mientras carga el WebView. Configurado en `capacitor.config.ts` (`SplashScreen`, `launchAutoHide: false`) y en `styles.xml` (`windowSplashScreenBackground` blanco, también con el teléfono en modo oscuro).
-2. **Animación de marca** (`resources/img/CosechAPP_animado.svg`, copia optimizada en `src/assets/brand/cosechapp-animado.svg`): taza + logotipo que aparece de izquierda a derecha (animación SMIL de 2,9 s). Se muestra a pantalla completa con `object-fit: cover`. El SVG arranca en blanco, así que el relevo desde el splash nativo no se nota.
+1. **Splash nativo** (Android): ícono de la app (saco de café) sobre fondo blanco `#FFFFFF`. Lo muestra el sistema desde el primer instante, mientras carga el WebView. Configurado en `capacitor.config.ts` (`SplashScreen`, `launchAutoHide: false`) y en `styles.xml` (`windowSplashScreenBackground` blanco, también con el teléfono en modo oscuro).
+2. **Fondo de inicio animado** (`resources/img/Cosecha_inicio_app.png`, separado en capas en `src/assets/brand/inicio/*.webp`): la imagen se arma por capas en ~2,1 s y se sostiene hasta 2,6 s: marca de agua de esquinas y ramas (fade + zoom leve) → saco (sube, enfoca y aparece) → granos que se riegan desde la boca del saco → título “CosechAPP” escrito de izquierda a derecha (`clip-path`); luego el saco “respira” mientras termina la verificación de sesión. Las capas comparten el lienzo de 1414×2000 y se apilan con `object-fit: cover`, así que siempre quedan alineadas. Con *reducir movimiento* activo es un fade de 300 ms. El fondo es blanco, así que el relevo desde el splash nativo no se nota.
 - Sin controles ni texto interactivo: es una pantalla de transición, no requiere acción del usuario.
 - Duración: lo que tarde **lo más largo** entre la animación (~3,3 s) y la verificación de sesión (ver sección 3.1). Si el SVG no carga en 2 s, se sigue sin esperar la animación.
 
@@ -86,8 +86,16 @@ Tres pasos, en el orden que exige el negocio (la venta ocurre cuando la cosecha 
 - Acceso al detalle de cada una (recolectores, pagos, venta, costos).
 
 ### 1.10 Precio y noticias
-- Precio actual del café publicado por la FNC, con fecha. Sin dato: "Aún no hay precio publicado" (nunca "$ 0 COP", que parecería un precio real).
-- Lista de noticias/tips (fuentes: FNC y Cenicafé), cada una con resumen corto y enlace a la fuente original.
+- Precio actual del café publicado por la FNC (carga de 125 kg), con fecha. Sin dato: "Aún no hay precio publicado" (nunca "$ 0 COP", que parecería un precio real).
+- Bajo el precio, un análisis corto (máx. 3 frases) de cómo está frente a los registros anteriores, con la etiqueta "Generado con IA · Gemini". Nunca recomienda vender o guardar ni da pronósticos. Solo aparece si corresponde al precio vigente.
+- **Noticias del café** (FNC, Cenicafé, mercado, clima, plagas): fuente, fecha, título, resumen de 2 frases y "Leer en {fuente}", que abre el enlace original.
+- **Tips del mes**: 3–4 recomendaciones agronómicas de la época, cada una con su fuente; al tocarla se abre la fuente.
+- Cada bloque tiene su estado vacío honesto ("Se actualizan cada mañana"). Pull-to-refresh recarga todo.
+- Sin señal se muestra lo último guardado, con el aviso "Sin conexión · mostrando lo último guardado".
+
+**Cómo se obtienen (backend):** Gemini con búsqueda en Google (grounding), una vez al día. Un workflow de GitHub Actions (`.github/workflows/coffee-intel.yml`, 7:00 a. m. de Colombia) llama a `POST /price-and-news/ai/refresh`; como respaldo, si los datos tienen más de 24 h, se refrescan en segundo plano al leerlos (en el plan free de Render el servidor se duerme). La key (`GEMINI_API_KEY`) vive solo en el backend. Nada se guarda sin validar:
+- Precio: entre 500.000 y 6.000.000 COP, de los últimos 3 días y citado de federaciondecafeteros.org; se publica con el mismo flujo que crea las notificaciones de cambio de precio.
+- Noticias y tips: el enlace debe existir (se descartan los inventados), sin repetir, noticias de los últimos 30 días.
 
 ### 1.11 Notificaciones
 - Historial de notificaciones de cambio de precio (fecha + valor).
@@ -162,7 +170,7 @@ Elegidos deliberadamente a partir del propio contexto de CosechApp: reemplaza un
 
 **Colores**
 
-Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranque (`CosechAPP_animado.svg`), reemplazando la paleta provisional del primer borrador:
+Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranque original (`CosechAPP_animado.svg`, ya retirada), reemplazando la paleta provisional del primer borrador:
 
 ```
 --color-primary: #32591B       /* verde oscuro de marca — texto/botones principales */
@@ -198,11 +206,16 @@ No se usan colores escritos a mano en las páginas (ej. el verde `#28a745` o el 
 
 **Marca**
 ```
-Ícono de la app:   grano de café del logo, color #873C18 (el óxido de la taza del splash) sobre #F2EFF2
-                   fuente: resources/icon-only.png, icon-foreground.png, icon-background.png
-                   generado con: npx @capacitor/assets generate --android
+Ícono de la app:   saco de café con granos sobre blanco #FFFFFF
+                   original: resources/img/icono_original.png (2000×1270, transparente)
+                   fuente: resources/icon-only.png, icon-foreground.png, icon-background.png,
+                           splash.png, splash-dark.png (derivados del original, cuadrados)
+                   generado con: npx @capacitor/assets generate --android --iconBackgroundColor "#FFFFFF"
+                   (ic_launcher/ic_launcher_round heredados compuestos aparte sobre blanco)
 Logo:              src/assets/brand/logo.png (LOGO.png con fondo transparente)
-Animación splash:  src/assets/brand/cosechapp-animado.svg (optimizado con svgo, 1,5 MB)
+Fondo de inicio:   resources/img/Cosecha_inicio_app.png → src/assets/brand/inicio/
+                   esquinas, ramas, saco, granos, titulo (.webp sin pérdida, ~530 KB en total;
+                   la suma de las capas es idéntica píxel a píxel al PNG original)
 ```
 
 **Tipografía**
@@ -332,11 +345,23 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | 207 | Sincronización de pesadas donde alguna falló (cada una trae su propio código) |
 | 400 | Datos inválidos (validación) |
 | 401 | Sin sesión o sesión vencida (la app vuelve a Login) |
-| 403 | Falta la clave de administrador (publicar el precio FNC) |
+| 403 | Falta la clave de administrador (publicar el precio FNC, refrescar con IA) |
 | 404 | No existe **o es de otro usuario** (no se revela que exista) |
 | 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos |
 | 422 | Regla de negocio: nada pendiente por pagar, alimentación mayor que el saldo, cosecha cerrada, contraseña actual incorrecta |
 | 500 / 503 | Falla del servidor / base de datos caída (`GET /health`) |
+
+**Precio y noticias** (`/price-and-news`, JWT salvo los de sistema)
+
+| Método y ruta | Respuesta |
+|---|---|
+| `GET /coffee-price` | Último precio FNC `{ id, value, queryDate, createdAt }` o 204 |
+| `GET /coffee-price/history` | Precios publicados, del más nuevo al más viejo (cada cambio es una fila) |
+| `GET /coffee-price/analysis` | `{ text, generatedAt, basedOnPriceId }` del precio vigente, o 204 si aún no se analizó |
+| `GET /news` | Noticias de los últimos 30 días: `[{ id, kind: 'NEWS', title, source, summary, url, publishedAt }]` |
+| `GET /tips` | Tips del mes en curso (hora de Colombia), mismo formato con `kind: 'TIP'` |
+| `POST /coffee-price` | Sistema (`x-admin-key`): publica un precio a mano |
+| `POST /ai/refresh` | Sistema (`x-admin-key`): refresca precio, noticias, análisis y tips con Gemini; devuelve el resumen (`enabled: false` sin `GEMINI_API_KEY`) |
 
 **Errores**: `{ statusCode, error, message }`. `error` es el código de dominio (ej. `HarvestAlreadyActiveError`), que la app traduce al español con `apiErrorMessage()`; `message` está en inglés y nunca se muestra al usuario. Un 401 en cambiar contraseña cerraría la sesión, por eso "contraseña actual incorrecta" es 422.
 
@@ -349,7 +374,7 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 Navegación principal por barra inferior de pestañas (patrón estándar en apps Android), con 4 accesos directos y flujos de profundización (drill-down) dentro de cada uno:
 
 ```
-Splash (ícono nativo → animación CosechAPP_animado.svg)
+Splash (ícono nativo → fondo de inicio animado por capas)
    │ (la app consulta al backend si hay una sesión válida)
    ├── Sesión válida ──────────────┐
    │                               ▼
@@ -397,7 +422,7 @@ Perfil
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).
 
 ### 3.4 Niveles de navegación
-1. **Nivel -1 — Splash:** ícono nativo y luego la animación de marca (`CosechAPP_animado.svg`), mientras se verifica la sesión contra el backend (ver §1.0).
+1. **Nivel -1 — Splash:** ícono nativo y luego el fondo de inicio animado por capas (`Cosecha_inicio_app.png`), mientras se verifica la sesión contra el backend (ver §1.0).
 2. **Nivel 0 — Autenticación:** Login/Registro (fuera de la barra de pestañas), solo si no hay sesión válida.
 3. **Nivel 1 — Pestañas principales:** Inicio, Precio y Noticias, Historial, Perfil.
 4. **Nivel 2 — Listas:** Cuadrillas, Catálogo de trabajadores, lista de cosechas cerradas.

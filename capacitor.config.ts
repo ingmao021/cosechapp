@@ -13,9 +13,9 @@ const config: CapacitorConfig = {
     webContentsDebuggingEnabled: false,
   },
   plugins: {
-    // Splash nativo: fondo blanco liso que cubre el arranque del WebView. La animación
-    // de marca (CosechAPP_animado.svg) la muestra SplashPage, que oculta este splash
-    // cuando el SVG está listo; ambos son blancos, así que el relevo no se nota.
+    // Splash nativo: ícono sobre fondo blanco que cubre el arranque del WebView. El fondo
+    // de inicio animado (Cosecha_inicio_app.png por capas) lo muestra SplashPage, que oculta
+    // este splash cuando las capas cargaron; ambos son blancos, así que el relevo no se nota.
     SplashScreen: {
       launchShowDuration: 0,
       launchAutoHide: false, // lo oculta SplashPage

@@ -1,46 +1,71 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { PriceAndNewsService, CoffeePriceResponse, NotificationResponse, NewsItem } from './price-and-news.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { PriceAndNewsService, NotificationResponse, NewsItem, PriceAnalysis } from './price-and-news.service';
+import { OfflineStore } from '../../sync/services/offline-store';
 import { apiErrorMessage } from '../../shared/utils';
+
+interface CoffeePrice {
+  value: number;
+  queryDate: string;
+}
+
+/** Lo último recibido de la pestaña, para consultarlo sin señal en el cafetal. */
+interface PriceNewsSnapshot {
+  coffeePrice: CoffeePrice | null;
+  analysis: PriceAnalysis | null;
+  news: NewsItem[];
+  tips: NewsItem[];
+}
+
+const SNAPSHOT_KEY = 'price-news';
+const isOffline = (err: unknown) => err instanceof HttpErrorResponse && err.status === 0;
 
 /**
  * Facade de Precio y Noticias — Estado (Signals) + Orquestación.
  *
  * Expone signals de solo lectura hacia los componentes:
- * - coffeePrice: CoffeePriceResponse | null
- * - notifications: NotificationResponse[]
- * - unreadCount: number
- * - news: NewsItem[]
- * - isLoading: boolean
+ * - coffeePrice / analysis: precio FNC vigente y su análisis con IA
+ * - news / tips: noticias recientes y tips agronómicos del mes (IA con fuente real)
+ * - notifications / unreadCount
+ * - isLoading: hay alguna carga en curso
+ * - isOfflineData: se está mostrando lo guardado porque no hay señal
  * - error: string | null
  *
  * Métodos de acción:
- * - loadCoffeePrice()
- * - loadNotifications()
- * - loadNews()
- * - markAsRead(notificationId)
- * - refreshCoffeePrice()
+ * - loadAll() / refresh(): toda la pestaña (también pull-to-refresh)
+ * - loadCoffeePrice(), loadNotifications(), markAsRead(notificationId)
  *
  * Delega llamadas HTTP al PriceAndNewsService.
  */
 @Injectable({ providedIn: 'root' })
 export class PriceAndNewsFacade {
   private readonly priceAndNewsService = inject(PriceAndNewsService);
+  private readonly offlineStore = inject(OfflineStore);
 
   // Estado privado (signals)
-  private readonly _coffeePrice = signal<{ value: number; queryDate: string } | null>(null);
+  private readonly _coffeePrice = signal<CoffeePrice | null>(null);
+  private readonly _analysis = signal<PriceAnalysis | null>(null);
   private readonly _notifications = signal<NotificationResponse[]>([]);
-  private readonly _news = signal<Array<{ title: string; source: string; summary: string; url: string; publishedAt: string }>>([]);
-  private readonly _isLoading = signal(false);
+  private readonly _news = signal<NewsItem[]>([]);
+  private readonly _tips = signal<NewsItem[]>([]);
+  /** Cargas en curso: con un booleano, la primera en terminar apagaba el spinner de las demás. */
+  private readonly _pending = signal(0);
+  private readonly _isOfflineData = signal(false);
   private readonly _error = signal<string | null>(null);
 
   // Señales públicas de solo lectura
   readonly coffeePrice = this._coffeePrice.asReadonly();
+  readonly analysis = this._analysis.asReadonly();
   readonly notifications = this._notifications.asReadonly();
   readonly news = this._news.asReadonly();
-  readonly isLoading = this._isLoading.asReadonly();
+  readonly tips = this._tips.asReadonly();
+  readonly isOfflineData = this._isOfflineData.asReadonly();
   readonly error = this._error.asReadonly();
 
   // Computed
+  readonly isLoading = computed(() => this._pending() > 0);
+
   readonly unreadCount = computed(() =>
     this._notifications().filter(n => !n.read).length
   );
@@ -64,54 +89,61 @@ export class PriceAndNewsFacade {
    * Carga el precio actual del café FNC.
    */
   async loadCoffeePrice(): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const price = await this.priceAndNewsService.getLatestCoffeePrice().toPromise();
-      this._coffeePrice.set(price ?? null);
-    } catch (err: any) {
-      this._error.set(apiErrorMessage(err, 'Error al cargar precio del café'));
-      this._coffeePrice.set(null);
-    } finally {
-      this._isLoading.set(false);
-    }
+    await this.track(async () => {
+      try {
+        const price = await firstValueFrom(this.priceAndNewsService.getLatestCoffeePrice());
+        this._coffeePrice.set(price ?? null);
+      } catch (err) {
+        if (!this.restoreOnOffline(err)) {
+          this._error.set(apiErrorMessage(err, 'Error al cargar precio del café'));
+        }
+      }
+    });
   }
 
   /**
    * Carga las notificaciones del usuario.
    */
   async loadNotifications(): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const notifications = await this.priceAndNewsService.getNotifications().toPromise();
-      this._notifications.set(notifications ?? []);
-    } catch (err: any) {
-      this._error.set(apiErrorMessage(err, 'Error al cargar notificaciones'));
-      this._notifications.set([]);
-    } finally {
-      this._isLoading.set(false);
-    }
+    await this.track(async () => {
+      try {
+        const notifications = await firstValueFrom(this.priceAndNewsService.getNotifications());
+        this._notifications.set(notifications ?? []);
+      } catch (err) {
+        if (!isOffline(err)) this._error.set(apiErrorMessage(err, 'Error al cargar notificaciones'));
+      }
+    });
   }
 
   /**
-   * Carga las noticias y tips agronómicos.
+   * Carga precio, análisis, noticias y tips; si no hay señal, muestra lo último guardado.
    */
-  async loadNews(): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const news = await this.priceAndNewsService.getNews().toPromise();
-      this._news.set(news ?? []);
-    } catch (err: any) {
-      this._error.set(apiErrorMessage(err, 'Error al cargar noticias'));
-      this._news.set([]);
-    } finally {
-      this._isLoading.set(false);
-    }
+  async loadPriceAndNews(): Promise<void> {
+    await this.track(async () => {
+      try {
+        const [price, analysis, news, tips] = await Promise.all([
+          firstValueFrom(this.priceAndNewsService.getLatestCoffeePrice()),
+          firstValueFrom(this.priceAndNewsService.getPriceAnalysis()),
+          firstValueFrom(this.priceAndNewsService.getNews()),
+          firstValueFrom(this.priceAndNewsService.getTips()),
+        ]);
+        this._coffeePrice.set(price ?? null);
+        this._analysis.set(analysis ?? null);
+        this._news.set(news ?? []);
+        this._tips.set(tips ?? []);
+        this._isOfflineData.set(false);
+        this.offlineStore.saveSnapshot<PriceNewsSnapshot>(SNAPSHOT_KEY, {
+          coffeePrice: this._coffeePrice(),
+          analysis: this._analysis(),
+          news: this._news(),
+          tips: this._tips(),
+        });
+      } catch (err) {
+        if (!this.restoreOnOffline(err)) {
+          this._error.set(apiErrorMessage(err, 'No se pudieron cargar el precio y las noticias'));
+        }
+      }
+    });
   }
 
   /**
@@ -119,31 +151,28 @@ export class PriceAndNewsFacade {
    */
   async markAsRead(notificationId: string): Promise<void> {
     try {
-      await this.priceAndNewsService.markAsRead(notificationId).toPromise();
+      await firstValueFrom(this.priceAndNewsService.markAsRead(notificationId));
       this._notifications.update(current =>
         current.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
-    } catch (err: any) {
+    } catch (err) {
       this._error.set(apiErrorMessage(err, 'Error al marcar notificación'));
     }
   }
 
   /**
-   * Refresca el precio del café (pull-to-refresh).
+   * Carga toda la pestaña: precio, análisis, noticias, tips y notificaciones.
    */
-  async refreshCoffeePrice(): Promise<void> {
-    await this.loadCoffeePrice();
+  async loadAll(): Promise<void> {
+    this._error.set(null);
+    await Promise.all([this.loadPriceAndNews(), this.loadNotifications()]);
   }
 
   /**
-   * Carga todo: precio, notificaciones y noticias.
+   * Pull-to-refresh: recarga toda la pestaña.
    */
-  async loadAll(): Promise<void> {
-    await Promise.all([
-      this.loadCoffeePrice(),
-      this.loadNotifications(),
-      this.loadNews(),
-    ]);
+  async refresh(): Promise<void> {
+    await this.loadAll();
   }
 
   /**
@@ -151,5 +180,27 @@ export class PriceAndNewsFacade {
    */
   clearError(): void {
     this._error.set(null);
+  }
+
+  private async track(load: () => Promise<void>): Promise<void> {
+    this._pending.update(n => n + 1);
+    try {
+      await load();
+    } finally {
+      this._pending.update(n => n - 1);
+    }
+  }
+
+  /** Sin señal: restaura lo último guardado. False si no es falta de señal o no hay nada guardado. */
+  private restoreOnOffline(err: unknown): boolean {
+    if (!isOffline(err)) return false;
+    const snapshot = this.offlineStore.readSnapshot<PriceNewsSnapshot>(SNAPSHOT_KEY);
+    if (!snapshot) return false;
+    this._coffeePrice.set(snapshot.value.coffeePrice);
+    this._analysis.set(snapshot.value.analysis);
+    this._news.set(snapshot.value.news);
+    this._tips.set(snapshot.value.tips);
+    this._isOfflineData.set(true);
+    return true;
   }
 }

@@ -5,6 +5,7 @@ import { Response } from 'express';
 import { PriceAndNewsService } from './price-and-news.service';
 import { CoffeePrice } from '@domain/price-and-news/coffee-price.entity';
 import { Notification } from '@domain/price-and-news/notification.entity';
+import { NewsArticle } from '@domain/price-and-news/news-article.entity';
 import { JwtAuthGuard } from '@infrastructure/http/auth/guards/jwt-auth.guard';
 import { AdminKeyGuard } from '@infrastructure/http/auth/guards/admin-key.guard';
 import { AuthUser } from '@infrastructure/http/harvest/harvest.service';
@@ -61,13 +62,48 @@ export class PriceAndNewsController {
     return prices.map(toCoffeePriceResponse);
   }
 
-  /** Sin fuente de noticias todavía: lista vacía (la app muestra un estado vacío honesto). */
+  /** Lo llama el job diario (GitHub Actions): precio FNC, noticias, análisis y tips con Gemini. */
+  @Post('ai/refresh')
+  @UseGuards(AdminKeyGuard)
+  @ApiHeader({ name: 'x-admin-key', required: true })
+  @ApiOperation({ summary: 'Refresh FNC price, news, price analysis and monthly tips with AI (system job)' })
+  @ApiResponse({ status: 201, description: 'Summary of what was published' })
+  @ApiResponse({ status: 403, description: 'Missing or wrong admin key' })
+  refreshCoffeeIntel() {
+    return this.priceAndNewsService.refreshCoffeeIntel();
+  }
+
+  @Get('coffee-price/analysis')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'AI analysis of the current FNC price' })
+  @ApiResponse({ status: 204, description: 'No analysis for the current price yet' })
+  async getPriceAnalysis(@Res({ passthrough: true }) res: Response) {
+    this.priceAndNewsService.refreshIfStale();
+    const insight = await this.priceAndNewsService.getPriceAnalysis();
+    if (!insight) {
+      res.status(HttpStatus.NO_CONTENT);
+      return;
+    }
+    return { text: insight.text, generatedAt: insight.createdAt, basedOnPriceId: insight.coffeePriceId };
+  }
+
+  /** Noticias del café obtenidas con IA (fuente y url verificadas), de la más nueva a la más vieja. */
   @Get('news')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'News and tips from FNC and Cenicafé' })
-  getNews() {
-    return [];
+  @ApiOperation({ summary: 'Coffee news (FNC, Cenicafé, market) gathered with AI' })
+  async getNews() {
+    this.priceAndNewsService.refreshIfStale();
+    return (await this.priceAndNewsService.getNews()).map(toNewsResponse);
+  }
+
+  @Get('tips')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Agronomic tips for the current month gathered with AI' })
+  async getTips() {
+    return (await this.priceAndNewsService.getTips()).map(toNewsResponse);
   }
 
   @Get('notifications')
@@ -116,5 +152,17 @@ function toNotificationResponse(notification: Notification, priceValue: number |
     date: notification.date,
     read: notification.read,
     createdAt: notification.createdAt,
+  };
+}
+
+function toNewsResponse(article: NewsArticle) {
+  return {
+    id: article.id,
+    kind: article.kind,
+    title: article.title,
+    source: article.source,
+    summary: article.summary,
+    url: article.url,
+    publishedAt: article.publishedAt,
   };
 }

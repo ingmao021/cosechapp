@@ -22,12 +22,22 @@ export interface NotificationResponse {
   createdAt: string;
 }
 
+/** Noticia o tip del mes, obtenido con IA (Gemini) a partir de una fuente real. */
 export interface NewsItem {
+  id: string;
+  kind: 'NEWS' | 'TIP';
   title: string;
   source: string;
   summary: string;
   url: string;
   publishedAt: string;
+}
+
+/** Análisis corto del precio FNC vigente, generado con IA. */
+export interface PriceAnalysis {
+  text: string;
+  generatedAt: string;
+  basedOnPriceId: string;
 }
 
 /**
@@ -76,9 +86,23 @@ export class PriceAndNewsService {
   }
 
   /**
-   * Obtiene noticias y tips agronómicos.
+   * Obtiene las noticias recientes del café.
    */
   getNews(): Observable<NewsItem[]> {
     return this.http.get<NewsItem[]>(`${this.baseUrl}/news`);
+  }
+
+  /**
+   * Obtiene los tips agronómicos del mes.
+   */
+  getTips(): Observable<NewsItem[]> {
+    return this.http.get<NewsItem[]>(`${this.baseUrl}/tips`);
+  }
+
+  /**
+   * Obtiene el análisis con IA del precio vigente (null si aún no hay).
+   */
+  getPriceAnalysis(): Observable<PriceAnalysis | null> {
+    return this.http.get<PriceAnalysis | null>(`${this.baseUrl}/coffee-price/analysis`);
   }
 }

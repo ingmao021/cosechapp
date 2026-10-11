@@ -22,7 +22,8 @@ const describeIfDb = E2E_DATABASE_URL ? describe : describe.skip;
 function startServer(): Promise<ChildProcess> {
   return new Promise((resolve, reject) => {
     const server = spawn(process.execPath, ['dist/main.js'], {
-      env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL, ADMIN_API_KEY: ADMIN_KEY, PORT: String(PORT) },
+      // Sin GEMINI_API_KEY: las pruebas nunca llaman a la IA real.
+      env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL, ADMIN_API_KEY: ADMIN_KEY, GEMINI_API_KEY: '', PORT: String(PORT) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const timer = setTimeout(() => reject(new Error('Server did not start in 30s')), 30000);
@@ -105,7 +106,18 @@ describeIfDb('API contract (e2e)', () => {
     const user = await registerUser();
     const res = await http.get('/price-and-news/coffee-price').set('Authorization', user.token).expect(200);
     expect(res.body.value).toBeGreaterThan(0);
-    await http.get('/price-and-news/news').set('Authorization', user.token).expect(200, []);
+    const news = await http.get('/price-and-news/news').set('Authorization', user.token).expect(200);
+    expect(Array.isArray(news.body)).toBe(true);
+    const tips = await http.get('/price-and-news/tips').set('Authorization', user.token).expect(200);
+    expect(Array.isArray(tips.body)).toBe(true);
+    // El precio se acaba de publicar a mano: todavía no tiene análisis.
+    await http.get('/price-and-news/coffee-price/analysis').set('Authorization', user.token).expect(204);
+  });
+
+  it('AI refresh: needs the admin key; without GEMINI_API_KEY it reports disabled', async () => {
+    await http.post('/price-and-news/ai/refresh').expect(403);
+    const res = await http.post('/price-and-news/ai/refresh').set('x-admin-key', ADMIN_KEY).expect(201);
+    expect(res.body.enabled).toBe(false);
   });
 
   describe('harvest flow', () => {
