@@ -7,7 +7,7 @@ export enum NewsKind {
   TIP = 'TIP',
 }
 
-/** Noticia o tip obtenido con IA a partir de una fuente real (url verificada). */
+/** Noticia (o tip) de una fuente real, con su enlace original. */
 export class NewsArticle {
   private constructor(
     public readonly id: string,
@@ -33,9 +33,10 @@ export class NewsArticle {
     month?: string | null;
   }): NewsArticle {
     const title = input.title.trim();
+    // El resumen es opcional: el RSS de noticias no trae texto y no se inventa uno.
     const summary = input.summary.trim();
-    if (!title || !summary) {
-      throw new BusinessRuleViolationError('News article needs a title and a summary');
+    if (!title) {
+      throw new BusinessRuleViolationError('News article needs a title');
     }
     if (!/^https?:\/\//i.test(input.url)) {
       throw new BusinessRuleViolationError('News article url must be http(s)');

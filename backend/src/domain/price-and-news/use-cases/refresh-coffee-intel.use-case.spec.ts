@@ -1,6 +1,6 @@
 import { RefreshCoffeeIntelUseCase } from './refresh-coffee-intel.use-case';
 import { UpdateCoffeePriceUseCase } from './update-coffee-price.use-case';
-import { CoffeeIntelPort, UrlVerifier } from '../coffee-intel.port';
+import { CoffeeIntelPort, FncPriceSource, NewsFeedSource, NewsReport } from '../coffee-intel.port';
 import { CoffeePriceRepository } from '../coffee-price.repository';
 import { NewsArticleRepository } from '../news-article.repository';
 import { PriceInsightRepository } from '../price-insight.repository';
@@ -12,9 +12,17 @@ import { PriceInsight } from '../price-insight.entity';
 
 const NOW = new Date('2026-10-11T15:00:00Z');
 
+const report = (n: number, publishedAt = '2026-10-09T12:00:00Z'): NewsReport => ({
+  title: `Noticia ${n}`,
+  source: 'Caracol Radio',
+  url: `https://news.google.com/rss/articles/${n}`,
+  publishedAt: new Date(publishedAt),
+});
+
 describe('RefreshCoffeeIntelUseCase', () => {
+  let fnc: jest.Mocked<FncPriceSource>;
+  let feed: jest.Mocked<NewsFeedSource>;
   let intel: jest.Mocked<CoffeeIntelPort>;
-  let urlVerifier: jest.Mocked<UrlVerifier>;
   let prices: CoffeePrice[];
   let coffeePriceRepository: jest.Mocked<CoffeePriceRepository>;
   let saved: NewsArticle[];
@@ -23,18 +31,13 @@ describe('RefreshCoffeeIntelUseCase', () => {
   let useCase: RefreshCoffeeIntelUseCase;
 
   beforeEach(() => {
+    fnc = { fetchLatest: jest.fn().mockResolvedValue({ value: 2_055_000, date: '2026-10-09' }) };
+    feed = { fetchRecent: jest.fn().mockResolvedValue([]) };
     intel = {
       enabled: true,
-      fetchFncPrice: jest.fn().mockResolvedValue({
-        value: 2_850_000,
-        date: '2026-10-10',
-        sources: ['federaciondecafeteros.org'],
-      }),
-      fetchNews: jest.fn().mockResolvedValue([]),
-      analyzePrice: jest.fn().mockResolvedValue('El precio subió frente a la semana pasada.'),
-      monthlyTips: jest.fn().mockResolvedValue([]),
+      analyzePrice: jest.fn().mockResolvedValue('El precio se mantiene.'),
+      pickRelevantNews: jest.fn().mockResolvedValue([]),
     };
-    urlVerifier = { exists: jest.fn().mockResolvedValue(true) };
 
     prices = [];
     coffeePriceRepository = {
@@ -54,7 +57,6 @@ describe('RefreshCoffeeIntelUseCase', () => {
         return article;
       }),
       findRecentNews: jest.fn(),
-      findTipsByMonth: jest.fn(async (month: string) => saved.filter((a) => a.month === month)),
       findExistingUrls: jest.fn(async (urls: string[]) => saved.map((a) => a.url).filter((u) => urls.includes(u))),
       findLatestNewsCreatedAt: jest.fn(),
     };
@@ -66,8 +68,9 @@ describe('RefreshCoffeeIntelUseCase', () => {
     const updatePrice = new UpdateCoffeePriceUseCase(coffeePriceRepository, notificationRepository, growerRepository);
 
     useCase = new RefreshCoffeeIntelUseCase(
+      fnc,
+      feed,
       intel,
-      urlVerifier,
       coffeePriceRepository,
       newsRepository,
       insightRepository,
@@ -76,23 +79,23 @@ describe('RefreshCoffeeIntelUseCase', () => {
   });
 
   describe('price', () => {
-    it('publishes a valid FNC price and analyzes it', async () => {
+    it('publishes the FNC price and analyzes it', async () => {
       const result = await useCase.execute(NOW);
 
-      expect(result.price).toEqual({ outcome: 'published', value: 2_850_000 });
-      expect(prices[0].value).toBe(2_850_000);
+      expect(result.price).toEqual({ outcome: 'published', value: 2_055_000 });
+      expect(prices[0].value).toBe(2_055_000);
       expect(result.analysis.outcome).toBe('generated');
       expect(insightRepository.save).toHaveBeenCalledWith(expect.objectContaining({ coffeePriceId: prices[0].id }));
     });
 
     it('keeps history: a changed price is a new row', async () => {
       await useCase.execute(NOW);
-      intel.fetchFncPrice.mockResolvedValue({ value: 2_900_000, date: '2026-10-11', sources: ['https://federaciondecafeteros.org/'] });
+      fnc.fetchLatest.mockResolvedValue({ value: 2_100_000, date: '2026-10-11' });
 
       const result = await useCase.execute(NOW);
 
       expect(result.price.outcome).toBe('published');
-      expect(prices.map((p) => p.value)).toEqual([2_900_000, 2_850_000]);
+      expect(prices.map((p) => p.value)).toEqual([2_100_000, 2_055_000]);
     });
 
     it('reports unchanged and does not re-analyze the same price', async () => {
@@ -107,12 +110,11 @@ describe('RefreshCoffeeIntelUseCase', () => {
     });
 
     it.each([
-      ['out of range', { value: 28_500, date: '2026-10-10', sources: ['federaciondecafeteros.org'] }],
-      ['stale', { value: 2_850_000, date: '2026-09-20', sources: ['federaciondecafeteros.org'] }],
-      ['in the future', { value: 2_850_000, date: '2026-10-20', sources: ['federaciondecafeteros.org'] }],
-      ['not from FNC', { value: 2_850_000, date: '2026-10-10', sources: ['blogcafetero.com'] }],
-    ])('rejects a price that is %s', async (_label, report) => {
-      intel.fetchFncPrice.mockResolvedValue(report);
+      ['out of range', { value: 20_550, date: '2026-10-09' }],
+      ['stale', { value: 2_055_000, date: '2026-09-20' }],
+      ['in the future', { value: 2_055_000, date: '2026-10-20' }],
+    ])('rejects a price that is %s', async (_label, fncReport) => {
+      fnc.fetchLatest.mockResolvedValue(fncReport);
 
       const result = await useCase.execute(NOW);
 
@@ -120,82 +122,75 @@ describe('RefreshCoffeeIntelUseCase', () => {
       expect(prices).toHaveLength(0);
       expect(result.analysis.outcome).toBe('no-price');
     });
+
+    it('reports not-found when the FNC page changed', async () => {
+      fnc.fetchLatest.mockResolvedValue(null);
+
+      expect((await useCase.execute(NOW)).price.outcome).toBe('not-found');
+    });
   });
 
   describe('news', () => {
-    const report = (url: string, publishedAt = '2026-10-09') => ({
-      title: `Noticia ${url}`,
-      source: 'FNC',
-      summary: 'Resumen corto.',
-      url,
-      publishedAt,
+    it('saves the news Gemini picks, in its order, without a made-up summary', async () => {
+      feed.fetchRecent.mockResolvedValue([report(1), report(2), report(3)]);
+      intel.pickRelevantNews.mockResolvedValue([2, 0, 2, 9]);
+
+      const result = await useCase.execute(NOW);
+
+      expect(result.news).toEqual({ added: 2, pickedBy: 'ai' });
+      expect(saved.map((a) => a.title)).toEqual(['Noticia 3', 'Noticia 1']);
+      expect(saved[0]).toMatchObject({ kind: NewsKind.NEWS, summary: '', source: 'Caracol Radio' });
     });
 
-    it('saves verified, recent, new articles and rejects the rest', async () => {
+    it('skips old, repeated and already saved news before asking Gemini', async () => {
       saved.push(
         NewsArticle.create({
           id: 'old',
           kind: NewsKind.NEWS,
           title: 'Ya guardada',
           source: 'FNC',
-          summary: 'x',
-          url: 'https://a.co/repetida',
+          summary: '',
+          url: report(1).url,
           publishedAt: NOW,
         }),
       );
-      intel.fetchNews.mockResolvedValue([
-        report('https://a.co/buena'),
-        report('https://a.co/repetida'),
-        report('https://a.co/vieja', '2026-08-01'),
-        report('https://a.co/inventada'),
-      ]);
-      urlVerifier.exists.mockImplementation(async (url) => !url.includes('inventada'));
+      feed.fetchRecent.mockResolvedValue([report(1), report(2), { ...report(4), title: 'Noticia 2' }, report(3, '2026-08-01T00:00:00Z')]);
+      intel.pickRelevantNews.mockImplementation(async (titles) => titles.map((_, i) => i));
+
+      await useCase.execute(NOW);
+
+      expect(intel.pickRelevantNews).toHaveBeenCalledWith(['Noticia 2'], 8);
+    });
+
+    it('falls back to the most recent news when Gemini fails', async () => {
+      feed.fetchRecent.mockResolvedValue(Array.from({ length: 10 }, (_, i) => report(i)));
+      intel.pickRelevantNews.mockRejectedValue(new Error('429 quota'));
 
       const result = await useCase.execute(NOW);
 
-      expect(result.news).toEqual({ added: 1, rejected: 3 });
-      expect(saved.filter((a) => a.kind === NewsKind.NEWS).map((a) => a.url)).toEqual([
-        'https://a.co/repetida',
-        'https://a.co/buena',
-      ]);
+      expect(result.news).toEqual({ added: 8, pickedBy: 'recency' });
     });
   });
 
-  describe('tips', () => {
-    it('generates tips once per month', async () => {
-      intel.monthlyTips.mockResolvedValue([
-        { title: 'Manejo de broca', summary: 'Recoja los granos caídos.', source: 'Cenicafé', url: 'https://cenicafe.org/1' },
-      ]);
-
-      const first = await useCase.execute(NOW);
-      const second = await useCase.execute(NOW);
-
-      expect(first.tips).toEqual({ added: 1, month: '2026-10' });
-      expect(second.tips).toEqual({ added: 0, month: '2026-10', existing: true });
-      expect(intel.monthlyTips).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it('isolates failures: news failing does not stop price nor tips', async () => {
-    intel.fetchNews.mockRejectedValue(new Error('quota exceeded'));
-    intel.monthlyTips.mockResolvedValue([
-      { title: 'Fertilización', summary: 'Según análisis de suelo.', source: 'Cenicafé', url: 'https://cenicafe.org/2' },
-    ]);
+  it('isolates failures: the news feed failing does not stop the price', async () => {
+    feed.fetchRecent.mockRejectedValue(new Error('Google News responded 503'));
 
     const result = await useCase.execute(NOW);
 
-    expect(result.news.error).toBe('quota exceeded');
+    expect(result.news.error).toBe('Google News responded 503');
     expect(result.price.outcome).toBe('published');
-    expect(result.tips.added).toBe(1);
   });
 
-  it('does nothing when AI is disabled', async () => {
+  it('without AI still updates price and news, but skips the analysis', async () => {
     (intel as { enabled: boolean }).enabled = false;
+    feed.fetchRecent.mockResolvedValue([report(1)]);
 
     const result = await useCase.execute(NOW);
 
-    expect(result.enabled).toBe(false);
-    expect(intel.fetchFncPrice).not.toHaveBeenCalled();
-    expect(coffeePriceRepository.save).not.toHaveBeenCalled();
+    expect(result.aiEnabled).toBe(false);
+    expect(result.price.outcome).toBe('published');
+    expect(result.news).toEqual({ added: 1, pickedBy: 'recency' });
+    expect(result.analysis.outcome).toBe('disabled');
+    expect(intel.pickRelevantNews).not.toHaveBeenCalled();
   });
 });

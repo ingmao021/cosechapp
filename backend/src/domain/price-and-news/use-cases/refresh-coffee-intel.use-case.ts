@@ -3,9 +3,8 @@ import { NewsArticle, NewsKind } from '../news-article.entity';
 import { NewsArticleRepository } from '../news-article.repository';
 import { PriceInsight } from '../price-insight.entity';
 import { PriceInsightRepository } from '../price-insight.repository';
-import { CoffeeIntelPort, NewsReport, TipReport, UrlVerifier } from '../coffee-intel.port';
+import { CoffeeIntelPort, FncPriceSource, NewsFeedSource, NewsReport } from '../coffee-intel.port';
 import { UpdateCoffeePriceUseCase } from './update-coffee-price.use-case';
-import { monthInColombia } from '@shared/time/colombia-time';
 
 /** Rango razonable del precio interno FNC (COP por carga de 125 kg). Fuera de él, se descarta. */
 export const FNC_PRICE_MIN = 500_000;
@@ -14,33 +13,33 @@ export const FNC_PRICE_MAX = 6_000_000;
 const MAX_PRICE_AGE_DAYS = 3;
 const NEWS_MAX_AGE_DAYS = 30;
 const MAX_NEWS_PER_RUN = 8;
-const MAX_TIPS = 4;
 const HISTORY_FOR_ANALYSIS = 30;
-const FNC_DOMAIN = 'federaciondecafeteros.org';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type PriceOutcome = 'published' | 'unchanged' | 'rejected' | 'not-found' | 'failed';
 
 export interface RefreshCoffeeIntelOutput {
-  enabled: boolean;
+  /** Hay IA (Gemini) para el análisis y para elegir noticias. */
+  aiEnabled: boolean;
   price: { outcome: PriceOutcome; value?: number; reason?: string };
-  news: { added: number; rejected: number; error?: string };
-  analysis: { outcome: 'generated' | 'up-to-date' | 'no-price' | 'failed'; error?: string };
-  tips: { added: number; month: string; existing?: boolean; error?: string };
+  news: { added: number; pickedBy: 'ai' | 'recency'; error?: string };
+  analysis: { outcome: 'generated' | 'up-to-date' | 'no-price' | 'disabled' | 'failed'; error?: string };
 }
 
 /**
- * Actualiza precio FNC, noticias, análisis y tips con la IA, validando todo antes de guardarlo:
- * - Precio: dentro de rango, reciente y citado de federaciondecafeteros.org; se publica con
+ * Actualiza Precio y Noticias solo con fuentes gratuitas, validando antes de guardar:
+ * - Precio: el publicado en la web de la FNC, dentro de rango y reciente; se publica con
  *   UpdateCoffeePriceUseCase (que crea las notificaciones si cambió).
- * - Noticias y tips: url que exista de verdad, sin repetir, noticias de los últimos 30 días.
- * - Análisis: solo cuando el precio vigente aún no tiene uno.
+ * - Noticias: del RSS de Google Noticias (enlaces reales), sin repetir y de los últimos 30 días;
+ *   Gemini elige las más útiles para un caficultor y, si no está o falla, se toman las más recientes.
+ * - Análisis: Gemini, solo cuando el precio vigente aún no tiene uno.
  * Cada parte falla por su cuenta: si una falla, las demás siguen.
  */
 export class RefreshCoffeeIntelUseCase {
   constructor(
+    private readonly fncPriceSource: FncPriceSource,
+    private readonly newsFeedSource: NewsFeedSource,
     private readonly coffeeIntel: CoffeeIntelPort,
-    private readonly urlVerifier: UrlVerifier,
     private readonly coffeePriceRepository: CoffeePriceRepository,
     private readonly newsArticleRepository: NewsArticleRepository,
     private readonly priceInsightRepository: PriceInsightRepository,
@@ -48,26 +47,14 @@ export class RefreshCoffeeIntelUseCase {
   ) {}
 
   async execute(now: Date = new Date()): Promise<RefreshCoffeeIntelOutput> {
-    const month = monthInColombia(now);
-    if (!this.coffeeIntel.enabled) {
-      return {
-        enabled: false,
-        price: { outcome: 'not-found', reason: 'AI disabled' },
-        news: { added: 0, rejected: 0 },
-        analysis: { outcome: 'no-price' },
-        tips: { added: 0, month },
-      };
-    }
-
-    const price = await this.refreshPrice(now);
-    const [news, tips] = await Promise.all([this.refreshNews(now), this.refreshTips(month)]);
+    const [price, news] = await Promise.all([this.refreshPrice(now), this.refreshNews(now)]);
     const analysis = await this.refreshAnalysis();
-    return { enabled: true, price, news, analysis, tips };
+    return { aiEnabled: this.coffeeIntel.enabled, price, news, analysis };
   }
 
   private async refreshPrice(now: Date): Promise<RefreshCoffeeIntelOutput['price']> {
     try {
-      const report = await this.coffeeIntel.fetchFncPrice();
+      const report = await this.fncPriceSource.fetchLatest();
       if (!report) return { outcome: 'not-found' };
 
       const value = Math.round(report.value);
@@ -77,9 +64,6 @@ export class RefreshCoffeeIntelUseCase {
       const date = parseDay(report.date);
       if (!date || date.getTime() > now.getTime() + DAY_MS || now.getTime() - date.getTime() > MAX_PRICE_AGE_DAYS * DAY_MS) {
         return { outcome: 'rejected', value, reason: `stale or invalid date ${report.date}` };
-      }
-      if (!report.sources.some((source) => source.toLowerCase().includes(FNC_DOMAIN))) {
-        return { outcome: 'rejected', value, reason: 'not sourced from FNC' };
       }
 
       const latest = await this.coffeePriceRepository.findLatest();
@@ -92,60 +76,43 @@ export class RefreshCoffeeIntelUseCase {
   }
 
   private async refreshNews(now: Date): Promise<RefreshCoffeeIntelOutput['news']> {
+    let pickedBy: 'ai' | 'recency' = 'recency';
     try {
-      const reports = await this.coffeeIntel.fetchNews();
       const oldest = now.getTime() - NEWS_MAX_AGE_DAYS * DAY_MS;
+      const reports = dedupe(await this.newsFeedSource.fetchRecent()).filter(
+        (r) => r.publishedAt.getTime() >= oldest && r.publishedAt.getTime() <= now.getTime() + DAY_MS,
+      );
       const existing = new Set(await this.newsArticleRepository.findExistingUrls(reports.map((r) => r.url)));
+      const candidates = reports.filter((r) => !existing.has(r.url));
+      if (candidates.length === 0) return { added: 0, pickedBy };
+
+      let chosen = candidates.slice(0, MAX_NEWS_PER_RUN);
+      if (this.coffeeIntel.enabled) {
+        try {
+          const indexes = await this.coffeeIntel.pickRelevantNews(candidates.map((c) => c.title), MAX_NEWS_PER_RUN);
+          const picked = [...new Set(indexes)].filter((i) => Number.isInteger(i) && i >= 0 && i < candidates.length);
+          chosen = picked.slice(0, MAX_NEWS_PER_RUN).map((i) => candidates[i]);
+          pickedBy = 'ai';
+        } catch {
+          // Sin IA disponible se quedan las más recientes.
+        }
+      }
 
       let added = 0;
-      let rejected = 0;
-      for (const report of reports) {
-        if (added >= MAX_NEWS_PER_RUN) break;
-        const publishedAt = parseDay(report.publishedAt);
-        const fresh = publishedAt && publishedAt.getTime() >= oldest && publishedAt.getTime() <= now.getTime() + DAY_MS;
-        if (!fresh || existing.has(report.url) || !(await this.urlVerifier.exists(report.url))) {
-          rejected++;
-          continue;
-        }
-        const article = tryCreate(() => toArticle(report, NewsKind.NEWS, publishedAt, null));
-        if (!article) {
-          rejected++;
-          continue;
-        }
-        await this.newsArticleRepository.save(article);
-        existing.add(report.url);
-        added++;
-      }
-      return { added, rejected };
-    } catch (error) {
-      return { added: 0, rejected: 0, error: errorMessage(error) };
-    }
-  }
-
-  private async refreshTips(month: string): Promise<RefreshCoffeeIntelOutput['tips']> {
-    try {
-      if ((await this.newsArticleRepository.findTipsByMonth(month)).length > 0) {
-        return { added: 0, month, existing: true };
-      }
-      const reports = await this.coffeeIntel.monthlyTips(month);
-      const seen = new Set<string>();
-      let added = 0;
-      for (const report of reports) {
-        if (added >= MAX_TIPS) break;
-        if (seen.has(report.title) || !(await this.urlVerifier.exists(report.url))) continue;
-        const article = tryCreate(() => toArticle(report, NewsKind.TIP, new Date(), month));
+      for (const report of chosen) {
+        const article = toArticle(report);
         if (!article) continue;
         await this.newsArticleRepository.save(article);
-        seen.add(report.title);
         added++;
       }
-      return { added, month };
+      return { added, pickedBy };
     } catch (error) {
-      return { added: 0, month, error: errorMessage(error) };
+      return { added: 0, pickedBy, error: errorMessage(error) };
     }
   }
 
   private async refreshAnalysis(): Promise<RefreshCoffeeIntelOutput['analysis']> {
+    if (!this.coffeeIntel.enabled) return { outcome: 'disabled' };
     try {
       const latestPrice = await this.coffeePriceRepository.findLatest();
       if (!latestPrice) return { outcome: 'no-price' };
@@ -164,22 +131,29 @@ export class RefreshCoffeeIntelUseCase {
   }
 }
 
-function toArticle(report: NewsReport | TipReport, kind: NewsKind, publishedAt: Date, month: string | null): NewsArticle {
-  return NewsArticle.create({
-    id: crypto.randomUUID(),
-    kind,
-    title: report.title,
-    source: report.source,
-    summary: report.summary,
-    url: report.url,
-    publishedAt,
-    month,
+/** Google Noticias repite la misma nota con enlaces distintos: se deja una por título. */
+function dedupe(reports: NewsReport[]): NewsReport[] {
+  const seen = new Set<string>();
+  return reports.filter((r) => {
+    const key = r.title.toLowerCase();
+    if (seen.has(key) || seen.has(r.url)) return false;
+    seen.add(key);
+    seen.add(r.url);
+    return true;
   });
 }
 
-function tryCreate(create: () => NewsArticle): NewsArticle | null {
+function toArticle(report: NewsReport): NewsArticle | null {
   try {
-    return create();
+    return NewsArticle.create({
+      id: crypto.randomUUID(),
+      kind: NewsKind.NEWS,
+      title: report.title,
+      source: report.source,
+      summary: '',
+      url: report.url,
+      publishedAt: report.publishedAt,
+    });
   } catch {
     return null;
   }

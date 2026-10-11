@@ -29,14 +29,6 @@ export class PrismaNewsArticleRepository implements NewsArticleRepository {
     return found.map(this.toDomain);
   }
 
-  async findTipsByMonth(month: string): Promise<NewsArticle[]> {
-    const found = await this.client.newsArticle.findMany({
-      where: { kind: NewsKind.TIP, month },
-      orderBy: { createdAt: 'asc' },
-    });
-    return found.map(this.toDomain);
-  }
-
   async findExistingUrls(urls: string[]): Promise<string[]> {
     if (urls.length === 0) return [];
     const found = await this.client.newsArticle.findMany({

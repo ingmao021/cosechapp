@@ -9,11 +9,10 @@ const news: NewsItem = {
   kind: 'NEWS',
   title: 'Sube el precio interno',
   source: 'FNC',
-  summary: 'Resumen.',
+  summary: '',
   url: 'https://federaciondecafeteros.org/n1',
   publishedAt: '2026-10-10T17:00:00Z',
 };
-const tip: NewsItem = { ...news, id: 't1', kind: 'TIP', title: 'Manejo de broca', source: 'Cenicafé' };
 const price = { id: 'p1', value: 2_850_000, queryDate: '2026-10-10T17:00:00Z', createdAt: '2026-10-10T17:00:00Z' };
 const analysis = { text: 'El precio subió.', generatedAt: '2026-10-10T18:00:00Z', basedOnPriceId: 'p1' };
 
@@ -23,7 +22,6 @@ describe('PriceAndNewsFacade', () => {
     getLatestCoffeePrice: vi.fn(),
     getPriceAnalysis: vi.fn(),
     getNews: vi.fn(),
-    getTips: vi.fn(),
     getNotifications: vi.fn(),
   };
   const offline = () => throwError(() => new HttpErrorResponse({ status: 0 }));
@@ -32,7 +30,6 @@ describe('PriceAndNewsFacade', () => {
     service.getLatestCoffeePrice.mockReturnValue(of(price));
     service.getPriceAnalysis.mockReturnValue(of(analysis));
     service.getNews.mockReturnValue(of([news]));
-    service.getTips.mockReturnValue(of([tip]));
     service.getNotifications.mockReturnValue(of([]));
   }
 
@@ -43,7 +40,7 @@ describe('PriceAndNewsFacade', () => {
     facade = TestBed.inject(PriceAndNewsFacade);
   });
 
-  it('loads price, analysis, news and tips', async () => {
+  it('loads price, analysis and news', async () => {
     online();
 
     await facade.loadAll();
@@ -51,7 +48,6 @@ describe('PriceAndNewsFacade', () => {
     expect(facade.formattedPrice()).toContain('2.850.000');
     expect(facade.analysis()?.text).toBe('El precio subió.');
     expect(facade.news()).toEqual([news]);
-    expect(facade.tips()).toEqual([tip]);
     expect(facade.isOfflineData()).toBe(false);
   });
 
@@ -66,7 +62,6 @@ describe('PriceAndNewsFacade', () => {
     service.getLatestCoffeePrice.mockReturnValue(offline());
     service.getPriceAnalysis.mockReturnValue(offline());
     service.getNews.mockReturnValue(offline());
-    service.getTips.mockReturnValue(offline());
     service.getNotifications.mockReturnValue(offline());
 
     await offlineFacade.loadAll();
