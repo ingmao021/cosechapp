@@ -86,8 +86,16 @@ Tres pasos, en el orden que exige el negocio (la venta ocurre cuando la cosecha 
 - Acceso al detalle de cada una (recolectores, pagos, venta, costos).
 
 ### 1.10 Precio y noticias
-- Precio actual del café publicado por la FNC, con fecha. Sin dato: "Aún no hay precio publicado" (nunca "$ 0 COP", que parecería un precio real).
-- Lista de noticias/tips (fuentes: FNC y Cenicafé), cada una con resumen corto y enlace a la fuente original.
+- Precio actual del café publicado por la FNC (carga de 125 kg), con fecha. Sin dato: "Aún no hay precio publicado" (nunca "$ 0 COP", que parecería un precio real).
+- Bajo el precio, un análisis corto (máx. 3 frases) de cómo está frente a los registros anteriores, con la etiqueta "Generado con IA · Gemini". Nunca recomienda vender o guardar ni da pronósticos. Solo aparece si corresponde al precio vigente.
+- **Noticias del café** (FNC, Cenicafé, mercado, clima, plagas): fuente, fecha, título, resumen de 2 frases y "Leer en {fuente}", que abre el enlace original.
+- **Tips del mes**: 3–4 recomendaciones agronómicas de la época, cada una con su fuente; al tocarla se abre la fuente.
+- Cada bloque tiene su estado vacío honesto ("Se actualizan cada mañana"). Pull-to-refresh recarga todo.
+- Sin señal se muestra lo último guardado, con el aviso "Sin conexión · mostrando lo último guardado".
+
+**Cómo se obtienen (backend):** Gemini con búsqueda en Google (grounding), una vez al día. Un workflow de GitHub Actions (`.github/workflows/coffee-intel.yml`, 7:00 a. m. de Colombia) llama a `POST /price-and-news/ai/refresh`; como respaldo, si los datos tienen más de 24 h, se refrescan en segundo plano al leerlos (en el plan free de Render el servidor se duerme). La key (`GEMINI_API_KEY`) vive solo en el backend. Nada se guarda sin validar:
+- Precio: entre 500.000 y 6.000.000 COP, de los últimos 3 días y citado de federaciondecafeteros.org; se publica con el mismo flujo que crea las notificaciones de cambio de precio.
+- Noticias y tips: el enlace debe existir (se descartan los inventados), sin repetir, noticias de los últimos 30 días.
 
 ### 1.11 Notificaciones
 - Historial de notificaciones de cambio de precio (fecha + valor).
@@ -337,11 +345,23 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | 207 | Sincronización de pesadas donde alguna falló (cada una trae su propio código) |
 | 400 | Datos inválidos (validación) |
 | 401 | Sin sesión o sesión vencida (la app vuelve a Login) |
-| 403 | Falta la clave de administrador (publicar el precio FNC) |
+| 403 | Falta la clave de administrador (publicar el precio FNC, refrescar con IA) |
 | 404 | No existe **o es de otro usuario** (no se revela que exista) |
 | 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos |
 | 422 | Regla de negocio: nada pendiente por pagar, alimentación mayor que el saldo, cosecha cerrada, contraseña actual incorrecta |
 | 500 / 503 | Falla del servidor / base de datos caída (`GET /health`) |
+
+**Precio y noticias** (`/price-and-news`, JWT salvo los de sistema)
+
+| Método y ruta | Respuesta |
+|---|---|
+| `GET /coffee-price` | Último precio FNC `{ id, value, queryDate, createdAt }` o 204 |
+| `GET /coffee-price/history` | Precios publicados, del más nuevo al más viejo (cada cambio es una fila) |
+| `GET /coffee-price/analysis` | `{ text, generatedAt, basedOnPriceId }` del precio vigente, o 204 si aún no se analizó |
+| `GET /news` | Noticias de los últimos 30 días: `[{ id, kind: 'NEWS', title, source, summary, url, publishedAt }]` |
+| `GET /tips` | Tips del mes en curso (hora de Colombia), mismo formato con `kind: 'TIP'` |
+| `POST /coffee-price` | Sistema (`x-admin-key`): publica un precio a mano |
+| `POST /ai/refresh` | Sistema (`x-admin-key`): refresca precio, noticias, análisis y tips con Gemini; devuelve el resumen (`enabled: false` sin `GEMINI_API_KEY`) |
 
 **Errores**: `{ statusCode, error, message }`. `error` es el código de dominio (ej. `HarvestAlreadyActiveError`), que la app traduce al español con `apiErrorMessage()`; `message` está en inglés y nunca se muestra al usuario. Un 401 en cambiar contraseña cerraría la sesión, por eso "contraseña actual incorrecta" es 422.
 
