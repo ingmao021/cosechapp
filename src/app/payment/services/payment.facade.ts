@@ -31,12 +31,15 @@ export class PaymentFacade {
     }
   }
 
-  /** Desglose (bruto, ya pagado, alimentación, neto). Lanza el error de la API (ej. 422 nada pendiente). */
-  preview(harvestPickerId: string, harvestId: string, mealDeduction: number | null): Promise<PaymentPreviewResponse> {
-    return firstValueFrom(this.paymentService.preview(harvestPickerId, harvestId, mealDeduction));
+  /**
+   * Desglose (bruto, ya pagado, alimentación, neto). mealPerDay: lo que se cobra de comida por día
+   * (null = sin alimentación). Lanza el error de la API (ej. 422 nada pendiente).
+   */
+  preview(harvestPickerId: string, harvestId: string, mealPerDay: number | null): Promise<PaymentPreviewResponse> {
+    return firstValueFrom(this.paymentService.preview(harvestPickerId, harvestId, mealPerDay));
   }
 
-  async payNow(harvestPickerId: string, harvestId: string, mealDeduction: number | null): Promise<PayNowResponse> {
+  async payNow(harvestPickerId: string, harvestId: string, mealPerDay: number | null): Promise<PayNowResponse> {
     this._isLoading.set(true);
     this._error.set(null);
     try {
@@ -44,8 +47,8 @@ export class PaymentFacade {
         this.paymentService.payNow({
           harvestPickerId,
           harvestId,
-          includesMeals: mealDeduction !== null,
-          mealDeduction: mealDeduction ?? undefined,
+          includesMeals: mealPerDay !== null,
+          mealPerDay: mealPerDay ?? undefined,
         }),
       );
       this._payments.update((payments) => [result.payment, ...payments]);

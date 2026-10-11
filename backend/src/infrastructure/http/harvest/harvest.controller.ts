@@ -24,7 +24,7 @@ import { Crew } from '@domain/harvest/crew.entity';
 import { Sale } from '@domain/sale-and-costs/sale.entity';
 import { ProductionCost } from '@domain/sale-and-costs/production-cost.entity';
 import { JwtAuthGuard } from '@infrastructure/http/auth/guards/jwt-auth.guard';
-import { OpenHarvestDto, AssignWorkerDto, CreateCrewDto, UpdateCrewDto } from './harvest.dto';
+import { OpenHarvestDto, AssignWorkerDto, CreateCrewDto, UpdateCrewDto, UpdateHarvestDto, UpdatePickerDto } from './harvest.dto';
 
 interface AuthRequest {
   user: AuthUser;
@@ -72,6 +72,35 @@ export class HarvestController {
     });
     res.status(created ? HttpStatus.CREATED : HttpStatus.OK);
     return toHarvestWorkerResponse(harvestWorker);
+  }
+
+  @Patch(':id/pickers/:pickerId')
+  @ApiOperation({ summary: 'Move a picker to another crew (or none) and/or change its harvest alias' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  @ApiParam({ name: 'pickerId', description: 'Harvest Picker ID' })
+  async updatePicker(
+    @Request() req: AuthRequest,
+    @Param('id') id: string,
+    @Param('pickerId') pickerId: string,
+    @Body() dto: UpdatePickerDto,
+  ) {
+    const harvestWorker = await this.harvestService.updatePicker(req.user, {
+      harvestId: id,
+      pickerId,
+      crewId: dto.crewId,
+      harvestAlias: dto.harvestAlias,
+    });
+    return toHarvestWorkerResponse(harvestWorker);
+  }
+
+  @Delete(':id/pickers/:pickerId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove a picker added by mistake (only without weighings or payments)' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  @ApiParam({ name: 'pickerId', description: 'Harvest Picker ID' })
+  @ApiResponse({ status: 409, description: 'Picker has weighings or payments: archive it instead' })
+  async deletePicker(@Request() req: AuthRequest, @Param('id') id: string, @Param('pickerId') pickerId: string) {
+    await this.harvestService.deletePicker(req.user, id, pickerId);
   }
 
   @Patch(':id/pickers/:pickerId/archive')
@@ -174,6 +203,25 @@ export class HarvestController {
       sale: detail.sale ? toSaleSummary(detail.sale) : null,
       costs: detail.costs.map(toCostSummary),
     };
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Fix the name or price per kilogram of the active harvest' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  @ApiResponse({ status: 409, description: 'Closed harvest, or price change after payments' })
+  async updateHarvest(@Request() req: AuthRequest, @Param('id') id: string, @Body() dto: UpdateHarvestDto) {
+    return toHarvestResponse(
+      await this.harvestService.updateHarvest(req.user, id, { name: dto.name, pricePerKilogram: dto.pricePerKilogram }),
+    );
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete the active harvest created by mistake (only without weighings or payments)' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  @ApiResponse({ status: 409, description: 'Harvest has weighings or payments: close it instead' })
+  async deleteHarvest(@Request() req: AuthRequest, @Param('id') id: string) {
+    await this.harvestService.deleteHarvest(req.user, id);
   }
 
   @Get(':id')

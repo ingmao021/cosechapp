@@ -19,7 +19,7 @@ export class WorkerController {
     const worker = await this.workerService.createWorker({
       coffeeGrowerId: req.user.userId,
       firstName: dto.firstName,
-      lastName: dto.lastName,
+      lastName: dto.lastName?.trim() ?? '',
       alias: dto.alias,
       phoneNumber: dto.phoneNumber,
     });
@@ -49,7 +49,7 @@ export class WorkerController {
       workerId: id,
       coffeeGrowerId: req.user.userId,
       firstName: dto.firstName,
-      lastName: dto.lastName,
+      lastName: dto.lastName?.trim() ?? '',
       alias: dto.alias,
       phoneNumber: dto.phoneNumber,
     });

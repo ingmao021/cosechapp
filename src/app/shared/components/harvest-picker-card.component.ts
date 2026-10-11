@@ -1,7 +1,7 @@
 import { Component, computed, input, output } from '@angular/core';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { addIcons } from 'ionicons';
-import { addOutline } from 'ionicons/icons';
+import { addOutline, ellipsisVertical } from 'ionicons/icons';
 import { KilosPipe } from '../pipes/kilos.pipe';
 import { CurrencyPipe } from '../pipes/currency.pipe';
 
@@ -19,7 +19,8 @@ export interface PickerCardData {
 
 /**
  * Molécula: tarjeta de recolector en la lista de una cuadrilla (Design System §1.4, §2.3).
- * Nombre (o alias) + kilos de hoy + saldo pendiente, y el botón "Pesar" con ícono y texto.
+ * Nombre (o alias) + kilos de hoy + saldo pendiente, el botón "Pesar" con ícono y texto y,
+ * con [showMenu], el botón ⋮ de opciones (editar, cambiar de cuadrilla, eliminar).
  */
 @Component({
   selector: 'app-harvest-picker-card',
@@ -51,6 +52,16 @@ export interface PickerCardData {
         >
           <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
           Pesar
+        </button>
+      }
+      @if (showMenu()) {
+        <button
+          type="button"
+          class="menu-btn"
+          (click)="onMenuClick($event)"
+          [attr.aria-label]="'Opciones de ' + picker().displayName"
+        >
+          <ion-icon name="ellipsis-vertical" aria-hidden="true"></ion-icon>
         </button>
       }
     </div>
@@ -132,22 +143,47 @@ export interface PickerCardData {
     .weigh-btn ion-icon {
       font-size: 20px;
     }
+    .menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--touch-target-min);
+      min-height: var(--touch-target-min);
+      margin-right: calc(-1 * var(--spacing-sm));
+      border: none;
+      border-radius: var(--radius-full);
+      background: transparent;
+      color: var(--color-text-muted);
+      cursor: pointer;
+    }
+    .menu-btn ion-icon {
+      font-size: 20px;
+    }
   `],
 })
 export class HarvestPickerCardComponent {
   picker = input.required<PickerCardData>();
   clickable = input<boolean>(true);
+  showMenu = input<boolean>(false);
 
   cardClick = output<PickerCardData>();
   weighClick = output<PickerCardData>();
+  menuClick = output<PickerCardData>();
 
+  /** Iniciales de las dos primeras palabras del nombre (el apellido ya no se pide). */
   readonly initials = computed(() => {
     const { firstName, lastName } = this.picker();
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    const words = `${firstName} ${lastName}`.trim().split(/\s+/);
+    return words.slice(0, 2).map((word) => word.charAt(0)).join('').toUpperCase();
   });
 
   constructor() {
-    addIcons({ addOutline });
+    addIcons({ addOutline, ellipsisVertical });
+  }
+
+  onMenuClick(event: Event): void {
+    event.stopPropagation();
+    this.menuClick.emit(this.picker());
   }
 
   onCardClick(): void {

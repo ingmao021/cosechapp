@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
@@ -14,16 +14,19 @@ import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { IonCardTitle } from '@ionic/angular/ion-card-title';
 import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { addIcons } from 'ionicons';
-import { peopleOutline, addOutline, chevronForwardOutline, alertCircleOutline } from 'ionicons/icons';
+import { peopleOutline, addOutline, chevronForwardOutline, alertCircleOutline, personAddOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { ToastController } from '@ionic/angular/toast-controller';
 import { apiErrorMessage } from '../../shared/utils';
+import { HarvestPickerCardComponent, PickerCardData } from '@shared/components';
+import { PickerActionsService } from '../services/picker-actions.service';
+import { NetworkService } from '../../network/services/network.service';
 
 /**
- * Pantalla Cuadrillas — Tarea 3.2.
- * Lista de cuadrillas de la cosecha activa + botón crear nueva.
- * Conecta con HarvestFacade para cargar datos reales.
+ * Pantalla Cuadrillas — Tarea 3.2 (se llega con "Pesar").
+ * Cuadrillas de la cosecha activa + botón crear nueva, y abajo las personas que cosechan
+ * solas ("Sin cuadrilla"), con Pesar, menú ⋮ y botón para agregar otra.
  */
 @Component({
   selector: 'app-crews',
@@ -32,7 +35,8 @@ import { apiErrorMessage } from '../../shared/utils';
     IonSpinner,
     IonButtons,
     IonBackButton,
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardTitle, IonCardSubtitle],
+    IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardTitle, IonCardSubtitle,
+    HarvestPickerCardComponent],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -44,7 +48,7 @@ import { apiErrorMessage } from '../../shared/utils';
     </ion-header>
 
     <ion-content class="ion-padding">
-      @if (harvestFacade.isLoading()) {
+      @if (harvestFacade.isLoading() && !harvestFacade.hasActiveHarvest()) {
         <div class="loading-center">
           <ion-spinner name="crescent"></ion-spinner>
         </div>
@@ -79,7 +83,7 @@ import { apiErrorMessage } from '../../shared/utils';
             <ion-card-content class="text-center">
               <ion-icon name="people-outline" size="large" color="medium"></ion-icon>
               <h3 class="text-level-2 ion-margin-top">Sin cuadrillas</h3>
-              <p class="text-level-4 ion-margin">Crea tu primera cuadrilla para agrupar recolectores.</p>
+              <p class="text-level-4 ion-margin">Crea una cuadrilla para agrupar recolectores. Si alguien cosecha solo, agrégalo abajo, en "Sin cuadrilla".</p>
               <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="createCrew()">
                 <ion-icon name="add-outline" slot="start"></ion-icon>
                 Crear cuadrilla
@@ -100,6 +104,28 @@ import { apiErrorMessage } from '../../shared/utils';
             </ion-card>
           }
         }
+
+        <!-- Personas que cosechan solas, sin cuadrilla -->
+        <section class="solo-section" aria-labelledby="solo-title">
+          <h2 id="solo-title" class="text-level-2">Sin cuadrilla @if (soloPickers().length > 0) { ({{ soloPickers().length }}) }</h2>
+          <p class="text-level-4 solo-hint">Personas que vienen a cosechar solas, sin cuadrilla.</p>
+          @for (picker of soloPickers(); track picker.id) {
+            <app-harvest-picker-card
+              [picker]="picker"
+              [showMenu]="network.isOnline()"
+              (cardClick)="goToPickerDetail($event)"
+              (weighClick)="goToWeighing($event)"
+              (menuClick)="openPickerMenu($event)"
+            ></app-harvest-picker-card>
+          }
+          <ion-button expand="block" fill="outline" color="primary" [disabled]="!network.isOnline()" (click)="addSoloPicker()">
+            <ion-icon name="person-add-outline" slot="start"></ion-icon>
+            Agregar persona sin cuadrilla
+          </ion-button>
+          @if (!network.isOnline()) {
+            <p class="text-level-4 solo-hint">Necesitas conexión para agregar personas.</p>
+          }
+        </section>
       }
     </ion-content>
   `,
@@ -132,6 +158,16 @@ import { apiErrorMessage } from '../../shared/utils';
     .crew-info {
       flex: 1;
     }
+    .solo-section {
+      margin-top: var(--spacing-xl);
+    }
+    .solo-section h2 {
+      margin: 0 0 var(--spacing-xs);
+    }
+    .solo-hint {
+      margin: 0 0 var(--spacing-md);
+      color: var(--color-text-muted);
+    }
     .loading-center {
       display: flex;
       justify-content: center;
@@ -148,16 +184,46 @@ export class CrewsPage {
   private readonly router = inject(Router);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
+  private readonly pickerActions = inject(PickerActionsService);
+  protected readonly network = inject(NetworkService);
+
+  /** Recolectores activos sin cuadrilla (cosechan solos). */
+  readonly soloPickers = computed(() =>
+    this.harvestFacade.activeHarvestPickers().filter((picker) => picker.crewId === null && picker.status === 'active'),
+  );
 
   constructor() {
-    addIcons({ peopleOutline, addOutline, chevronForwardOutline, alertCircleOutline });
+    addIcons({ peopleOutline, addOutline, chevronForwardOutline, alertCircleOutline, personAddOutline });
 
-    // Cargar cuadrillas al inicializar
+    // Entrada directa (ej. al reabrir la app aquí): cargar la cosecha activa.
+    if (!this.harvestFacade.hasActiveHarvest()) {
+      this.harvestFacade.loadActiveHarvest();
+    }
+    // Cargar cuadrillas y recolectores al tener la cosecha
     effect(() => {
-      if (this.harvestFacade.hasActiveHarvest()) {
-        this.harvestFacade.loadCrews(this.harvestFacade.activeHarvest()!.id);
+      const harvest = this.harvestFacade.activeHarvest();
+      if (harvest) {
+        this.harvestFacade.loadCrews(harvest.id);
+        this.harvestFacade.loadPickers(harvest.id);
       }
     });
+  }
+
+  addSoloPicker(): void {
+    this.router.navigate(['/harvest/pickers/add']);
+  }
+
+  openPickerMenu(card: PickerCardData): void {
+    const picker = this.harvestFacade.pickerById(card.id);
+    if (picker) void this.pickerActions.openMenu(picker);
+  }
+
+  goToPickerDetail(picker: PickerCardData): void {
+    this.router.navigate(['/harvest/pickers', picker.id]);
+  }
+
+  goToWeighing(picker: PickerCardData): void {
+    this.router.navigate(['/harvest/pickers', picker.id, 'weighing', 'new']);
   }
 
   getPickersCount(crewId: string): number {
@@ -167,7 +233,6 @@ export class CrewsPage {
 
   /** Diálogo con un solo campo: la cuadrilla solo necesita un nombre (Design System §1.3). */
   async createCrew(): Promise<void> {
-    const count = this.harvestFacade.activeHarvestCrews().length;
     const alert = await this.alertController.create({
       header: 'Nueva cuadrilla',
       inputs: [
@@ -175,7 +240,6 @@ export class CrewsPage {
           name: 'name',
           type: 'text',
           placeholder: 'Ej: Cuadrilla de don José',
-          value: `Cuadrilla ${count + 1}`,
           attributes: { maxlength: 100, autocapitalize: 'sentences' },
         },
       ],

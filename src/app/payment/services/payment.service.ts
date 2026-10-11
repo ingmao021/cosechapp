@@ -7,8 +7,8 @@ export interface PayNowDto {
   harvestPickerId: string;
   harvestId: string;
   includesMeals: boolean;
-  /** Valor a descontar por alimentación (COP), si includesMeals. */
-  mealDeduction?: number;
+  /** Lo que se cobra de alimentación por día (COP); el backend lo multiplica por los días con pesadas. */
+  mealPerDay?: number;
 }
 
 /** Desglose de lo que se le pagaría ahora al recolector. Montos en positivo (COP). */
@@ -17,7 +17,11 @@ export interface PaymentPreviewResponse {
   gross: number;
   alreadyPaid: number;
   previousMealDeductions: number;
+  /** Alimentación de este pago: mealDays × mealPerDay. */
   mealDeduction: number;
+  /** Días con pesadas desde el último pago (null si no hubo alimentación). */
+  mealDays: number | null;
+  mealPerDay: number | null;
   net: number;
 }
 
@@ -46,9 +50,9 @@ export class PaymentService {
 
   private readonly baseUrl = `${environment.apiUrl}/payments`;
 
-  preview(harvestPickerId: string, harvestId: string, mealDeduction: number | null): Observable<PaymentPreviewResponse> {
-    const params: Record<string, string> = { harvestId, includesMeals: String(mealDeduction !== null) };
-    if (mealDeduction !== null) params['mealDeduction'] = String(mealDeduction);
+  preview(harvestPickerId: string, harvestId: string, mealPerDay: number | null): Observable<PaymentPreviewResponse> {
+    const params: Record<string, string> = { harvestId, includesMeals: String(mealPerDay !== null) };
+    if (mealPerDay !== null) params['mealPerDay'] = String(mealPerDay);
     return this.http.get<PaymentPreviewResponse>(`${this.baseUrl}/picker/${harvestPickerId}/preview`, { params });
   }
 

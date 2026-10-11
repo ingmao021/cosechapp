@@ -75,6 +75,36 @@ export class Harvest {
     );
   }
 
+  /** Corrige el nombre (ej. se equivocó al crearla). */
+  rename(name: string): Harvest {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new BusinessRuleViolationError('Harvest name cannot be empty');
+    }
+    return this.with({ name: trimmed });
+  }
+
+  changePrice(pricePerKilogram: number): Harvest {
+    if (!Number.isFinite(pricePerKilogram) || pricePerKilogram <= 0) {
+      throw new BusinessRuleViolationError('Price per kilogram must be positive');
+    }
+    return this.with({ pricePerKilogram });
+  }
+
+  private with(changes: { name?: string; pricePerKilogram?: number }): Harvest {
+    return Harvest.reconstitute(
+      this.id,
+      this.farmId,
+      changes.name ?? this.name,
+      changes.pricePerKilogram ?? this.pricePerKilogram,
+      this.status,
+      this.openingDate,
+      this.closingDate,
+      this.createdAt,
+      new Date(),
+    );
+  }
+
   isActive(): boolean {
     return this.status === HarvestStatus.ACTIVE;
   }

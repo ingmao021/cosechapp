@@ -14,6 +14,18 @@ export interface OpenHarvestDto {
   pricePerKilogram: number;
 }
 
+/** Corrección de la cosecha activa; los campos sin enviar no cambian. */
+export interface UpdateHarvestDto {
+  name?: string;
+  pricePerKilogram?: number;
+}
+
+/** crewId null = sin cuadrilla; harvestAlias null = quitar el alias de la cosecha. */
+export interface UpdatePickerDto {
+  crewId?: string | null;
+  harvestAlias?: string | null;
+}
+
 export interface AssignWorkerDto {
   workerId: string;
   harvestAlias?: string;
@@ -121,6 +133,16 @@ export class HarvestService {
     return this.http.patch<HarvestResponse>(`${this.baseUrl}/${harvestId}/close`, {});
   }
 
+  /** 409 si se cambia el precio cuando ya hay pagos. */
+  updateHarvest(harvestId: string, dto: UpdateHarvestDto): Observable<HarvestResponse> {
+    return this.http.patch<HarvestResponse>(`${this.baseUrl}/${harvestId}`, dto);
+  }
+
+  /** 204; 409 si ya tiene pesadas o pagos (entonces se cierra). */
+  deleteHarvest(harvestId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${harvestId}`);
+  }
+
   /** null (204) cuando no hay cosecha activa. */
   getActiveHarvest(): Observable<HarvestResponse | null> {
     return this.http.get<HarvestResponse | null>(`${this.baseUrl}/active`);
@@ -144,6 +166,15 @@ export class HarvestService {
 
   archiveWorker(harvestId: string, pickerId: string): Observable<HarvestWorkerResponse> {
     return this.http.patch<HarvestWorkerResponse>(`${this.baseUrl}/${harvestId}/pickers/${pickerId}/archive`, {});
+  }
+
+  updatePicker(harvestId: string, pickerId: string, dto: UpdatePickerDto): Observable<HarvestWorkerResponse> {
+    return this.http.patch<HarvestWorkerResponse>(`${this.baseUrl}/${harvestId}/pickers/${pickerId}`, dto);
+  }
+
+  /** 204; 409 si ya tiene pesadas o pagos (entonces se archiva). */
+  deletePicker(harvestId: string, pickerId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${harvestId}/pickers/${pickerId}`);
   }
 
   getPickers(harvestId: string): Observable<PickerStatsResponse[]> {

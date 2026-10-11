@@ -18,6 +18,11 @@ export const harvestRoutes: Routes = [
     loadComponent: () => import('./pages/add-picker.page').then(m => m.AddPickerPage),
   },
   {
+    // Persona que cosecha sola (sin cuadrilla); antes de 'pickers/:pickerId' para que "add" no sea un id.
+    path: 'pickers/add',
+    loadComponent: () => import('./pages/add-picker.page').then(m => m.AddPickerPage),
+  },
+  {
     path: 'pickers/:pickerId',
     loadComponent: () => import('./pages/picker-detail.page').then(m => m.PickerDetailPage),
   },

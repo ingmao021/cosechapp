@@ -121,6 +121,66 @@ describeIfDb('API contract (e2e)', () => {
     await http.post('/price-and-news/ai/refresh').set('x-admin-key', 'wrong').expect(403);
   });
 
+  it('a harvest created by mistake: edit name and price, then delete 204', async () => {
+    const user = await registerUser();
+    const harvest = (
+      await http.post('/harvests').set('Authorization', user.token).send({ name: 'Mal nombre', pricePerKilogram: 900 }).expect(201)
+    ).body;
+    const edited = await http
+      .patch(`/harvests/${harvest.id}`)
+      .set('Authorization', user.token)
+      .send({ name: 'Mitaca 2026', pricePerKilogram: 1100 })
+      .expect(200);
+    expect(edited.body).toMatchObject({ name: 'Mitaca 2026', pricePerKilogram: 1100 });
+    await http.post(`/harvests/${harvest.id}/crews`).set('Authorization', user.token).send({ name: 'Cuadrilla 1' }).expect(201);
+    await http.delete(`/harvests/${harvest.id}`).set('Authorization', user.token).expect(204);
+    await http.get('/harvests/active').set('Authorization', user.token).expect(204);
+  });
+
+  it('person without crew: one name only, added solo, moved, deleted 204; with weighings 409; meals per day', async () => {
+    const owner = await registerUser();
+    const harvestId = (
+      await http.post('/harvests').set('Authorization', owner.token).send({ name: 'Traviesa', pricePerKilogram: 1200 }).expect(201)
+    ).body.id;
+    const crewId = (
+      await http.post(`/harvests/${harvestId}/crews`).set('Authorization', owner.token).send({ name: 'Cuadrilla 1' }).expect(201)
+    ).body.id;
+    const solo = await http.post('/workers').set('Authorization', owner.token).send({ firstName: 'Pedro' }).expect(201);
+    expect(solo.body.displayName).toBe('Pedro');
+
+    const add = () =>
+      http.post(`/harvests/${harvestId}/pickers`).set('Authorization', owner.token).send({ workerId: solo.body.id });
+    let soloPicker = (await add().expect(201)).body;
+    expect(soloPicker.crewId).toBeNull();
+
+    const patch = (body: object) =>
+      http.patch(`/harvests/${harvestId}/pickers/${soloPicker.id}`).set('Authorization', owner.token).send(body);
+    expect((await patch({ crewId }).expect(200)).body.crewId).toBe(crewId);
+    expect((await patch({ crewId: null }).expect(200)).body.crewId).toBeNull();
+    await patch({ crewId: 'not-a-crew' }).expect(404);
+
+    await http.delete(`/harvests/${harvestId}/pickers/${soloPicker.id}`).set('Authorization', owner.token).expect(204);
+    soloPicker = (await add().expect(201)).body;
+    await http.post('/weighings').set('Authorization', owner.token).send({ harvestPickerId: soloPicker.id, kilograms: 20 }).expect(201);
+    const blocked = await http.delete(`/harvests/${harvestId}/pickers/${soloPicker.id}`).set('Authorization', owner.token).expect(409);
+    expect(blocked.body.error).toBe('PickerHasRecordsError');
+
+    // Comida por día: un día con pesadas × 10.000
+    const preview = await http
+      .get(`/payments/picker/${soloPicker.id}/preview`)
+      .query({ harvestId, includesMeals: true, mealPerDay: 10000 })
+      .set('Authorization', owner.token)
+      .expect(200);
+    expect(preview.body).toMatchObject({ gross: 24000, mealDays: 1, mealPerDay: 10000, mealDeduction: 10000, net: 14000 });
+    const paid = await http
+      .post('/payments/pay-now')
+      .set('Authorization', owner.token)
+      .send({ harvestPickerId: soloPicker.id, harvestId, includesMeals: true, mealPerDay: 10000 })
+      .expect(201);
+    expect(paid.body.payment).toMatchObject({ amount: 14000, mealDeduction: 10000 });
+  });
+
+
   describe('harvest flow', () => {
     let owner: { token: string };
     let intruder: { token: string };
@@ -237,6 +297,8 @@ describeIfDb('API contract (e2e)', () => {
         alreadyPaid: 0,
         previousMealDeductions: 0,
         mealDeduction: 5000,
+        mealDays: null,
+        mealPerDay: null,
         net: 31000,
       });
 
@@ -256,6 +318,16 @@ describeIfDb('API contract (e2e)', () => {
         .set('Authorization', owner.token)
         .send({ harvestPickerId: pickerId, harvestId, includesMeals: false })
         .expect(422);
+    });
+
+    it('edit harvest: rename 200, price change after payments 409; delete with records 409', async () => {
+      const renamed = await http.patch(`/harvests/${harvestId}`).set('Authorization', owner.token).send({ name: 'Primer pasón 2026' }).expect(200);
+      expect(renamed.body).toMatchObject({ name: 'Primer pasón 2026', pricePerKilogram: 1200 });
+      const price = await http.patch(`/harvests/${harvestId}`).set('Authorization', owner.token).send({ pricePerKilogram: 1500 }).expect(409);
+      expect(price.body.error).toBe('HarvestHasPaymentsError');
+      const del = await http.delete(`/harvests/${harvestId}`).set('Authorization', owner.token).expect(409);
+      expect(del.body.error).toBe('HarvestHasRecordsError');
+      await http.delete(`/harvests/${harvestId}`).set('Authorization', intruder.token).expect(404);
     });
 
     it("another user gets 404 on everything of this harvest", async () => {

@@ -9,6 +9,7 @@ import { Harvest } from '@domain/harvest/harvest.entity';
 import { HarvestWorker } from '@domain/harvest/harvest-worker.entity';
 import { HarvestStatus } from '@domain/harvest/harvest-status.enum';
 import { HarvestPickerStatus } from '@domain/harvest/harvest-picker-status.enum';
+import { Weighing } from '@domain/weighing/weighing.entity';
 
 describe('PayNowUseCase', () => {
   let useCase: PayNowUseCase;
@@ -43,6 +44,8 @@ describe('PayNowUseCase', () => {
       findAllByHarvestId: jest.fn(),
       findAllByHarvestIdAndStatus: jest.fn(),
       findByIdAndHarvestId: jest.fn(),
+      countRecords: jest.fn(),
+      delete: jest.fn(),
     };
 
     mockHarvestRepository = {
@@ -52,6 +55,8 @@ describe('PayNowUseCase', () => {
       findAllByFarmId: jest.fn(),
       findByIdAndFarmId: jest.fn(),
       findAllByFarmIdWithStatus: jest.fn(),
+      countRecords: jest.fn(),
+      delete: jest.fn(),
     };
 
     mockCalculator = {
@@ -210,6 +215,8 @@ describe('PayNowUseCase', () => {
       alreadyPaid: 250000,
       previousMealDeductions: 0,
       mealDeduction: 5000,
+      mealDays: null,
+      mealPerDay: null,
       net: 45000,
     });
   });
@@ -310,5 +317,90 @@ describe('PayNowUseCase', () => {
         mealDetail: null,
       }),
     ).rejects.toThrow('Nothing to pay for this picker');
+  });
+
+  describe('meals charged per day', () => {
+    const weighing = (iso: string) => Weighing.create(crypto.randomUUID(), 'hw-1', 10, new Date(iso));
+    const payment = (iso: string) => Payment.create('pay-old', 'hw-1', -10000, false, null, new Date(iso));
+
+    beforeEach(() => {
+      mockHarvestRepository.findById.mockResolvedValue(Harvest.create('harvest-1', 'farm-1', 'Test', 1000));
+      mockHarvestWorkerRepository.findByIdAndHarvestId.mockResolvedValue(HarvestWorker.create('hw-1', 'harvest-1', 'worker-1'));
+      mockWeighingRepository.getTotalKilogramsByHarvestPickerId.mockResolvedValue(100);
+      mockCalculator.calculate.mockReturnValue(-100000);
+      mockPaymentRepository.save.mockImplementation(async (p) => p);
+    });
+
+    it('charges one meal per day with weighings (two weighings the same day count once)', async () => {
+      mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([]);
+      mockWeighingRepository.findAllByHarvestPickerId.mockResolvedValue([
+        weighing('2026-10-06T14:00:00Z'),
+        weighing('2026-10-06T20:00:00Z'),
+        weighing('2026-10-07T14:00:00Z'),
+        weighing('2026-10-08T14:00:00Z'),
+      ]);
+
+      const preview = await useCase.preview({
+        harvestPickerId: 'hw-1',
+        harvestId: 'harvest-1',
+        includesMeals: true,
+        mealPerDay: 10000,
+        mealDetail: null,
+      });
+
+      expect(preview).toMatchObject({ mealDays: 3, mealPerDay: 10000, mealDeduction: 30000, net: 70000 });
+    });
+
+    it('only counts days after the last payment, without repeating the day already charged', async () => {
+      // Pagó el 7 por la tarde, después de pesar ese día: el 7 ya se cobró.
+      mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([payment('2026-10-07T22:00:00Z')]);
+      mockWeighingRepository.findAllByHarvestPickerId.mockResolvedValue([
+        weighing('2026-10-06T14:00:00Z'),
+        weighing('2026-10-07T14:00:00Z'),
+        weighing('2026-10-07T23:00:00Z'),
+        weighing('2026-10-08T14:00:00Z'),
+      ]);
+
+      const preview = await useCase.preview({
+        harvestPickerId: 'hw-1',
+        harvestId: 'harvest-1',
+        includesMeals: true,
+        mealPerDay: 8000,
+        mealDetail: null,
+      });
+
+      expect(preview.mealDays).toBe(1);
+      expect(preview.mealDeduction).toBe(8000);
+    });
+
+    it('records no meal deduction when there are no days to charge', async () => {
+      mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([payment('2026-10-08T22:00:00Z')]);
+      mockWeighingRepository.findAllByHarvestPickerId.mockResolvedValue([weighing('2026-10-08T14:00:00Z')]);
+
+      const result = await useCase.execute({
+        harvestPickerId: 'hw-1',
+        harvestId: 'harvest-1',
+        includesMeals: true,
+        mealPerDay: 10000,
+        mealDetail: null,
+      });
+
+      expect(result.payment.includesMeals).toBe(false);
+      expect(result.payment.mealDetail).toBeNull();
+    });
+
+    it('still accepts a total meal value from older apps', async () => {
+      mockPaymentRepository.findAllByHarvestPickerId.mockResolvedValue([]);
+      mockWeighingRepository.findAllByHarvestPickerId.mockResolvedValue([]);
+
+      const preview = await useCase.preview({
+        harvestPickerId: 'hw-1',
+        harvestId: 'harvest-1',
+        includesMeals: true,
+        mealDetail: '5000',
+      });
+
+      expect(preview).toMatchObject({ mealDeduction: 5000, mealDays: null, mealPerDay: null });
+    });
   });
 });

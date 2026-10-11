@@ -14,6 +14,10 @@ import { GetCrewUseCase } from '@domain/harvest/use-cases/get-crew.use-case';
 import { ListCrewsUseCase } from '@domain/harvest/use-cases/list-crews.use-case';
 import { UpdateCrewUseCase } from '@domain/harvest/use-cases/update-crew.use-case';
 import { DeleteCrewUseCase } from '@domain/harvest/use-cases/delete-crew.use-case';
+import { UpdateHarvestUseCase } from '@domain/harvest/use-cases/update-harvest.use-case';
+import { DeleteHarvestUseCase } from '@domain/harvest/use-cases/delete-harvest.use-case';
+import { UpdatePickerUseCase } from '@domain/harvest/use-cases/update-picker.use-case';
+import { DeletePickerUseCase } from '@domain/harvest/use-cases/delete-picker.use-case';
 import { GetHarvestProfitUseCase } from '@domain/sale-and-costs/use-cases/get-harvest-profit.use-case';
 import { FarmRepository } from '@domain/farm/farm.repository';
 import { WorkerRepository } from '@domain/worker/worker.repository';
@@ -58,6 +62,35 @@ export class HarvestService {
     const useCase = new CloseHarvestUseCase(this.harvestRepository);
     const result = await useCase.execute({ harvestId, farmId: user.farmId });
     return result.harvest;
+  }
+
+  async updateHarvest(
+    user: AuthUser,
+    harvestId: string,
+    input: { name?: string; pricePerKilogram?: number },
+  ): Promise<Harvest> {
+    await this.ownership.harvestFor(harvestId, user.farmId);
+    const result = await new UpdateHarvestUseCase(this.harvestRepository).execute({ harvestId, ...input });
+    return result.harvest;
+  }
+
+  async deleteHarvest(user: AuthUser, harvestId: string): Promise<void> {
+    await this.ownership.harvestFor(harvestId, user.farmId);
+    await new DeleteHarvestUseCase(this.harvestRepository).execute({ harvestId });
+  }
+
+  async updatePicker(
+    user: AuthUser,
+    input: { harvestId: string; pickerId: string; crewId?: string | null; harvestAlias?: string | null },
+  ): Promise<HarvestWorker> {
+    await this.ownership.harvestFor(input.harvestId, user.farmId);
+    const result = await new UpdatePickerUseCase(this.harvestWorkerRepository, this.crewRepository).execute(input);
+    return result.harvestWorker;
+  }
+
+  async deletePicker(user: AuthUser, harvestId: string, pickerId: string): Promise<void> {
+    await this.ownership.harvestFor(harvestId, user.farmId);
+    await new DeletePickerUseCase(this.harvestWorkerRepository).execute({ harvestId, pickerId });
   }
 
   async assignWorkerToHarvest(

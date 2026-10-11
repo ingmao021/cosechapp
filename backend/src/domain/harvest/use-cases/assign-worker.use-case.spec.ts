@@ -26,6 +26,8 @@ describe('AssignWorkerToHarvestUseCase', () => {
       findAllByHarvestId: jest.fn(),
       findAllByHarvestIdAndStatus: jest.fn(),
       findByIdAndHarvestId: jest.fn(),
+      countRecords: jest.fn(),
+      delete: jest.fn(),
     };
 
     mockHarvestRepository = {
@@ -35,6 +37,8 @@ describe('AssignWorkerToHarvestUseCase', () => {
       findAllByFarmId: jest.fn(),
       findByIdAndFarmId: jest.fn(),
       findAllByFarmIdWithStatus: jest.fn(),
+      countRecords: jest.fn(),
+      delete: jest.fn(),
     };
 
     mockWorkerRepository = {

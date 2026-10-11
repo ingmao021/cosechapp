@@ -13,7 +13,7 @@ export interface PickerStats {
   lastName: string;
   /** Alias en la cosecha o, si no tiene, el del catálogo. */
   alias: string | null;
-  /** Cómo se le muestra en listas: el alias o nombre + apellido. */
+  /** Cómo se le muestra en listas: el alias o el nombre (más el apellido, si lo tiene). */
   displayName: string;
   todayKilograms: number;
   weekKilograms: number;
@@ -90,7 +90,7 @@ export class PrismaHarvestQueries {
         firstName: picker.worker.firstName,
         lastName: picker.worker.lastName,
         alias,
-        displayName: alias ?? `${picker.worker.firstName} ${picker.worker.lastName}`,
+        displayName: alias ?? `${picker.worker.firstName} ${picker.worker.lastName}`.trim(),
         todayKilograms: todayKg.get(picker.id) ?? 0,
         weekKilograms: weekKg.get(picker.id) ?? 0,
         totalKilograms,

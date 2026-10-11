@@ -27,6 +27,7 @@ export class PaymentController {
       harvestPickerId: dto.harvestPickerId,
       harvestId: dto.harvestId,
       includesMeals: dto.includesMeals,
+      mealPerDay: dto.includesMeals ? (dto.mealPerDay ?? null) : null,
       mealDetail: dto.includesMeals && dto.mealDeduction !== undefined ? String(dto.mealDeduction) : null,
     });
     return {
@@ -48,6 +49,7 @@ export class PaymentController {
       harvestPickerId,
       harvestId: query.harvestId,
       includesMeals: query.includesMeals ?? false,
+      mealPerDay: query.includesMeals ? (query.mealPerDay ?? null) : null,
       mealDetail: query.includesMeals && query.mealDeduction !== undefined ? String(query.mealDeduction) : null,
     });
   }

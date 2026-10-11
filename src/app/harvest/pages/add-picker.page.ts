@@ -38,6 +38,9 @@ const normalize = (text: string) =>
  * Agregar recolector a una cuadrilla (Design System §1.4): elegir del catálogo de
  * trabajadores o crear uno nuevo. Un trabajador que ya está en otra cuadrilla de
  * la cosecha se puede mover a esta (con confirmación).
+ *
+ * Sin :crewId en la ruta (/harvest/pickers/add) agrega a una persona que cosecha sola,
+ * sin cuadrilla.
  */
 @Component({
   selector: 'app-add-picker',
@@ -58,16 +61,20 @@ const normalize = (text: string) =>
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button [defaultHref]="crewUrl" text="" aria-label="Volver"></ion-back-button>
+          <ion-back-button [defaultHref]="backUrl" text="" aria-label="Volver"></ion-back-button>
         </ion-buttons>
-        <ion-title class="text-level-1">Agregar recolector</ion-title>
+        <ion-title class="text-level-1">{{ solo ? 'Agregar persona' : 'Agregar recolector' }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
     <ion-content>
       <div class="page">
         <p class="form-page__intro">
-          Toca un trabajador para agregarlo a <strong>{{ crewName() }}</strong>.
+          @if (solo) {
+            Toca un trabajador para agregarlo a la cosecha <strong>sin cuadrilla</strong>.
+          } @else {
+            Toca un trabajador para agregarlo a <strong>{{ crewName() }}</strong>.
+          }
         </p>
 
         <ion-button expand="block" fill="outline" color="primary" (click)="createNewWorker()">
@@ -109,7 +116,7 @@ const normalize = (text: string) =>
                   <span class="worker-row__state">
                     @switch (row.state) {
                       @case ('in-this-crew') {
-                        <ion-icon name="checkmark-circle" color="primary" aria-hidden="true"></ion-icon> En esta cuadrilla
+                        <ion-icon name="checkmark-circle" color="primary" aria-hidden="true"></ion-icon> {{ solo ? 'Ya está sin cuadrilla' : 'En esta cuadrilla' }}
                       }
                       @case ('in-other-crew') {
                         <ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon> En {{ row.otherCrewName }}
@@ -220,13 +227,17 @@ export class AddPickerPage {
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
 
-  private readonly crewId = this.route.snapshot.paramMap.get('crewId') ?? '';
-  protected readonly crewUrl = `/harvest/crews/${this.crewId}`;
+  private readonly crewId = this.route.snapshot.paramMap.get('crewId');
+  /** Sin cuadrilla: la persona cosecha sola. */
+  protected readonly solo = this.crewId === null;
+  protected readonly backUrl = this.solo ? '/harvest/crews' : `/harvest/crews/${this.crewId}`;
 
   readonly query = signal('');
   readonly busyId = signal<string | null>(null);
 
-  readonly crewName = computed(() => this.harvestFacade.crewById(this.crewId)?.name ?? 'la cuadrilla');
+  readonly crewName = computed(() =>
+    this.crewId ? (this.harvestFacade.crewById(this.crewId)?.name ?? 'la cuadrilla') : 'sin cuadrilla',
+  );
 
   /** Trabajadores del catálogo con su situación en la cosecha; disponibles primero. */
   readonly rows = computed<WorkerRow[]>(() => {
@@ -263,9 +274,17 @@ export class AddPickerPage {
     }
     this.busyId.set(row.worker.id);
     try {
-      await this.harvestFacade.assignWorkerToHarvest(row.worker.id, this.crewId);
-      await this.showToast(`${row.worker.displayName} quedó en ${this.crewName()}.`, 'success');
-      await this.router.navigateByUrl(this.crewUrl, { replaceUrl: true });
+      const picker = this.harvestFacade.activeHarvestPickers().find((p) => p.workerId === row.worker.id);
+      if (this.solo && picker) {
+        await this.harvestFacade.movePicker(picker.id, null); // ya estaba en una cuadrilla
+      } else {
+        await this.harvestFacade.assignWorkerToHarvest(row.worker.id, this.crewId ?? undefined);
+      }
+      await this.showToast(
+        this.solo ? `${row.worker.displayName} quedó en la cosecha, sin cuadrilla.` : `${row.worker.displayName} quedó en ${this.crewName()}.`,
+        'success',
+      );
+      await this.router.navigateByUrl(this.backUrl, { replaceUrl: true });
     } catch (err: unknown) {
       await this.showToast(apiErrorMessage(err, 'No se pudo agregar el recolector. Intenta de nuevo.'), 'danger');
     } finally {
@@ -274,7 +293,9 @@ export class AddPickerPage {
   }
 
   createNewWorker(): void {
-    this.router.navigate(['/worker/create'], { queryParams: { crewId: this.crewId } });
+    this.router.navigate(['/worker/create'], {
+      queryParams: this.solo ? { sinCuadrilla: 1 } : { crewId: this.crewId },
+    });
   }
 
   private async confirmMove(row: WorkerRow): Promise<boolean> {
@@ -283,7 +304,7 @@ export class AddPickerPage {
       message: `Está en ${row.otherCrewName}. Sus pesadas y pagos se conservan.`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
-        { text: `Mover a ${this.crewName()}`, role: 'confirm' },
+        { text: this.solo ? 'Dejarlo sin cuadrilla' : `Mover a ${this.crewName()}`, role: 'confirm' },
       ],
     });
     await alert.present();

@@ -112,8 +112,51 @@ export class HarvestFacade {
     });
   }
 
+  /** Corrige el nombre y/o el precio por kilo (el precio solo mientras no haya pagos). */
+  async updateHarvest(changes: { name?: string; pricePerKilogram?: number }): Promise<void> {
+    const harvest = this.requireActive();
+    await this.run('No se pudo actualizar la cosecha.', async () => {
+      const updated = await firstValueFrom(this.harvestService.updateHarvest(harvest.id, changes));
+      this._activeHarvest.set(updated);
+      this.saveSnapshot();
+    });
+  }
+
+  /** Elimina la cosecha creada por error (solo sin pesadas ni pagos). */
+  async deleteHarvest(): Promise<void> {
+    const harvest = this.requireActive();
+    await this.run('No se pudo eliminar la cosecha.', async () => {
+      await firstValueFrom(this.harvestService.deleteHarvest(harvest.id));
+      this.setActive({ harvest: null, pickers: [], crews: [] });
+    });
+  }
+
+  /** Cambia de cuadrilla a un recolector; crewId null lo deja sin cuadrilla. */
+  async movePicker(pickerId: string, crewId: string | null): Promise<void> {
+    const harvest = this.requireActive();
+    await this.run('No se pudo cambiar de cuadrilla.', async () => {
+      await firstValueFrom(this.harvestService.updatePicker(harvest.id, pickerId, { crewId }));
+      await this.loadPickers(harvest.id);
+    });
+  }
+
+  /** Quita de la cosecha a un recolector agregado por error (solo sin pesadas ni pagos). */
+  async deletePicker(pickerId: string): Promise<void> {
+    const harvest = this.requireActive();
+    await this.run('No se pudo quitar el recolector.', async () => {
+      await firstValueFrom(this.harvestService.deletePicker(harvest.id, pickerId));
+      await this.loadPickers(harvest.id);
+    });
+  }
+
+  /** Quita el alias de la cosecha, para que se vea el nombre del catálogo (al editar el nombre). */
+  async clearPickerAlias(pickerId: string): Promise<void> {
+    const harvest = this.requireActive();
+    await firstValueFrom(this.harvestService.updatePicker(harvest.id, pickerId, { harvestAlias: null }));
+  }
+
   /**
-   * Agrega un trabajador del catálogo a la cosecha activa, en una cuadrilla.
+   * Agrega un trabajador del catálogo a la cosecha activa, en una cuadrilla o sin cuadrilla.
    * Si ya estaba en la cosecha, lo mueve a esa cuadrilla.
    */
   async assignWorkerToHarvest(workerId: string, crewId?: string, harvestAlias?: string): Promise<void> {

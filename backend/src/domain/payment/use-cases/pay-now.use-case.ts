@@ -5,12 +5,19 @@ import { HarvestWorkerRepository } from '@domain/harvest/harvest-worker.reposito
 import { HarvestRepository } from '@domain/harvest/harvest.repository';
 import { PaymentCalculatorStrategy } from '../payment-calculator';
 import { BusinessRuleViolationError, ResourceNotFoundError } from '@shared/errors/domain-errors';
+import { Weighing } from '@domain/weighing/weighing.entity';
+import { startOfDayInColombia } from '@shared/time/colombia-time';
 
 export interface PayNowUseCaseInput {
   harvestPickerId: string;
   harvestId: string;
   includesMeals: boolean;
-  /** Valor a descontar por alimentación, como texto numérico (ej. "5000"). */
+  /**
+   * Lo que el caficultor cobra de alimentación por día (COP). Se descuenta una vez por cada día
+   * con pesadas desde el último pago. Tiene prioridad sobre mealDetail.
+   */
+  mealPerDay?: number | null;
+  /** Valor total a descontar por alimentación, como texto numérico (ej. "5000"). Apps anteriores. */
   mealDetail: string | null;
 }
 
@@ -23,8 +30,12 @@ export interface PaymentPreview {
   alreadyPaid: number;
   /** Alimentación descontada en pagos anteriores (también cuenta como saldada). */
   previousMealDeductions: number;
-  /** Alimentación a descontar en este pago. */
+  /** Alimentación a descontar en este pago (días × valor por día). */
   mealDeduction: number;
+  /** Días con pesadas desde el último pago (null si no se pidió por día). */
+  mealDays: number | null;
+  /** Valor por día que se cobró (null si no se pidió por día). */
+  mealPerDay: number | null;
   /** Lo que se le paga ahora: gross − alreadyPaid − previousMealDeductions − mealDeduction. */
   net: number;
 }
@@ -80,11 +91,14 @@ export class PayNowUseCase {
       throw new BusinessRuleViolationError('Cannot pay an archived picker');
     }
 
-    const mealDeduction = this.parseMealDeduction(input);
-    const [totalKilograms, previousPayments] = await Promise.all([
+    const [totalKilograms, previousPayments, weighings] = await Promise.all([
       this.weighingRepository.getTotalKilogramsByHarvestPickerId(input.harvestPickerId),
       this.paymentRepository.findAllByHarvestPickerId(input.harvestPickerId),
+      this.weighingRepository.findAllByHarvestPickerId(input.harvestPickerId),
     ]);
+    const mealPerDay = input.includesMeals ? this.parseMealPerDay(input.mealPerDay) : null;
+    const mealDays = mealPerDay === null ? null : countMealDays(weighings, previousPayments);
+    const mealDeduction = mealPerDay === null || mealDays === null ? this.parseMealDeduction(input) : mealDays * mealPerDay;
     const { alreadyPaid, previousMealDeductions } = settledAmounts(previousPayments);
     const gross = -this.paymentCalculator.calculate(totalKilograms, harvest.pricePerKilogram, false, null);
     // La alimentación ya descontada también quedó saldada: no se vuelve a pagar.
@@ -103,6 +117,8 @@ export class PayNowUseCase {
       alreadyPaid,
       previousMealDeductions,
       mealDeduction,
+      mealDays,
+      mealPerDay,
       net: pending - mealDeduction,
     };
   }
@@ -114,12 +130,21 @@ export class PayNowUseCase {
       crypto.randomUUID(),
       input.harvestPickerId,
       -preview.net,
-      input.includesMeals,
-      input.includesMeals ? String(preview.mealDeduction) : null,
+      // Se guarda el total descontado: es lo que suman los saldos (settledAmounts).
+      preview.mealDeduction > 0,
+      preview.mealDeduction > 0 ? String(preview.mealDeduction) : null,
     );
     const saved = await this.paymentRepository.save(payment);
 
     return { payment: saved, totalKilograms: preview.totalKilograms, amountDue: preview.net };
+  }
+
+  private parseMealPerDay(value: number | null | undefined): number | null {
+    if (value === null || value === undefined) return null;
+    if (!Number.isFinite(value) || value < 0) {
+      throw new BusinessRuleViolationError('Meal value per day must be a positive number');
+    }
+    return Math.round(value);
   }
 
   private parseMealDeduction(input: PayNowUseCaseInput): number {
@@ -130,4 +155,25 @@ export class PayNowUseCase {
     }
     return value;
   }
+}
+
+/**
+ * Días (en hora de Colombia) con pesadas desde el último pago: cada uno es un día de comida.
+ * Si el último pago fue un día en que ya había pesado, ese día ya se cobró y no se repite.
+ */
+export function countMealDays(weighings: Weighing[], payments: Payment[]): number {
+  const lastPayment = payments.reduce<Date | null>(
+    (latest, payment) => (!latest || payment.dateTime > latest ? payment.dateTime : latest),
+    null,
+  );
+  const dayOf = (date: Date) => startOfDayInColombia(date).getTime();
+  const days = new Set(
+    weighings.filter((w) => !lastPayment || w.dateTime > lastPayment).map((w) => dayOf(w.dateTime)),
+  );
+  if (lastPayment) {
+    const paidDay = dayOf(lastPayment);
+    const alreadyCounted = weighings.some((w) => w.dateTime <= lastPayment && dayOf(w.dateTime) === paidDay);
+    if (alreadyCounted) days.delete(paidDay);
+  }
+  return days.size;
 }
