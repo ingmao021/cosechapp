@@ -15,8 +15,9 @@ import { RefreshCoffeeIntelUseCase } from '@domain/price-and-news/use-cases/refr
     PriceAndNewsService,
     useCaseProvider(UpdateCoffeePriceUseCase, ['COFFEE_PRICE_REPOSITORY', 'NOTIFICATION_REPOSITORY', 'COFFEE_GROWER_REPOSITORY']),
     useCaseProvider(RefreshCoffeeIntelUseCase, [
+      'FNC_PRICE_SOURCE',
+      'NEWS_FEED_SOURCE',
       'COFFEE_INTEL_PORT',
-      'URL_VERIFIER',
       'COFFEE_PRICE_REPOSITORY',
       'NEWS_ARTICLE_REPOSITORY',
       'PRICE_INSIGHT_REPOSITORY',

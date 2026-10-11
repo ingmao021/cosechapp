@@ -22,12 +22,14 @@ export interface NotificationResponse {
   createdAt: string;
 }
 
-/** Noticia o tip del mes, obtenido con IA (Gemini) a partir de una fuente real. */
+/** Noticia del café (Google Noticias), con el enlace a la nota original. */
 export interface NewsItem {
   id: string;
-  kind: 'NEWS' | 'TIP';
+  kind: 'NEWS';
   title: string;
+  /** Medio que la publicó (ej. "Caracol Radio"). */
   source: string;
+  /** Vacío cuando la fuente no trae resumen (no se inventa uno). */
   summary: string;
   url: string;
   publishedAt: string;
@@ -90,13 +92,6 @@ export class PriceAndNewsService {
    */
   getNews(): Observable<NewsItem[]> {
     return this.http.get<NewsItem[]>(`${this.baseUrl}/news`);
-  }
-
-  /**
-   * Obtiene los tips agronómicos del mes.
-   */
-  getTips(): Observable<NewsItem[]> {
-    return this.http.get<NewsItem[]>(`${this.baseUrl}/tips`);
   }
 
   /**

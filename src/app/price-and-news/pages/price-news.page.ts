@@ -2,16 +2,15 @@ import { Component, OnInit, inject, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonLabel, IonBadge, IonButtons, IonSpinner } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline, notificationsOutline, openOutline, sparklesOutline, bulbOutline, cloudOfflineOutline } from 'ionicons/icons';
+import { pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline, notificationsOutline, openOutline, sparklesOutline, cloudOfflineOutline } from 'ionicons/icons';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
-import { AppChipComponent } from '@shared/components/app-chip.component';
 import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.facade';
 
 /**
  * Pestaña "Precio y Noticias" — Tarea 6.1.
  * Contenido según Design System 1.10:
  * - Precio actual FNC (valor grande, Zilla Slab, fecha) y análisis corto con IA
- * - Noticias del café y tips agronómicos del mes (Gemini, con fuente real)
+ * - Noticias del café (Google Noticias, elegidas con IA), con enlace a la nota original
  * - Pull-to-refresh y datos guardados cuando no hay señal
  * - Badge de notificaciones no leídas
  */
@@ -34,7 +33,6 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     IonBadge,
     IonButtons,
     DateFormatPipe,
-    AppChipComponent,
   ],
   template: `
     <ion-header>
@@ -112,7 +110,6 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
         <section class="section">
           <div class="section-header">
             <h2 class="text-level-2">Noticias del café</h2>
-            <app-chip icon="sparkles-outline">Con IA</app-chip>
           </div>
 
           @if (facade.news().length === 0) {
@@ -126,7 +123,9 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
                 <ion-card-content>
                   <p class="news-meta">{{ news.source }} · {{ news.publishedAt | dateFormat:'short' }}</p>
                   <h3 class="news-title">{{ news.title }}</h3>
-                  <p class="news-summary">{{ news.summary }}</p>
+                  @if (news.summary) {
+                    <p class="news-summary">{{ news.summary }}</p>
+                  }
                   <ion-button fill="clear" color="primary" size="small" class="news-link" (click)="openLink(news.url)">
                     Leer en {{ news.source || 'la fuente' }}
                     <ion-icon name="open-outline" slot="end"></ion-icon>
@@ -137,36 +136,11 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
           }
         </section>
 
-        <!-- Tips del mes -->
-        <section class="section">
-          <div class="section-header">
-            <h2 class="text-level-2">Tips del mes</h2>
-          </div>
-
-          @if (facade.tips().length === 0) {
-            <div class="empty-state">
-              <ion-icon name="bulb-outline" size="large" color="medium"></ion-icon>
-              <p class="text-level-4">Los tips de este mes aparecerán pronto.</p>
-            </div>
-          } @else {
-            @for (tip of facade.tips(); track tip.id) {
-              <button type="button" class="tip-card" (click)="openLink(tip.url)">
-                <ion-icon name="bulb-outline" class="tip-icon" aria-hidden="true"></ion-icon>
-                <span class="tip-body">
-                  <span class="tip-title">{{ tip.title }}</span>
-                  <span class="tip-summary">{{ tip.summary }}</span>
-                  <span class="tip-source">Fuente: {{ tip.source }}</span>
-                </span>
-              </button>
-            }
-          }
-
-          @if (facade.news().length > 0 || facade.tips().length > 0) {
-            <p class="ai-disclaimer">
-              Noticias y tips reunidos con IA (Gemini) desde sus fuentes. Revisa la fuente antes de tomar decisiones.
-            </p>
-          }
-        </section>
+        @if (facade.news().length > 0) {
+          <p class="ai-disclaimer">
+            Noticias de Google Noticias, elegidas con IA para caficultores. Ábrelas para leerlas en su medio.
+          </p>
+        }
       }
     </ion-content>
   `,
@@ -279,44 +253,8 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     .news-link {
       margin: var(--spacing-xs) 0 0 calc(-1 * var(--spacing-sm));
     }
-    .tip-card {
-      display: flex;
-      gap: var(--spacing-sm);
-      width: 100%;
-      margin: 0 0 var(--spacing-sm);
-      padding: var(--spacing-md);
-      text-align: left;
-      font: inherit;
-      color: var(--color-text);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-    }
-    .tip-icon {
-      flex: none;
-      font-size: 22px;
-      color: var(--color-primary);
-    }
-    .tip-body {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .tip-title {
-      font-weight: var(--font-weight-bold);
-      font-size: var(--font-size-md);
-    }
-    .tip-summary {
-      font-size: var(--font-size-sm);
-      line-height: 1.4;
-    }
-    .tip-source {
-      margin-top: 2px;
-      font-size: var(--font-size-xs);
-      color: var(--color-text-muted);
-    }
     .ai-disclaimer {
-      margin: var(--spacing-sm) 0 0;
+      margin: 0 var(--spacing-md) var(--spacing-xl);
       font-size: var(--font-size-xs);
       line-height: 1.4;
       color: var(--color-text-muted);
@@ -339,11 +277,11 @@ export class PriceNewsPage implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly isEmpty = computed(
-    () => !this.facade.coffeePrice() && this.facade.news().length === 0 && this.facade.tips().length === 0,
+    () => !this.facade.coffeePrice() && this.facade.news().length === 0,
   );
 
   constructor() {
-    addIcons({ pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline, notificationsOutline, openOutline, sparklesOutline, bulbOutline, cloudOfflineOutline });
+    addIcons({ pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline, notificationsOutline, openOutline, sparklesOutline, cloudOfflineOutline });
   }
 
   ngOnInit(): void {

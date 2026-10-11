@@ -62,11 +62,11 @@ export class PriceAndNewsController {
     return prices.map(toCoffeePriceResponse);
   }
 
-  /** Lo llama el job diario (GitHub Actions): precio FNC, noticias, análisis y tips con Gemini. */
+  /** Lo llama el job diario (GitHub Actions): precio FNC (web), noticias (RSS) y análisis (Gemini gratis). */
   @Post('ai/refresh')
   @UseGuards(AdminKeyGuard)
   @ApiHeader({ name: 'x-admin-key', required: true })
-  @ApiOperation({ summary: 'Refresh FNC price, news, price analysis and monthly tips with AI (system job)' })
+  @ApiOperation({ summary: 'Refresh FNC price, news and the AI price analysis from free sources (system job)' })
   @ApiResponse({ status: 201, description: 'Summary of what was published' })
   @ApiResponse({ status: 403, description: 'Missing or wrong admin key' })
   refreshCoffeeIntel() {
@@ -88,22 +88,14 @@ export class PriceAndNewsController {
     return { text: insight.text, generatedAt: insight.createdAt, basedOnPriceId: insight.coffeePriceId };
   }
 
-  /** Noticias del café obtenidas con IA (fuente y url verificadas), de la más nueva a la más vieja. */
+  /** Noticias del café (RSS de Google Noticias, elegidas con IA), de la más nueva a la más vieja. */
   @Get('news')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Coffee news (FNC, Cenicafé, market) gathered with AI' })
+  @ApiOperation({ summary: 'Coffee news from Google News, picked for coffee growers' })
   async getNews() {
     this.priceAndNewsService.refreshIfStale();
     return (await this.priceAndNewsService.getNews()).map(toNewsResponse);
-  }
-
-  @Get('tips')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Agronomic tips for the current month gathered with AI' })
-  async getTips() {
-    return (await this.priceAndNewsService.getTips()).map(toNewsResponse);
   }
 
   @Get('notifications')

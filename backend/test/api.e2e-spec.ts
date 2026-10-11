@@ -22,7 +22,7 @@ const describeIfDb = E2E_DATABASE_URL ? describe : describe.skip;
 function startServer(): Promise<ChildProcess> {
   return new Promise((resolve, reject) => {
     const server = spawn(process.execPath, ['dist/main.js'], {
-      // Sin GEMINI_API_KEY: las pruebas nunca llaman a la IA real.
+      // Sin GEMINI_API_KEY: las pruebas nunca llaman a la IA.
       env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL, ADMIN_API_KEY: ADMIN_KEY, GEMINI_API_KEY: '', PORT: String(PORT) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -108,16 +108,17 @@ describeIfDb('API contract (e2e)', () => {
     expect(res.body.value).toBeGreaterThan(0);
     const news = await http.get('/price-and-news/news').set('Authorization', user.token).expect(200);
     expect(Array.isArray(news.body)).toBe(true);
-    const tips = await http.get('/price-and-news/tips').set('Authorization', user.token).expect(200);
-    expect(Array.isArray(tips.body)).toBe(true);
-    // El precio se acaba de publicar a mano: todavía no tiene análisis.
-    await http.get('/price-and-news/coffee-price/analysis').set('Authorization', user.token).expect(204);
+    // 204 si el precio vigente aún no se analizó; si ya, el análisis es de ese precio.
+    const analysis = await http.get('/price-and-news/coffee-price/analysis').set('Authorization', user.token);
+    expect([200, 204]).toContain(analysis.status);
+    if (analysis.status === 200) expect(analysis.body.basedOnPriceId).toBe(res.body.id);
   });
 
-  it('AI refresh: needs the admin key; without GEMINI_API_KEY it reports disabled', async () => {
+  // Con la clave correcta el refresh lee la web de la FNC y Google Noticias: no se prueba aquí
+  // para no depender de sitios externos (lo cubren los tests unitarios de los lectores).
+  it('AI refresh needs the admin key', async () => {
     await http.post('/price-and-news/ai/refresh').expect(403);
-    const res = await http.post('/price-and-news/ai/refresh').set('x-admin-key', ADMIN_KEY).expect(201);
-    expect(res.body.enabled).toBe(false);
+    await http.post('/price-and-news/ai/refresh').set('x-admin-key', 'wrong').expect(403);
   });
 
   describe('harvest flow', () => {

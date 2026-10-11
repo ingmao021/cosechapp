@@ -14,7 +14,6 @@ import {
   RefreshCoffeeIntelUseCase,
 } from '@domain/price-and-news/use-cases/refresh-coffee-intel.use-case';
 import { ResourceNotFoundError } from '@shared/errors/domain-errors';
-import { monthInColombia } from '@shared/time/colombia-time';
 
 const NEWS_WINDOW_DAYS = 30;
 const NEWS_LIMIT = 20;
@@ -48,7 +47,7 @@ export class PriceAndNewsService {
     this.staleMs = (Number.isFinite(hours) && hours > 0 ? hours : DEFAULT_STALE_HOURS) * HOUR_MS;
   }
 
-  /** Precio FNC, noticias, análisis y tips con IA (lo llama el job diario con x-admin-key). */
+  /** Precio FNC, noticias y análisis del precio (lo llama el job diario con x-admin-key). */
   refreshCoffeeIntel(): Promise<RefreshCoffeeIntelOutput> {
     if (!this.running) {
       this.running = this.refreshCoffeeIntelUseCase
@@ -82,10 +81,6 @@ export class PriceAndNewsService {
 
   async getNews(): Promise<NewsArticle[]> {
     return this.newsArticleRepository.findRecentNews(new Date(Date.now() - NEWS_WINDOW_DAYS * 24 * HOUR_MS), NEWS_LIMIT);
-  }
-
-  async getTips(): Promise<NewsArticle[]> {
-    return this.newsArticleRepository.findTipsByMonth(monthInColombia());
   }
 
   /** Análisis del precio vigente; si el precio cambió y aún no se analizó, no hay (null). */
