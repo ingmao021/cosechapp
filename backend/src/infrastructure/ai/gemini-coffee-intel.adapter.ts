@@ -26,7 +26,14 @@ export class GeminiCoffeeIntelAdapter implements CoffeeIntelPort {
     apiKey: string,
     private readonly model: string,
   ) {
-    this.ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: REQUEST_TIMEOUT_MS } });
+    this.ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        timeout: REQUEST_TIMEOUT_MS,
+        // Picos de demanda (503) son pasajeros; un 429 de cuota no se arregla reintentando.
+        retryOptions: { attempts: 3, initialDelay: 2, maxDelay: 20, httpStatusCodes: [500, 502, 503, 504] },
+      },
+    });
   }
 
   async fetchFncPrice(): Promise<FncPriceReport | null> {

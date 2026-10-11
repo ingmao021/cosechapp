@@ -4,7 +4,7 @@ import { CoffeeIntelPort } from '@domain/price-and-news/coffee-intel.port';
 import { GeminiCoffeeIntelAdapter } from './gemini-coffee-intel.adapter';
 import { HttpUrlVerifier } from './http-url-verifier';
 
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
 
 /** Sin GEMINI_API_KEY la IA queda apagada: los refresh no hacen nada y la app muestra lo guardado. */
 const disabledCoffeeIntel: CoffeeIntelPort = {
