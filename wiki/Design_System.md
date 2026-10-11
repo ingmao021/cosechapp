@@ -9,9 +9,9 @@ Taller de Design System aplicado a **CosechApp**, la app móvil de recolección 
 Define qué información y elementos se muestran en cada pantalla de CosechApp, con base en las funcionalidades ya definidas en el PRD.
 
 ### 1.0 Splash
-Arranque en dos tiempos, sin saltos visuales entre uno y otro:
+Al abrir la app solo se ve el logo:
 1. **Splash nativo** (Android): ícono de la app (saco de café) sobre fondo blanco `#FFFFFF`. Lo muestra el sistema desde el primer instante, mientras carga el WebView. Configurado en `capacitor.config.ts` (`SplashScreen`, `launchAutoHide: false`) y en `styles.xml` (`windowSplashScreenBackground` blanco, también con el teléfono en modo oscuro).
-2. **Fondo de inicio animado** (`resources/img/Cosecha_inicio_app.png`, separado en capas en `src/assets/brand/inicio/*.webp`): la imagen se arma por capas en ~2,1 s y se sostiene hasta 2,6 s: marca de agua de esquinas y ramas (fade + zoom leve) → saco (sube, enfoca y aparece) → granos que se riegan desde la boca del saco → título “CosechAPP” escrito de izquierda a derecha (`clip-path`); luego el saco “respira” mientras termina la verificación de sesión. Las capas comparten el lienzo de 1414×2000 y se apilan con `object-fit: cover`, así que siempre quedan alineadas. Con *reducir movimiento* activo es un fade de 300 ms. El fondo es blanco, así que el relevo desde el splash nativo no se nota.
+2. **Sin pantalla propia:** `SplashPage` no muestra nada; el logo nativo sigue encima mientras se verifica la sesión y se oculta con un fundido de 200 ms al llegar a Login o Inicio. (El fondo animado `Cosecha_inicio_app.png` se retiró el 2026-10-11.)
 - Sin controles ni texto interactivo: es una pantalla de transición, no requiere acción del usuario.
 - Duración: lo que tarde **lo más largo** entre la animación (~3,3 s) y la verificación de sesión (ver sección 3.1). Si el SVG no carga en 2 s, se sigue sin esperar la animación.
 
@@ -216,9 +216,6 @@ No se usan colores escritos a mano en las páginas (ej. el verde `#28a745` o el 
                    generado con: npx @capacitor/assets generate --android --iconBackgroundColor "#FFFFFF"
                    (ic_launcher/ic_launcher_round heredados compuestos aparte sobre blanco)
 Logo:              src/assets/brand/logo.png (LOGO.png con fondo transparente)
-Fondo de inicio:   resources/img/Cosecha_inicio_app.png → src/assets/brand/inicio/
-                   esquinas, ramas, saco, granos, titulo (.webp sin pérdida, ~530 KB en total;
-                   la suma de las capas es idéntica píxel a píxel al PNG original)
 ```
 
 **Tipografía**
@@ -376,7 +373,7 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 Navegación principal por barra inferior de pestañas (patrón estándar en apps Android), con 4 accesos directos y flujos de profundización (drill-down) dentro de cada uno:
 
 ```
-Splash (ícono nativo → fondo de inicio animado por capas)
+Splash (logo nativo mientras se verifica la sesión)
    │ (la app consulta al backend si hay una sesión válida)
    ├── Sesión válida ──────────────┐
    │                               ▼
@@ -424,7 +421,7 @@ Perfil
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).
 
 ### 3.4 Niveles de navegación
-1. **Nivel -1 — Splash:** ícono nativo y luego el fondo de inicio animado por capas (`Cosecha_inicio_app.png`), mientras se verifica la sesión contra el backend (ver §1.0).
+1. **Nivel -1 — Splash:** logo nativo (ícono sobre blanco) mientras se verifica la sesión contra el backend (ver §1.0).
 2. **Nivel 0 — Autenticación:** Login/Registro (fuera de la barra de pestañas), solo si no hay sesión válida.
 3. **Nivel 1 — Pestañas principales:** Inicio, Precio y Noticias, Historial, Perfil.
 4. **Nivel 2 — Listas:** Cuadrillas, Catálogo de trabajadores, lista de cosechas cerradas.
