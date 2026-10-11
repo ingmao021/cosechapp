@@ -19,6 +19,8 @@ describe('ArchiveWorkerUseCase', () => {
       findAllByHarvestId: jest.fn(),
       findAllByHarvestIdAndStatus: jest.fn(),
       findByIdAndHarvestId: jest.fn(),
+      countRecords: jest.fn(),
+      delete: jest.fn(),
     };
 
     mockHarvestRepository = {
@@ -28,6 +30,8 @@ describe('ArchiveWorkerUseCase', () => {
       findAllByFarmId: jest.fn(),
       findByIdAndFarmId: jest.fn(),
       findAllByFarmIdWithStatus: jest.fn(),
+      countRecords: jest.fn(),
+      delete: jest.fn(),
     };
 
     useCase = new ArchiveWorkerUseCase(mockHarvestWorkerRepository, mockHarvestRepository);

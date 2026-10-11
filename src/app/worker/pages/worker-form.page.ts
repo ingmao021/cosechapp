@@ -19,7 +19,7 @@ import { apiErrorMessage } from '../../shared/utils';
 
 /**
  * Crear/Editar trabajador — Template de formulario (Design System §2.1, §1.7):
- * nombre, apellido, alias y teléfono (opcionales).
+ * un solo campo "Nombre o alias" y teléfono (opcional).
  */
 @Component({
   selector: 'app-worker-form',
@@ -52,36 +52,19 @@ import { apiErrorMessage } from '../../shared/utils';
     <ion-content>
       <form class="form-page" (ngSubmit)="onSubmit()" #form="ngForm" novalidate>
         <p class="form-page__intro">
-          El alias es el nombre con el que lo conoces en la finca; se muestra en las listas.
+          Escribe el nombre o el alias con el que lo conoces en la finca; así aparece en las listas.
         </p>
 
         <div class="form-page__fields">
           <app-input
-            label="Nombre"
-            name="firstName"
-            [(ngModel)]="firstName"
+            label="Nombre o alias"
+            name="name"
+            [(ngModel)]="name"
             required
-            maxlength="50"
-            autocomplete="given-name"
-            errorMessage="Escribe el nombre."
-          ></app-input>
-
-          <app-input
-            label="Apellido"
-            name="lastName"
-            [(ngModel)]="lastName"
-            required
-            maxlength="50"
-            autocomplete="family-name"
-            errorMessage="Escribe el apellido."
-          ></app-input>
-
-          <app-input
-            label="Alias (opcional)"
-            name="alias"
-            [(ngModel)]="alias"
             maxlength="50"
             placeholder="Ej: Juancho"
+            autocomplete="name"
+            errorMessage="Escribe el nombre o alias."
           ></app-input>
 
           <app-input
@@ -116,7 +99,7 @@ import { apiErrorMessage } from '../../shared/utils';
 
       <ion-toast
         [isOpen]="showSuccess()"
-        [message]="isEditing() ? 'Trabajador actualizado.' : crewId ? 'Trabajador guardado y agregado a la cuadrilla.' : 'Trabajador guardado.'"
+        [message]="isEditing() ? 'Trabajador actualizado.' : crewId ? 'Trabajador guardado y agregado a la cuadrilla.' : solo ? 'Trabajador guardado y agregado a la cosecha.' : 'Trabajador guardado.'"
         duration="2000"
         position="bottom"
         color="success"
@@ -132,10 +115,10 @@ export class WorkerFormPage {
   private readonly harvestFacade = inject(HarvestFacade);
   /** Cuadrilla a la que se agrega el trabajador al crearlo (viene de "Agregar recolector"). */
   protected readonly crewId = this.route.snapshot.queryParamMap.get('crewId');
+  /** Viene de "Agregar persona sin cuadrilla": se agrega a la cosecha sin cuadrilla. */
+  protected readonly solo = this.route.snapshot.queryParamMap.has('sinCuadrilla');
 
-  readonly firstName = signal('');
-  readonly lastName = signal('');
-  readonly alias = signal('');
+  readonly name = signal('');
   readonly phoneNumber = signal('');
   readonly isLoading = this.workerFacade.isLoading;
   readonly errorMessage = signal<string | null>(null);
@@ -159,9 +142,8 @@ export class WorkerFormPage {
     try {
       const worker = await this.workerFacade.getWorker(id);
       if (worker) {
-        this.firstName.set(worker.firstName);
-        this.lastName.set(worker.lastName);
-        this.alias.set(worker.alias ?? '');
+        // Trabajadores antiguos pueden tener apellido y alias: se edita el nombre con que se le ve.
+        this.name.set(worker.displayName);
         this.phoneNumber.set(worker.phoneNumber ?? '');
       }
     } catch (err: unknown) {
@@ -172,9 +154,8 @@ export class WorkerFormPage {
   async onSubmit(): Promise<void> {
     this.errorMessage.set(null);
     const dto = {
-      firstName: this.firstName().trim(),
-      lastName: this.lastName().trim(),
-      alias: this.alias().trim() || undefined,
+      firstName: this.name().trim(),
+      lastName: '',
       phoneNumber: this.phoneNumber().trim() || undefined,
     };
 
@@ -183,8 +164,9 @@ export class WorkerFormPage {
         await this.workerFacade.updateWorker(this.workerId()!, dto);
       } else {
         const worker = await this.workerFacade.createWorker(dto);
-        // Creado desde "Agregar recolector": queda de una vez en esa cuadrilla.
+        // Creado desde "Agregar recolector": queda de una vez en esa cuadrilla (o sin cuadrilla).
         if (this.crewId) await this.harvestFacade.assignWorkerToHarvest(worker.id, this.crewId);
+        else if (this.solo) await this.harvestFacade.assignWorkerToHarvest(worker.id);
       }
       this.showSuccess.set(true);
       setTimeout(() => this.goBack(), 1500);
@@ -196,6 +178,8 @@ export class WorkerFormPage {
   goBack(): void {
     if (this.crewId) {
       this.router.navigate(['/harvest/crews', this.crewId], { replaceUrl: true });
+    } else if (this.solo) {
+      this.router.navigate(['/harvest/crews'], { replaceUrl: true });
     } else {
       this.router.navigate(['/worker/catalog']);
     }

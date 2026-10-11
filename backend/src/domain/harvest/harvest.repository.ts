@@ -8,4 +8,8 @@ export interface HarvestRepository {
   findAllByFarmId(farmId: string): Promise<Harvest[]>;
   findByIdAndFarmId(id: string, farmId: string): Promise<Harvest | null>;
   findAllByFarmIdWithStatus(farmId: string, status: HarvestStatus): Promise<Harvest[]>;
+  /** Pesadas y pagos registrados en la cosecha (de todos sus recolectores). */
+  countRecords(harvestId: string): Promise<{ weighings: number; payments: number }>;
+  /** Borra la cosecha con sus cuadrillas y recolectores (solo si no tiene registros). */
+  delete(id: string): Promise<void>;
 }

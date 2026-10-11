@@ -175,7 +175,7 @@ const today = () => {
                   [(ngModel)]="saleDate"
                   required
                   placeholder="AAAA-MM-DD"
-                  helperText="Formato año-mes-día. Por defecto, hoy."
+                  helperText="Formato año-mes-día."
                   errorMessage="Escribe la fecha de la venta."
                 ></app-input>
                 @if (saleTotal() > 0) {
@@ -399,7 +399,7 @@ export class HarvestClosePage {
 
   readonly dryKilograms = signal<number | null>(null);
   readonly salePrice = signal<number | null>(null);
-  readonly saleDate = signal(today());
+  readonly saleDate = signal('');
   readonly costDescription = signal('');
   readonly costAmount = signal<number | null>(null);
 

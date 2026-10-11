@@ -56,6 +56,19 @@ export class PrismaHarvestRepository implements HarvestRepository {
     return found.map(this.toDomain);
   }
 
+  async countRecords(harvestId: string): Promise<{ weighings: number; payments: number }> {
+    const where = { harvestPicker: { harvestId } };
+    const [weighings, payments] = await Promise.all([
+      this.client.weightRecord.count({ where }),
+      this.client.payment.count({ where }),
+    ]);
+    return { weighings, payments };
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.client.harvest.delete({ where: { id } });
+  }
+
   private toDomain(prisma: any): Harvest {
     return Harvest.reconstitute(
       prisma.id,

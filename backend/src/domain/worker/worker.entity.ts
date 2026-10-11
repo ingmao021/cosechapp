@@ -45,7 +45,8 @@ export class CatalogWorker {
   }
 
   getDisplayName(): string {
-    return this.alias ?? `${this.firstName} ${this.lastName}`;
+    // El apellido es opcional: hoy se registra un solo campo "Nombre o alias".
+    return this.alias ?? `${this.firstName} ${this.lastName}`.trim();
   }
 
   updateDetails(

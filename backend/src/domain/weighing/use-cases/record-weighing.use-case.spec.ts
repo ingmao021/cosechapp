@@ -32,6 +32,8 @@ describe('RecordWeighingUseCase', () => {
       findAllByHarvestId: jest.fn(),
       findAllByHarvestIdAndStatus: jest.fn(),
       findByIdAndHarvestId: jest.fn(),
+      countRecords: jest.fn(),
+      delete: jest.fn(),
     };
 
     mockHarvestRepository = {
@@ -41,6 +43,8 @@ describe('RecordWeighingUseCase', () => {
       findAllByFarmId: jest.fn(),
       findByIdAndFarmId: jest.fn(),
       findAllByFarmIdWithStatus: jest.fn(),
+      countRecords: jest.fn(),
+      delete: jest.fn(),
     };
 
     useCase = new RecordWeighingUseCase(mockWeighingRepository, mockHarvestWorkerRepository, mockHarvestRepository);

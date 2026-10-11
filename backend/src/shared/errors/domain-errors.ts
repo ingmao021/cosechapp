@@ -100,3 +100,24 @@ export class WorkerHasHarvestHistoryError extends DomainError {
     super('Worker has harvest history and cannot be deleted');
   }
 }
+
+/** La cosecha ya tiene pesadas o pagos: borrarla perdería ese registro (se cierra en su lugar). */
+export class HarvestHasRecordsError extends DomainError {
+  constructor() {
+    super('Harvest has weighings or payments and cannot be deleted');
+  }
+}
+
+/** Ya hay pagos en la cosecha: cambiar el precio cambiaría lo que ya se pagó. */
+export class HarvestHasPaymentsError extends DomainError {
+  constructor() {
+    super('Harvest has payments; its price can no longer change');
+  }
+}
+
+/** El recolector ya tiene pesadas o pagos: borrarlo perdería ese registro (se archiva en su lugar). */
+export class PickerHasRecordsError extends DomainError {
+  constructor() {
+    super('Picker has weighings or payments and cannot be deleted');
+  }
+}

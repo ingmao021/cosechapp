@@ -6,10 +6,11 @@ export class CreateWorkerDto {
   @MaxLength(50)
   firstName!: string;
 
+  /** Opcional: la app registra un solo campo "Nombre o alias" (va en firstName). */
+  @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(50)
-  lastName!: string;
+  lastName?: string;
 
   @IsOptional()
   @IsString()
@@ -28,10 +29,11 @@ export class UpdateWorkerDto {
   @MaxLength(50)
   firstName!: string;
 
+  /** Opcional: la app registra un solo campo "Nombre o alias" (va en firstName). */
+  @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(50)
-  lastName!: string;
+  lastName?: string;
 
   @IsOptional()
   @IsString()

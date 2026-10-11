@@ -5,15 +5,19 @@ import { environment } from '../../../environments/environment';
 
 // DTOs matching backend WorkerController
 export interface CreateWorkerDto {
+  /** "Nombre o alias": el único nombre que se pide. */
   firstName: string;
-  lastName: string;
+  /** Ya no se pide; los trabajadores antiguos pueden tenerlo. */
+  lastName?: string;
   alias?: string;
   phoneNumber?: string;
 }
 
 export interface UpdateWorkerDto {
+  /** "Nombre o alias": el único nombre que se pide. */
   firstName: string;
-  lastName: string;
+  /** Ya no se pide; los trabajadores antiguos pueden tenerlo. */
+  lastName?: string;
   alias?: string;
   phoneNumber?: string;
 }

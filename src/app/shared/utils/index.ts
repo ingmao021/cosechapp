@@ -31,6 +31,9 @@ const DOMAIN_ERROR_MESSAGES: Record<string, string> = {
   InvalidPaymentAmountError: 'El monto del pago no es válido.',
   IdempotencyKeyConflictError: 'Esta pesada ya se había guardado con otros datos.',
   WorkerHasHarvestHistoryError: 'Este trabajador ya participó en cosechas: no se puede borrar porque se perderían sus pesadas y pagos.',
+  HarvestHasRecordsError: 'Esta cosecha ya tiene pesadas o pagos: no se puede eliminar. Ciérrala con "Cerrar cosecha".',
+  HarvestHasPaymentsError: 'Ya hay pagos en esta cosecha: el precio por kilo no se puede cambiar. Puedes corregir el nombre.',
+  PickerHasRecordsError: 'Este recolector ya tiene pesadas o pagos: no se puede eliminar.',
 };
 
 /**

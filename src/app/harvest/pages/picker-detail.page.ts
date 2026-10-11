@@ -323,12 +323,12 @@ export class PickerDetailPage {
     const picker = this.picker();
     if (!harvest || !picker) return;
 
-    const mealDeduction = await this.askMeals();
-    if (mealDeduction === undefined) return;
+    const mealPerDay = await this.askMeals();
+    if (mealPerDay === undefined) return;
 
     let preview: PaymentPreviewResponse;
     try {
-      preview = await this.paymentFacade.preview(picker.id, harvest.id, mealDeduction);
+      preview = await this.paymentFacade.preview(picker.id, harvest.id, mealPerDay);
     } catch (err: unknown) {
       await this.toast(apiErrorMessage(err, 'No se pudo calcular el pago. Intenta de nuevo.'), 'danger');
       return;
@@ -337,7 +337,7 @@ export class PickerDetailPage {
     if (!(await this.confirmPayment(picker.displayName, preview))) return;
 
     try {
-      const result = await this.paymentFacade.payNow(picker.id, harvest.id, mealDeduction);
+      const result = await this.paymentFacade.payNow(picker.id, harvest.id, mealPerDay);
       await this.toast(`Pago registrado: ${formatCurrency(result.payment.amount)} a ${picker.displayName}.`, 'success');
       await this.harvestFacade.loadPickers(harvest.id);
     } catch (err: unknown) {
@@ -345,7 +345,7 @@ export class PickerDetailPage {
     }
   }
 
-  /** null = sin alimentación; número = valor a descontar; undefined = canceló. */
+  /** null = sin alimentación; número = lo que cobra de comida por día; undefined = canceló. */
   private async askMeals(): Promise<number | null | undefined> {
     const choice = await this.alertController.create({
       header: '¿Le diste alimentación?',
@@ -364,8 +364,8 @@ export class PickerDetailPage {
     if (picked.data?.values !== 'yes') return null;
 
     const amount = await this.alertController.create({
-      header: 'Valor de la alimentación',
-      message: 'Cuánto le descuentas por la comida en este pago.',
+      header: '¿Cuánto cobras de comida por día?',
+      message: 'Se descuenta por cada día que pesó desde el último pago.',
       inputs: [{ name: 'value', type: 'number', placeholder: 'Ej: 10000', min: 1, attributes: { inputmode: 'numeric' } }],
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
@@ -386,7 +386,7 @@ export class PickerDetailPage {
       `${formatKilos(preview.totalKilograms)} en la cosecha: ${formatCurrency(preview.gross)}`,
       preview.alreadyPaid > 0 ? `Ya pagado: −${formatCurrency(preview.alreadyPaid)}` : null,
       preview.previousMealDeductions > 0 ? `Alimentación anterior: −${formatCurrency(preview.previousMealDeductions)}` : null,
-      preview.mealDeduction > 0 ? `Alimentación de este pago: −${formatCurrency(preview.mealDeduction)}` : null,
+      this.mealLine(preview),
     ].filter((line): line is string => line !== null);
 
     const alert = await this.alertController.create({
@@ -401,6 +401,16 @@ export class PickerDetailPage {
     await alert.present();
     const { role } = await alert.onDidDismiss();
     return role === 'confirm';
+  }
+
+  /** "Alimentación: 3 días × $10.000 = −$30.000" (o por qué no se descuenta nada). */
+  private mealLine(preview: PaymentPreviewResponse): string | null {
+    if (preview.mealPerDay === null || preview.mealDays === null) {
+      return preview.mealDeduction > 0 ? `Alimentación de este pago: −${formatCurrency(preview.mealDeduction)}` : null;
+    }
+    if (preview.mealDays === 0) return 'Alimentación: sin días con pesadas desde el último pago';
+    const days = `${preview.mealDays} ${preview.mealDays === 1 ? 'día' : 'días'}`;
+    return `Alimentación: ${days} × ${formatCurrency(preview.mealPerDay)} = −${formatCurrency(preview.mealDeduction)}`;
   }
 
   private async toast(message: string, color: 'success' | 'danger'): Promise<void> {

@@ -8,4 +8,7 @@ export interface HarvestWorkerRepository {
   findAllByHarvestId(harvestId: string): Promise<HarvestWorker[]>;
   findAllByHarvestIdAndStatus(harvestId: string, status: HarvestPickerStatus): Promise<HarvestWorker[]>;
   findByIdAndHarvestId(id: string, harvestId: string): Promise<HarvestWorker | null>;
+  /** Pesadas y pagos del recolector en la cosecha. */
+  countRecords(id: string): Promise<{ weighings: number; payments: number }>;
+  delete(id: string): Promise<void>;
 }

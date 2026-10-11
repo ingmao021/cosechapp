@@ -12,12 +12,13 @@ import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { addIcons } from 'ionicons';
 import { personAddOutline, peopleOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
+import { PickerActionsService } from '../services/picker-actions.service';
 import { HarvestPickerCardComponent, PickerCardData, SyncStatusComponent } from '@shared/components';
 import { NetworkService } from '../../network/services/network.service';
 
 /**
  * Detalle de cuadrilla (Design System §1.4): recolectores de la cuadrilla con sus kilos
- * de hoy, acceso a pesar y botón para agregar recolectores (requiere conexión).
+ * de hoy, acceso a pesar, menú ⋮ por recolector y botón para agregar (requieren conexión).
  */
 @Component({
   selector: 'app-crew-detail',
@@ -74,8 +75,10 @@ import { NetworkService } from '../../network/services/network.service';
         @for (picker of crewPickers(); track picker.id) {
           <app-harvest-picker-card
             [picker]="picker"
+            [showMenu]="network.isOnline()"
             (cardClick)="goToPickerDetail($event)"
             (weighClick)="goToWeighing($event)"
+            (menuClick)="openPickerMenu($event)"
           ></app-harvest-picker-card>
         }
       }
@@ -127,6 +130,7 @@ export class CrewDetailPage {
   protected readonly network = inject(NetworkService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly pickerActions = inject(PickerActionsService);
 
   private readonly crewId = this.route.snapshot.paramMap.get('crewId') ?? '';
 
@@ -149,6 +153,12 @@ export class CrewDetailPage {
 
   addPicker(): void {
     this.router.navigate(['/harvest/crews', this.crewId, 'add-picker']);
+  }
+
+  /** ⋮ del recolector: editar nombre, cambiar de cuadrilla o quitarlo (requiere conexión). */
+  openPickerMenu(card: PickerCardData): void {
+    const picker = this.harvestFacade.pickerById(card.id);
+    if (picker) void this.pickerActions.openMenu(picker);
   }
 
   goToPickerDetail(picker: PickerCardData): void {

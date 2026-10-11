@@ -32,6 +32,9 @@ Al abrir la app solo se ve el logo:
 ### 1.2 Inicio (cosecha activa)
 - Nombre de la cosecha activa (ej. "Primer pasón") y su precio por kilo, con la etiqueta explícita ("Pagas $ 1.200 COP por kilo").
 - Acceso directo a "Pesar" (lleva a Cuadrillas).
+- Menú ⋮ en la tarjeta de la cosecha (requiere conexión):
+  - **Editar cosecha:** nombre y precio por kilo. El precio solo cambia mientras no haya pagos, porque cambiaría lo ya pagado.
+  - **Eliminar cosecha:** para una cosecha creada por error. Solo se puede si aún no tiene pesadas ni pagos; si ya los tiene, el mensaje indica que se cierre con "Cerrar cosecha".
 - Precio actual publicado por la FNC, con fecha del último dato. **Solo si existe un dato real**; nunca un valor de ejemplo ni "$ 0".
 - Indicador de conexión: "En línea" o "Sin conexión · se guarda en el teléfono". Cuando la sincronización offline esté implementada, este indicador pasa a mostrar las pesadas/pagos pendientes de sincronizar. Nunca se muestra "Sincronizado" si no es verdad.
 - Botón "Cerrar cosecha" (lleva al flujo de venta y costos).
@@ -39,12 +42,17 @@ Al abrir la app solo se ve el logo:
 
 ### 1.3 Cuadrillas
 - Lista de cuadrillas de la cosecha activa (nombre + cantidad de recolectores).
-- Botón para crear una nueva cuadrilla.
+- Botón para crear una nueva cuadrilla. El diálogo trae solo el placeholder, sin un nombre escrito.
 - Cada cuadrilla se crea desde cero en cada cosecha.
+- **Sin cuadrilla:** debajo de las cuadrillas, las personas que vienen a cosechar solas. Usan las mismas tarjetas del detalle de cuadrilla (Pesar, saldo, menú ⋮) y tienen el botón "Agregar persona sin cuadrilla" (requiere conexión). Este botón abre Agregar recolector en modo "sin cuadrilla".
 
 ### 1.4 Detalle de cuadrilla
 - Lista de recolectores asignados: iniciales, nombre (o alias, con el nombre real debajo), kilos de hoy y saldo por pagar.
 - Botón "Pesar" (ícono + texto) en cada fila; tocar la fila abre el detalle del recolector.
+- Menú ⋮ en cada fila (requiere conexión):
+  - **Editar nombre:** cambia el "Nombre o alias" en el catálogo.
+  - **Cambiar de cuadrilla:** a otra cuadrilla o "Sin cuadrilla".
+  - **Eliminar de la cosecha:** solo si no tiene pesadas ni pagos. Si los tiene, se ofrece archivarlo: deja de aparecer para pesar y se conserva lo registrado.
 - Botón "Agregar recolector" (requiere conexión), que abre la pantalla **Agregar recolector**:
   - Buscador por nombre o alias sobre el catálogo de trabajadores.
   - Cada trabajador con su situación: disponible (tocar = agregar), "En esta cuadrilla" (inactivo), "En Cuadrilla X" (tocar = confirmar mover; pesadas y pagos se conservan) o "Archivado".
@@ -57,8 +65,8 @@ Al abrir la app solo se ve el logo:
 - Botón "Registrar pesada" y lista de pesadas de hoy (las guardadas sin señal aparecen como "Por enviar").
 - Botón "Pagar ahora" (requiere conexión; inactivo si no hay saldo). Confirmación en tres pasos:
   1. ¿Le diste alimentación? (sin / con).
-  2. Si fue con alimentación: valor a descontar en este pago.
-  3. Desglose y confirmación: kilos y bruto, ya pagado, alimentación anterior, alimentación de este pago y **monto a pagar**; el botón dice "Pagar $X".
+  2. Si fue con alimentación: "¿Cuánto cobras de comida por día?". El caficultor cobra un valor fijo por día, y la app cuenta los días con pesadas desde el último pago (en hora de Colombia). Si el último pago fue un día en que ya había pesado, ese día no se vuelve a cobrar.
+  3. Desglose y confirmación: kilos y bruto, ya pagado, alimentación anterior, "Alimentación: 3 días × $10.000 = −$30.000" (o "sin días con pesadas desde el último pago") y **monto a pagar**; el botón dice "Pagar $X".
 - Solo se paga lo pendiente: los kilos ya pagados no se vuelven a pagar, y la alimentación descontada cuenta como saldada.
 - Historial de pagos de esta cosecha (monto en efectivo y alimentación descontada).
 
@@ -70,8 +78,9 @@ Al abrir la app solo se ve el logo:
 - Si el servidor rechaza una pesada pendiente (ej. el recolector fue archivado), se muestra un aviso con el motivo hasta que el usuario lo descarte.
 
 ### 1.7 Catálogo de trabajadores
-- Lista global de trabajadores (nombre, apellido, alias, teléfono).
-- Botón para agregar un nuevo trabajador.
+- Lista global de trabajadores (nombre o alias y teléfono).
+- Botón para agregar un nuevo trabajador. El formulario tiene un solo campo, "Nombre o alias" (obligatorio), y "Teléfono (opcional)". Ya no se piden apellido ni alias aparte; los trabajadores antiguos conservan los suyos.
+- Los formularios de alta nunca traen valores escritos, solo placeholders. Los de edición muestran los datos actuales.
 - Acceso desde aquí para asignarlo a una cuadrilla de la cosecha activa.
 
 ### 1.8 Cierre de cosecha
@@ -347,9 +356,21 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | 401 | Sin sesión o sesión vencida (la app vuelve a Login) |
 | 403 | Falta la clave de administrador (publicar el precio FNC, refrescar con IA) |
 | 404 | No existe **o es de otro usuario** (no se revela que exista) |
-| 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos |
+| 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos, eliminar una cosecha o un recolector con pesadas/pagos, cambiar el precio de una cosecha con pagos |
 | 422 | Regla de negocio: nada pendiente por pagar, alimentación mayor que el saldo, cosecha cerrada, contraseña actual incorrecta |
 | 500 / 503 | Falla del servidor / base de datos caída (`GET /health`) |
+
+**Cosecha y recolectores** (`/harvests`, JWT): correcciones agregadas el 2026-10-11
+
+| Método y ruta | Respuesta |
+|---|---|
+| `PATCH /:id` `{ name?, pricePerKilogram? }` | Cosecha actualizada. 409 si está cerrada o si se cambia el precio con pagos (`HarvestHasPaymentsError`) |
+| `DELETE /:id` | 204. 409 `HarvestHasRecordsError` si tiene pesadas o pagos (se cierra en su lugar) |
+| `POST /:id/pickers` `{ workerId, crewId? }` | Sin `crewId`, la persona queda sin cuadrilla |
+| `PATCH /:id/pickers/:pickerId` `{ crewId?: string \| null, harvestAlias?: string \| null }` | Mueve de cuadrilla (`null` = sin cuadrilla) o quita el alias de la cosecha |
+| `DELETE /:id/pickers/:pickerId` | 204. 409 `PickerHasRecordsError` si tiene pesadas o pagos (se archiva en su lugar) |
+
+**Pagos:** `GET /payments/picker/:id/preview` y `POST /payments/pay-now` reciben `mealPerDay` (COP por día). El desglose trae `mealDays`, `mealPerDay` y `mealDeduction = mealDays × mealPerDay`. `mealDeduction` (valor total) se sigue aceptando para las apps anteriores. **Trabajadores:** `lastName` es opcional.
 
 **Precio y noticias** (`/price-and-news`, JWT salvo los de sistema)
 
