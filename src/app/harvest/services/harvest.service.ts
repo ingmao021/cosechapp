@@ -98,6 +98,51 @@ export interface CrewResponse {
   updatedAt: string;
 }
 
+/** Lo que se le paga a un recolector al cerrar (montos en positivo, COP). */
+export interface SettlementLine {
+  harvestPickerId: string;
+  displayName: string;
+  totalKilograms: number;
+  gross: number;
+  alreadyPaid: number;
+  previousMealDeductions: number;
+  pending: number;
+  /** Días con pesadas desde su último pago (null si no hubo alimentación). */
+  mealDays: number | null;
+  mealDeduction: number;
+  /** Efectivo que recibe al cierre. */
+  net: number;
+}
+
+/** GET /harvests/:id/close-preview: liquidación de todos antes de cerrar. */
+export interface ClosePreviewResponse {
+  pickers: SettlementLine[];
+  settledPickers: number;
+  totalNet: number;
+  totalMeals: number;
+}
+
+/** PATCH /harvests/:id/close: la cosecha cerrada y el resumen de lo que se pagó. */
+export interface CloseHarvestResponse extends HarvestResponse {
+  settlement: { settledPickers: number; totalNet: number; totalMeals: number };
+}
+
+/** Detalle de un trabajador en el historial: kilos por día, pagos y total. */
+export interface PickerStatementResponse {
+  pickerId: string;
+  displayName: string;
+  status: 'active' | 'archived';
+  pricePerKilogram: number;
+  days: Array<{ date: string; kilograms: number; amount: number }>;
+  totalKilograms: number;
+  gross: number;
+  payments: Array<{ id: string; dateTime: string; amount: number; mealDeduction: number; isSettlement: boolean }>;
+  totalPaid: number;
+  totalMeals: number;
+  total: number;
+  balanceDue: number;
+}
+
 export interface HarvestDetailResponse {
   harvest: HarvestResponse;
   pickers: PickerStatsResponse[];
@@ -129,8 +174,20 @@ export class HarvestService {
     return this.http.post<HarvestResponse>(this.baseUrl, dto);
   }
 
-  closeHarvest(harvestId: string): Observable<HarvestResponse> {
-    return this.http.patch<HarvestResponse>(`${this.baseUrl}/${harvestId}/close`, {});
+  /** Cierra liquidando a todos; mealPerDay = comida por día que se le cobra a todos (null = sin). */
+  closeHarvest(harvestId: string, mealPerDay: number | null): Observable<CloseHarvestResponse> {
+    const body = mealPerDay === null ? { includesMeals: false } : { includesMeals: true, mealPerDay };
+    return this.http.patch<CloseHarvestResponse>(`${this.baseUrl}/${harvestId}/close`, body);
+  }
+
+  closePreview(harvestId: string, mealPerDay: number | null): Observable<ClosePreviewResponse> {
+    const params: Record<string, string> = { includesMeals: String(mealPerDay !== null) };
+    if (mealPerDay !== null) params['mealPerDay'] = String(mealPerDay);
+    return this.http.get<ClosePreviewResponse>(`${this.baseUrl}/${harvestId}/close-preview`, { params });
+  }
+
+  getPickerStatement(harvestId: string, pickerId: string): Observable<PickerStatementResponse> {
+    return this.http.get<PickerStatementResponse>(`${this.baseUrl}/${harvestId}/pickers/${pickerId}/statement`);
   }
 
   /** 409 si se cambia el precio cuando ya hay pagos. */

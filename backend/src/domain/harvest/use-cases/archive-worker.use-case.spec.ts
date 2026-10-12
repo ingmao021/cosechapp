@@ -32,6 +32,7 @@ describe('ArchiveWorkerUseCase', () => {
       findAllByFarmIdWithStatus: jest.fn(),
       countRecords: jest.fn(),
       delete: jest.fn(),
+      closeWithSettlements: jest.fn(),
     };
 
     useCase = new ArchiveWorkerUseCase(mockHarvestWorkerRepository, mockHarvestRepository);

@@ -93,9 +93,17 @@ import { HistoryFacade } from '../services/history.facade';
             @if (pickers().length === 0) {
               <p class="text-level-4 text-center ion-padding">Sin recolectores registrados</p>
             } @else {
+              <div class="workers-total">
+                <span class="text-level-4">Total de los trabajadores</span>
+                <strong class="text-level-2">{{ workersTotal() | currency }}</strong>
+                <span class="text-level-4">
+                  En efectivo {{ totalPayments() | currency }}
+                  @if (totalMeals() > 0) { · comida {{ totalMeals() | currency }} }
+                </span>
+              </div>
               <ion-list lines="full">
                 @for (p of pickers(); track p.id) {
-                  <ion-item lines="full">
+                  <ion-item lines="full" button detail (click)="openPicker(p.id)">
                     <ion-label>
                       <h3 class="text-level-3">
                         {{ p.displayName }}
@@ -103,11 +111,11 @@ import { HistoryFacade } from '../services/history.facade';
                           <span class="archived">· Archivado</span>
                         }
                       </h3>
-                      <p class="text-level-4">{{ p.totalKilograms | kilos }} · Pagado {{ p.totalPaid | currency }}</p>
+                      <p class="text-level-4">{{ p.totalKilograms | kilos }} · Total {{ p.totalPaid + p.totalMealDeductions | currency }}</p>
                       @if (p.totalMealDeductions > 0) {
                         <p class="text-level-4 meals">
                           <ion-icon name="restaurant-outline" aria-hidden="true"></ion-icon>
-                          Alimentación descontada: {{ p.totalMealDeductions | currency }}
+                          Comida descontada: {{ p.totalMealDeductions | currency }}
                         </p>
                       }
                       @if (p.balanceDue > 0) {
@@ -218,6 +226,13 @@ import { HistoryFacade } from '../services/history.facade';
     </ion-content>
   `,
   styles: [`
+    .workers-total {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0 0 var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
     .detail-dates {
       margin: 0 0 var(--spacing-md);
     }
@@ -303,10 +318,21 @@ export class HarvestHistoryDetailPage {
     return costs.reduce((sum, c) => sum + c.amount, 0);
   });
 
+  /** Efectivo pagado a todos los trabajadores (anticipos y liquidación al cierre). */
   totalPayments = computed(() => {
     const pickers = this.pickers();
     return pickers.reduce((sum, p) => sum + (p.totalPaid ?? 0), 0);
   });
+
+  totalMeals = computed(() => this.pickers().reduce((sum, p) => sum + (p.totalMealDeductions ?? 0), 0));
+
+  /** Lo que ganaron todos: efectivo + comida descontada. */
+  workersTotal = computed(() => this.totalPayments() + this.totalMeals());
+
+  openPicker(pickerId: string): void {
+    const id = this.harvestId();
+    if (id) this.router.navigate(['/harvest/history', id, 'pickers', pickerId]);
+  }
 
   constructor() {
     addIcons({ chevronForwardOutline, cashOutline, timeOutline, personOutline, restaurantOutline, calculatorOutline, alertCircleOutline, arrowBackOutline });

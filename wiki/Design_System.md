@@ -44,7 +44,7 @@ Al abrir la app solo se ve el logo:
 - Lista de cuadrillas de la cosecha activa (nombre + cantidad de recolectores).
 - Botón para crear una nueva cuadrilla. El diálogo trae solo el placeholder, sin un nombre escrito.
 - Cada cuadrilla se crea desde cero en cada cosecha.
-- **Sin cuadrilla:** debajo de las cuadrillas, las personas que vienen a cosechar solas. Usan las mismas tarjetas del detalle de cuadrilla (Pesar, saldo, menú ⋮) y tienen el botón "Agregar persona sin cuadrilla" (requiere conexión). Este botón abre Agregar recolector en modo "sin cuadrilla".
+- **Sin cuadrilla:** debajo de las cuadrillas, las personas que vienen a cosechar solas. Usan las mismas tarjetas del detalle de cuadrilla (Pesar, saldo, menú ⋮) y tienen el botón "Agregar persona" (requiere conexión). Este botón abre Agregar recolector en modo "sin cuadrilla".
 
 ### 1.4 Detalle de cuadrilla
 - Lista de recolectores asignados: iniciales, nombre (o alias, con el nombre real debajo), kilos de hoy y saldo por pagar.
@@ -63,7 +63,7 @@ Al abrir la app solo se ve el logo:
 - Acumulados: hoy, esta semana y toda la cosecha.
 - Saldo por pagar (kilos × precio − pagado − alimentación descontada), con lo pagado y la alimentación descontada debajo.
 - Botón "Registrar pesada" y lista de pesadas de hoy (las guardadas sin señal aparecen como "Por enviar").
-- Botón "Pagar ahora" (requiere conexión; inactivo si no hay saldo). Confirmación en tres pasos:
+- Botón "Pagar ahora" (requiere conexión; inactivo si no hay saldo). **Solo para quien se va antes de terminar la cogida**; al cerrar la cosecha se le paga a todos (§1.8). El texto de ayuda lo dice. Confirmación en tres pasos:
   1. ¿Le diste alimentación? (sin / con).
   2. Si fue con alimentación: "¿Cuánto cobras de comida por día?". El caficultor cobra un valor fijo por día, y la app cuenta los días con pesadas desde el último pago (en hora de Colombia). Si el último pago fue un día en que ya había pesado, ese día no se vuelve a cobrar.
   3. Desglose y confirmación: kilos y bruto, ya pagado, alimentación anterior, "Alimentación: 3 días × $10.000 = −$30.000" (o "sin días con pesadas desde el último pago") y **monto a pagar**; el botón dice "Pagar $X".
@@ -85,14 +85,24 @@ Al abrir la app solo se ve el logo:
 
 ### 1.8 Cierre de cosecha
 Tres pasos, en el orden que exige el negocio (la venta ocurre cuando la cosecha terminó):
-1. **Cerrar**: resumen (recolectores, kilos de café cereza, pagado). Si quedan saldos pendientes, aviso con el total. Confirmación: "Ya no podrás registrar pesadas ni pagos".
-2. **Venta**: kilos secos vendidos, precio por kilo seco y fecha (por defecto hoy), con la proyección de kilos secos (cereza ÷ 5) como referencia y el total de la venta.
+1. **Cerrar = pagarle a todos.** El caficultor no entra a pagar uno por uno.
+   - Resumen: recolectores, kilos de café cereza y lo ya pagado.
+   - **"¿Les diste alimentación?"**: "Sin alimentación" o "Con alimentación". Con alimentación aparece "¿Cuánto cobras de comida por día?", con placeholder. Ese valor se le descuenta **a todos los trabajadores** por cada día que pesaron desde su último pago (en hora de Colombia), igual que en "Pagar ahora". No se puede cerrar sin elegir.
+   - **Pago al cerrar** (vista previa): "Se le paga a N trabajadores: $X", con la comida descontada y "Ver por trabajador" (kilos, días de comida y neto). La comida nunca deja el neto en negativo: si cubre todo lo pendiente, el neto es $0.
+   - Confirmación con el monto: "Se registra el pago de todos los trabajadores: $X… Ya no podrás registrar pesadas ni pagos". Al cerrar se guarda un pago de **liquidación** por recolector (activos y archivados) junto con el cierre, en una sola operación.
+2. **Venta**: kilos secos vendidos, precio por kilo seco y fecha (solo el placeholder, sin fecha escrita), con la proyección de kilos secos (cereza ÷ 5) como referencia y el total de la venta.
 3. **Costos**: lista de gastos (descripción + valor) y el resumen: venta − pagos = ganancia bruta − costos = **ganancia de la cosecha** (con esa etiqueta explícita para no confundirla con la rentabilidad de la finca).
 - Si el usuario sale a mitad, retoma desde el detalle del historial ("Registrar venta y costos").
 
 ### 1.9 Historial de cosechas
 - Lista de cosechas cerradas (nombre, fechas, ganancia de la cosecha).
 - Acceso al detalle de cada una (recolectores, pagos, venta, costos).
+- En el detalle va primero el **"Total de los trabajadores"** (efectivo + comida descontada), con "En efectivo $X · comida $Y". Cada trabajador muestra sus kilos y su total, y al tocarlo se abre su detalle.
+- **Detalle del trabajador** (`/harvest/history/:harvestId/pickers/:pickerId`):
+  - Total del trabajador, con kilos × precio por kilo.
+  - **Kilos por día**: fecha, kilos y valor, con su fila de total.
+  - Pagos: "Pago (se fue antes)" o "Liquidación al cerrar", con la fecha y la comida descontada.
+  - Resumen: kilos × precio, comida descontada y recibido en efectivo. "Quedó debiendo" solo aparece en cosechas cerradas antes de que el cierre liquidara a todos.
 
 ### 1.10 Precio y noticias
 - Precio actual del café publicado por la FNC (carga de 125 kg), con fecha. Sin dato: "Aún no hay precio publicado" (nunca "$ 0 COP", que parecería un precio real).
@@ -369,6 +379,12 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | `POST /:id/pickers` `{ workerId, crewId? }` | Sin `crewId`, la persona queda sin cuadrilla |
 | `PATCH /:id/pickers/:pickerId` `{ crewId?: string \| null, harvestAlias?: string \| null }` | Mueve de cuadrilla (`null` = sin cuadrilla) o quita el alias de la cosecha |
 | `DELETE /:id/pickers/:pickerId` | 204. 409 `PickerHasRecordsError` si tiene pesadas o pagos (se archiva en su lugar) |
+
+**Cierre y detalle del trabajador:**
+- `GET /harvests/:id/close-preview?includesMeals=&mealPerDay=` devuelve, por recolector con saldo, `{ harvestPickerId, displayName, totalKilograms, gross, alreadyPaid, pending, mealDays, mealDeduction, net }` y los totales `{ settledPickers, totalNet, totalMeals }`.
+- `PATCH /harvests/:id/close` recibe `{ includesMeals, mealPerDay? }` y devuelve la cosecha cerrada más `settlement`. Sin body liquida sin comida, para las apps anteriores.
+- `GET /harvests/:id/pickers/:pickerId/statement` devuelve los kilos por día, los pagos (con `isSettlement`) y los totales.
+- Los pagos traen `isSettlement` (columna `payments.is_settlement`).
 
 **Pagos:** `GET /payments/picker/:id/preview` y `POST /payments/pay-now` reciben `mealPerDay` (COP por día). El desglose trae `mealDays`, `mealPerDay` y `mealDeduction = mealDays × mealPerDay`. `mealDeduction` (valor total) se sigue aceptando para las apps anteriores. **Trabajadores:** `lastName` es opcional.
 

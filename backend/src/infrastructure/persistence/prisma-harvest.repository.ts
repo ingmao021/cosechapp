@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Harvest } from '@domain/harvest/harvest.entity';
 import { HarvestRepository } from '@domain/harvest/harvest.repository';
 import { HarvestStatus } from '@domain/harvest/harvest-status.enum';
+import { Payment } from '@domain/payment/payment.entity';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -67,6 +68,26 @@ export class PrismaHarvestRepository implements HarvestRepository {
 
   async delete(id: string): Promise<void> {
     await this.client.harvest.delete({ where: { id } });
+  }
+
+  async closeWithSettlements(harvest: Harvest, payments: Payment[]): Promise<Harvest> {
+    const [, ...results] = await this.client.$transaction([
+      this.client.payment.createMany({
+        data: payments.map((payment) => ({
+          id: payment.id,
+          harvestPickerId: payment.harvestPickerId,
+          amount: payment.amount,
+          includesMeals: payment.includesMeals,
+          mealDetail: payment.mealDetail,
+          dateTime: payment.dateTime,
+          isSettlement: payment.isSettlement,
+          createdAt: payment.createdAt,
+          updatedAt: payment.updatedAt,
+        })),
+      }),
+      this.client.harvest.update({ where: { id: harvest.id }, data: this.toPersistence(harvest) }),
+    ]);
+    return this.toDomain(results[0]);
   }
 
   private toDomain(prisma: any): Harvest {

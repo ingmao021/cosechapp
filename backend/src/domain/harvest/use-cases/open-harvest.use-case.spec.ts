@@ -21,6 +21,7 @@ describe('OpenHarvestUseCase', () => {
       findAllByFarmIdWithStatus: jest.fn(),
       countRecords: jest.fn(),
       delete: jest.fn(),
+      closeWithSettlements: jest.fn(),
     };
 
     mockFarmRepository = {

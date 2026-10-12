@@ -6,7 +6,8 @@ import { HarvestRepository } from '@domain/harvest/harvest.repository';
 import { HarvestWorkerRepository } from '@domain/harvest/harvest-worker.repository';
 import { CrewRepository } from '@domain/harvest/crew.repository';
 import { OpenHarvestUseCase } from '@domain/harvest/use-cases/open-harvest.use-case';
-import { CloseHarvestUseCase } from '@domain/harvest/use-cases/close-harvest.use-case';
+import { CloseHarvestUseCase, CloseHarvestUseCaseOutput } from '@domain/harvest/use-cases/close-harvest.use-case';
+import { PickerNotFoundError } from '@shared/errors/domain-errors';
 import { AssignWorkerToHarvestUseCase } from '@domain/harvest/use-cases/assign-worker.use-case';
 import { ArchiveWorkerUseCase } from '@domain/harvest/use-cases/archive-worker.use-case';
 import { CreateCrewUseCase } from '@domain/harvest/use-cases/create-crew.use-case';
@@ -57,11 +58,43 @@ export class HarvestService {
     return result.harvest;
   }
 
-  async closeHarvest(user: AuthUser, harvestId: string): Promise<Harvest> {
+  /** Cierra liquidando a todos; mealPerDay (o null) es la comida por día que se les cobra. */
+  async closeHarvest(user: AuthUser, harvestId: string, mealPerDay: number | null): Promise<CloseHarvestUseCaseOutput> {
     await this.ownership.harvestFor(harvestId, user.farmId);
-    const useCase = new CloseHarvestUseCase(this.harvestRepository);
-    const result = await useCase.execute({ harvestId, farmId: user.farmId });
-    return result.harvest;
+    return this.closeUseCase().execute({ harvestId, farmId: user.farmId, mealPerDay });
+  }
+
+  /** Lo que se le pagaría a cada recolector al cerrar, con o sin comida, sin guardar nada. */
+  async closePreview(user: AuthUser, harvestId: string, mealPerDay: number | null) {
+    await this.ownership.harvestFor(harvestId, user.farmId);
+    const [preview, stats] = await Promise.all([
+      this.closeUseCase().preview({ harvestId, farmId: user.farmId, mealPerDay }),
+      this.pickerStats(user, harvestId, false),
+    ]);
+    const names = new Map(stats.map((picker) => [picker.id, picker.displayName]));
+    return {
+      ...preview,
+      pickers: preview.pickers
+        .filter((line) => line.pending > 0)
+        .map((line) => ({ ...line, displayName: names.get(line.harvestPickerId) ?? '' })),
+    };
+  }
+
+  /** Detalle de un recolector para el historial: kilos por día, pagos y total. */
+  async pickerStatement(user: AuthUser, harvestId: string, pickerId: string) {
+    const harvest = await this.ownership.harvestFor(harvestId, user.farmId);
+    const statement = await this.queries.pickerStatement(harvest.id, pickerId, harvest.pricePerKilogram);
+    if (!statement) throw new PickerNotFoundError(pickerId);
+    return statement;
+  }
+
+  private closeUseCase(): CloseHarvestUseCase {
+    return new CloseHarvestUseCase(
+      this.harvestRepository,
+      this.harvestWorkerRepository,
+      this.paymentRepository,
+      this.weighingRepository,
+    );
   }
 
   async updateHarvest(

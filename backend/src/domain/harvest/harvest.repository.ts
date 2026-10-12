@@ -1,5 +1,6 @@
 import { Harvest } from './harvest.entity';
 import { HarvestStatus } from './harvest-status.enum';
+import { Payment } from '@domain/payment/payment.entity';
 
 export interface HarvestRepository {
   save(harvest: Harvest): Promise<Harvest>;
@@ -12,4 +13,6 @@ export interface HarvestRepository {
   countRecords(harvestId: string): Promise<{ weighings: number; payments: number }>;
   /** Borra la cosecha con sus cuadrillas y recolectores (solo si no tiene registros). */
   delete(id: string): Promise<void>;
+  /** Guarda la cosecha cerrada junto con los pagos de liquidación, en una sola transacción. */
+  closeWithSettlements(harvest: Harvest, payments: Payment[]): Promise<Harvest>;
 }

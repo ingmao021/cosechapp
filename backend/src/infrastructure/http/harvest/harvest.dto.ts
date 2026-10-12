@@ -1,5 +1,5 @@
-import { IsString, IsNumber, IsPositive, MaxLength, MinLength, IsOptional, ValidateIf } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsNumber, IsPositive, MaxLength, MinLength, IsOptional, ValidateIf, IsBoolean, IsIn } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class OpenHarvestDto {
   @IsString()
@@ -66,4 +66,30 @@ export class UpdateCrewDto {
   @MinLength(1)
   @MaxLength(100)
   name!: string;
+}
+
+/** Cierre: si hubo alimentación, mealPerDay se le descuenta a todos por cada día que pesaron. */
+export class CloseHarvestDto {
+  @IsOptional()
+  @IsBoolean()
+  includesMeals?: boolean;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 0 })
+  @IsPositive()
+  @Type(() => Number)
+  mealPerDay?: number;
+}
+
+export class ClosePreviewQueryDto {
+  @IsOptional()
+  @IsIn([true, false])
+  @Transform(({ value }) => value === true || value === 'true')
+  includesMeals?: boolean;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 0 })
+  @IsPositive()
+  @Type(() => Number)
+  mealPerDay?: number;
 }
