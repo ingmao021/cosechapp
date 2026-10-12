@@ -38,6 +38,7 @@ describe('Harvest edit/delete and picker update/delete', () => {
       findAllByFarmIdWithStatus: jest.fn(),
       countRecords: jest.fn().mockResolvedValue(noRecords),
       delete: jest.fn(),
+      closeWithSettlements: jest.fn(),
     };
     pickers = {
       save: jest.fn(async (p: HarvestWorker) => p),

@@ -32,6 +32,8 @@ export interface PaymentItemResponse {
   amount: number;
   includesMeals: boolean;
   mealDeduction: number;
+  /** true: liquidación al cerrar la cosecha; false: pago a quien se fue antes. */
+  isSettlement: boolean;
   dateTime: string;
   createdAt: string;
   updatedAt: string;

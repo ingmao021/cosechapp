@@ -43,4 +43,8 @@ export const harvestRoutes: Routes = [
     path: 'history/:harvestId',
     loadComponent: () => import('./pages/harvest-history-detail.page').then(m => m.HarvestHistoryDetailPage),
   },
+  {
+    path: 'history/:harvestId/pickers/:pickerId',
+    loadComponent: () => import('./pages/picker-statement.page').then(m => m.PickerStatementPage),
+  },
 ];

@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   Res,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -24,7 +25,16 @@ import { Crew } from '@domain/harvest/crew.entity';
 import { Sale } from '@domain/sale-and-costs/sale.entity';
 import { ProductionCost } from '@domain/sale-and-costs/production-cost.entity';
 import { JwtAuthGuard } from '@infrastructure/http/auth/guards/jwt-auth.guard';
-import { OpenHarvestDto, AssignWorkerDto, CreateCrewDto, UpdateCrewDto, UpdateHarvestDto, UpdatePickerDto } from './harvest.dto';
+import {
+  OpenHarvestDto,
+  AssignWorkerDto,
+  CreateCrewDto,
+  UpdateCrewDto,
+  UpdateHarvestDto,
+  UpdatePickerDto,
+  CloseHarvestDto,
+  ClosePreviewQueryDto,
+} from './harvest.dto';
 
 interface AuthRequest {
   user: AuthUser;
@@ -47,10 +57,29 @@ export class HarvestController {
   }
 
   @Patch(':id/close')
-  @ApiOperation({ summary: 'Close an active harvest' })
+  @ApiOperation({ summary: 'Close the harvest paying every picker their pending balance (minus meals per day)' })
   @ApiParam({ name: 'id', description: 'Harvest ID' })
-  async closeHarvest(@Request() req: AuthRequest, @Param('id') id: string) {
-    return toHarvestResponse(await this.harvestService.closeHarvest(req.user, id));
+  async closeHarvest(@Request() req: AuthRequest, @Param('id') id: string, @Body() dto: CloseHarvestDto) {
+    const result = await this.harvestService.closeHarvest(req.user, id, dto.includesMeals ? (dto.mealPerDay ?? null) : null);
+    return {
+      ...toHarvestResponse(result.harvest),
+      settlement: { settledPickers: result.settledPickers, totalNet: result.totalNet, totalMeals: result.totalMeals },
+    };
+  }
+
+  @Get(':id/close-preview')
+  @ApiOperation({ summary: 'What each picker would be paid when closing (nothing is saved)' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  async closePreview(@Request() req: AuthRequest, @Param('id') id: string, @Query() query: ClosePreviewQueryDto) {
+    return this.harvestService.closePreview(req.user, id, query.includesMeals ? (query.mealPerDay ?? null) : null);
+  }
+
+  @Get(':id/pickers/:pickerId/statement')
+  @ApiOperation({ summary: 'Picker statement for the history: kilograms per day, payments and total' })
+  @ApiParam({ name: 'id', description: 'Harvest ID' })
+  @ApiParam({ name: 'pickerId', description: 'Harvest Picker ID' })
+  async pickerStatement(@Request() req: AuthRequest, @Param('id') id: string, @Param('pickerId') pickerId: string) {
+    return this.harvestService.pickerStatement(req.user, id, pickerId);
   }
 
   @Post(':id/pickers')

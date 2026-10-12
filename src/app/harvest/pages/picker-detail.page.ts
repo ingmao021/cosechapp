@@ -118,6 +118,8 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
               <p class="hint">Necesitas conexión para pagar.</p>
             } @else if (picker()!.balanceDue === 0) {
               <p class="hint">No tiene saldo pendiente.</p>
+            } @else {
+              <p class="hint">Solo si se va antes de terminar la cogida. Al cerrar la cosecha se le paga a todos.</p>
             }
           </div>
 

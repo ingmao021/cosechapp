@@ -26,7 +26,9 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { HarvestFacade } from '../services/harvest.facade';
-import { HarvestService, HarvestResponse } from '../services/harvest.service';
+import { HarvestService, HarvestResponse, ClosePreviewResponse } from '../services/harvest.service';
+import { ToastController } from '@ionic/angular/toast-controller';
+import { formatCurrency } from '../../shared/utils';
 import { SaleAndCostsFacade } from '../../sale-and-costs/services/sale-and-costs.facade';
 import { NetworkService } from '../../network/services/network.service';
 import { apiErrorMessage } from '../../shared/utils';
@@ -40,7 +42,8 @@ const today = () => {
 
 /**
  * Cierre de cosecha (Design System §1.8), en el orden que exige el negocio:
- * 1. Cerrar: ya no se registran pesadas ni pagos (avisa si quedan saldos pendientes).
+ * 1. Cerrar: se le paga a todos lo pendiente (menos la comida por día, si la hubo) y ya no
+ *    se registran pesadas ni pagos. "Pagar ahora" queda solo para quien se va antes.
  * 2. Venta: kilos secos vendidos y precio → ganancia bruta.
  * 3. Costos de producción → ganancia de la cosecha.
  * Con /harvest/close/:harvestId se retoma en el paso pendiente (ej. desde el historial).
@@ -117,18 +120,64 @@ const today = () => {
                 </dl>
               </section>
 
-              @if (pendingBalance() > 0) {
-                <p class="warning" role="status">
-                  <ion-icon name="warning-outline" aria-hidden="true"></ion-icon>
-                  <span>
-                    {{ pickersWithBalance() }} {{ pickersWithBalance() === 1 ? 'recolector tiene' : 'recolectores tienen' }}
-                    saldo pendiente por {{ pendingBalance() | currency }}. Después de cerrar ya no podrás pagarles desde la app.
-                  </span>
-                </p>
+              <!-- Alimentación: se le descuenta a todos por cada día que pesaron -->
+              <section class="card">
+                <h3 class="text-level-3 card__title">¿Les diste alimentación?</h3>
+                <p class="form-page__intro">Si la hubo, se le descuenta a todos los trabajadores por cada día que pesaron.</p>
+                <div class="choice" role="radiogroup" aria-label="Alimentación">
+                  <button type="button" role="radio" class="choice__option" [class.selected]="mealsChoice() === 'no'"
+                    [attr.aria-checked]="mealsChoice() === 'no'" (click)="chooseMeals('no')">Sin alimentación</button>
+                  <button type="button" role="radio" class="choice__option" [class.selected]="mealsChoice() === 'yes'"
+                    [attr.aria-checked]="mealsChoice() === 'yes'" (click)="chooseMeals('yes')">Con alimentación</button>
+                </div>
+                @if (mealsChoice() === 'yes') {
+                  <app-input
+                    label="¿Cuánto cobras de comida por día?"
+                    type="number"
+                    inputmode="numeric"
+                    name="mealPerDay"
+                    placeholder="Ej: 10000"
+                    [ngModel]="mealPerDay()"
+                    (ngModelChange)="onMealPerDay($event)"
+                  ></app-input>
+                }
+              </section>
+
+              <!-- Lo que se le paga a cada uno al cerrar -->
+              @if (closePreview(); as preview) {
+                <section class="card" aria-live="polite">
+                  <h3 class="text-level-3 card__title">Pago al cerrar</h3>
+                  @if (preview.settledPickers === 0) {
+                    <p class="form-page__intro">Todos los trabajadores ya están pagos.</p>
+                  } @else {
+                    <p class="settle-total">
+                      Se le paga a {{ preview.settledPickers }} {{ preview.settledPickers === 1 ? 'trabajador' : 'trabajadores' }}:
+                      <strong>{{ preview.totalNet | currency }}</strong>
+                    </p>
+                    @if (preview.totalMeals > 0) {
+                      <p class="form-page__intro">Comida descontada: −{{ preview.totalMeals | currency }}</p>
+                    }
+                    <details class="settle-details">
+                      <summary>Ver por trabajador</summary>
+                      <ul class="settle-list">
+                        @for (line of preview.pickers; track line.harvestPickerId) {
+                          <li>
+                            <span class="settle-list__name">{{ line.displayName }}</span>
+                            <span class="settle-list__meta">
+                              {{ line.totalKilograms | kilos }}
+                              @if (line.mealDays) { · comida {{ line.mealDays }} {{ line.mealDays === 1 ? 'día' : 'días' }} −{{ line.mealDeduction | currency }} }
+                            </span>
+                            <strong>{{ line.net | currency }}</strong>
+                          </li>
+                        }
+                      </ul>
+                    </details>
+                  }
+                </section>
               }
 
               <p class="form-page__intro">
-                Al cerrar ya no se pueden registrar pesadas ni pagos. Luego registras la venta y los costos.
+                Al cerrar se registra el pago de todos y ya no se pueden registrar pesadas ni pagos. Luego registras la venta y los costos.
               </p>
 
               <app-button-primary
@@ -136,7 +185,7 @@ const today = () => {
                 iconStart="lock-closed-outline"
                 [loading]="busy()"
                 loadingText="Cerrando..."
-                [disabled]="!network.isOnline()"
+                [disabled]="!network.isOnline() || !canClose()"
                 (buttonClick)="closeHarvest()"
               >
                 Cerrar cosecha
@@ -332,20 +381,62 @@ const today = () => {
     .summary dd.loss {
       color: var(--color-accent-alert);
     }
-    .warning {
-      display: flex;
-      gap: var(--spacing-sm);
-      margin: 0;
-      padding: var(--spacing-sm) var(--spacing-md);
-      border-radius: var(--radius-sm);
-      background: rgba(183, 121, 31, 0.12);
-      font-family: var(--font-family-body);
-      font-size: var(--font-size-sm);
+    .card__title {
+      margin: 0 0 var(--spacing-xs);
     }
-    .warning ion-icon {
-      flex-shrink: 0;
-      font-size: 20px;
-      color: var(--ion-color-warning);
+    .choice {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-sm);
+      margin: var(--spacing-sm) 0;
+    }
+    .choice__option {
+      min-height: var(--touch-target-min);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font: inherit;
+      font-weight: var(--font-weight-bold);
+    }
+    .choice__option.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: var(--color-text-on-primary);
+    }
+    .settle-total {
+      margin: 0 0 var(--spacing-xs);
+      font-size: var(--font-size-md);
+    }
+    .settle-details summary {
+      cursor: pointer;
+      color: var(--color-primary);
+      font-weight: var(--font-weight-bold);
+    }
+    .settle-list {
+      list-style: none;
+      margin: var(--spacing-sm) 0 0;
+      padding: 0;
+    }
+    .settle-list li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      column-gap: var(--spacing-sm);
+      padding: var(--spacing-xs) 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .settle-list__name {
+      font-weight: var(--font-weight-bold);
+    }
+    .settle-list__meta {
+      grid-column: 1;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+    .settle-list strong {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      align-self: center;
     }
     h2 {
       margin: 0;
@@ -387,6 +478,7 @@ export class HarvestClosePage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly alertController = inject(AlertController);
+  private readonly toastController = inject(ToastController);
   private readonly harvestService = inject(HarvestService);
   protected readonly harvestFacade = inject(HarvestFacade);
   protected readonly saleAndCostsFacade = inject(SaleAndCostsFacade);
@@ -412,8 +504,14 @@ export class HarvestClosePage {
 
   readonly activePickers = computed(() => this.harvestFacade.activeHarvestPickers().filter((p) => p.status === 'active'));
   readonly totalPaid = computed(() => this.harvestFacade.activeHarvestPickers().reduce((sum, p) => sum + p.totalPaid, 0));
-  readonly pendingBalance = computed(() => this.activePickers().reduce((sum, p) => sum + p.balanceDue, 0));
-  readonly pickersWithBalance = computed(() => this.activePickers().filter((p) => p.balanceDue > 0).length);
+  /** Alimentación al cierre: null hasta que el caficultor elige. */
+  readonly mealsChoice = signal<'no' | 'yes' | null>(null);
+  readonly mealPerDay = signal<number | null>(null);
+  readonly closePreview = signal<ClosePreviewResponse | null>(null);
+  readonly canClose = computed(
+    () => this.mealsChoice() === 'no' || (this.mealsChoice() === 'yes' && (this.mealPerDay() ?? 0) > 0),
+  );
+  private previewTimer: ReturnType<typeof setTimeout> | null = null;
   readonly totalCherryKilograms = computed(() => {
     const fromPickers = this.harvestFacade.activeHarvestPickers().reduce((sum, p) => sum + p.totalKilograms, 0);
     // Ya cerrada, los recolectores salen de la cosecha activa: se usa lo que calculó el backend (secos × 5).
@@ -427,13 +525,61 @@ export class HarvestClosePage {
     void this.load();
   }
 
+  chooseMeals(choice: 'no' | 'yes'): void {
+    this.mealsChoice.set(choice);
+    this.schedulePreview(0);
+  }
+
+  onMealPerDay(value: number | string | null): void {
+    const amount = Number(value);
+    this.mealPerDay.set(value === null || value === '' || !(amount > 0) ? null : Math.round(amount));
+    this.schedulePreview(400);
+  }
+
+  /** null = sin alimentación; undefined = todavía no se puede calcular (falta el valor). */
+  private selectedMealPerDay(): number | null | undefined {
+    if (this.mealsChoice() === 'no') return null;
+    const value = this.mealPerDay();
+    return value && value > 0 ? value : undefined;
+  }
+
+  private schedulePreview(delayMs: number): void {
+    if (this.previewTimer) clearTimeout(this.previewTimer);
+    this.previewTimer = setTimeout(() => void this.loadClosePreview(), delayMs);
+  }
+
+  private async loadClosePreview(): Promise<void> {
+    const harvest = this.harvest();
+    const mealPerDay = this.selectedMealPerDay();
+    if (!harvest || harvest.status !== 'active' || mealPerDay === undefined) {
+      this.closePreview.set(null);
+      return;
+    }
+    try {
+      this.closePreview.set(await firstValueFrom(this.harvestService.closePreview(harvest.id, mealPerDay)));
+    } catch {
+      this.closePreview.set(null); // sin señal: se cierra igual, solo no se ve el resumen
+    }
+  }
+
   async closeHarvest(): Promise<void> {
     const harvest = this.harvest();
-    if (!harvest || !(await this.confirmClose(harvest.name))) return;
+    const mealPerDay = this.selectedMealPerDay();
+    if (!harvest || mealPerDay === undefined || !(await this.confirmClose(harvest.name))) return;
 
     await this.runStep('No se pudo cerrar la cosecha.', async () => {
-      const closed = await this.harvestFacade.closeHarvest(harvest.id);
+      const closed = await this.harvestFacade.closeHarvest(harvest.id, mealPerDay);
       this.harvest.set(closed);
+      const { settledPickers, totalNet } = closed.settlement;
+      const toast = await this.toastController.create({
+        message: settledPickers > 0
+          ? `Cosecha cerrada. Se registró el pago de ${settledPickers} ${settledPickers === 1 ? 'trabajador' : 'trabajadores'}: ${formatCurrency(totalNet)}.`
+          : 'Cosecha cerrada.',
+        color: 'success',
+        duration: 3500,
+        position: 'bottom',
+      });
+      await toast.present();
       await this.saleAndCostsFacade.loadHarvestProfit(closed.id);
       // Si sale de la pantalla, puede retomar desde el historial en el paso de la venta.
       await this.router.navigate(['/harvest/close', closed.id], { replaceUrl: true });
@@ -511,7 +657,7 @@ export class HarvestClosePage {
   private async confirmClose(name: string): Promise<boolean> {
     const alert = await this.alertController.create({
       header: `¿Cerrar "${name}"?`,
-      message: 'Ya no podrás registrar pesadas ni pagos en esta cosecha. Esta acción no se puede deshacer.',
+      message: this.closeConfirmMessage(),
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         { text: 'Cerrar cosecha', role: 'confirm', cssClass: 'alert-button-danger' },
@@ -520,6 +666,14 @@ export class HarvestClosePage {
     await alert.present();
     const { role } = await alert.onDidDismiss();
     return role === 'confirm';
+  }
+
+  private closeConfirmMessage(): string {
+    const preview = this.closePreview();
+    const pay = preview && preview.settledPickers > 0
+      ? `Se registra el pago de todos los trabajadores: ${formatCurrency(preview.totalNet)}${preview.totalMeals > 0 ? ` (comida descontada: ${formatCurrency(preview.totalMeals)})` : ''}. `
+      : '';
+    return `${pay}Ya no podrás registrar pesadas ni pagos en esta cosecha. Esta acción no se puede deshacer.`;
   }
 
   private async runStep(fallback: string, action: () => Promise<unknown>): Promise<void> {

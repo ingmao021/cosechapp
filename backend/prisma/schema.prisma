@@ -140,7 +140,8 @@ model Payment {
   harvestPickerId   String   @map("harvest_picker_id")
   amount            Decimal  @db.Decimal(10, 2) // Negative value
   includesMeals     Boolean  @default(false) @map("includes_meals")
-  mealDetail        String?  @map("meal_detail") // Price per meal or total per day
+  mealDetail        String?  @map("meal_detail") // Total meal deduction of this payment (COP)
+  isSettlement      Boolean  @default(false) @map("is_settlement") // Paid when closing the harvest
   dateTime          DateTime @default(now()) @map("date_time")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")

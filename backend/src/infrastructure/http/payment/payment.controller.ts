@@ -79,6 +79,8 @@ function toPaymentResponse(payment: Payment) {
     amount: -payment.amount,
     includesMeals: payment.includesMeals,
     mealDeduction: payment.mealDetail ? Number(payment.mealDetail) : 0,
+    /** true: liquidación al cerrar la cosecha; false: pago a quien se fue antes. */
+    isSettlement: payment.isSettlement,
     dateTime: payment.dateTime,
     createdAt: payment.createdAt,
     updatedAt: payment.updatedAt,

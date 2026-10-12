@@ -2,7 +2,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { HarvestService, HarvestResponse, HarvestSummaryResponse, PickerStatsResponse, CrewResponse } from './harvest.service';
+import { HarvestService, HarvestResponse, HarvestSummaryResponse, PickerStatsResponse, CrewResponse, CloseHarvestResponse } from './harvest.service';
 import { apiErrorMessage } from '../../shared/utils';
 import { OfflineStore } from '../../sync/services/offline-store';
 
@@ -103,10 +103,13 @@ export class HarvestFacade {
     });
   }
 
-  /** Cierra la cosecha: ya no se pueden registrar pesadas ni pagos. */
-  async closeHarvest(harvestId: string): Promise<HarvestResponse> {
+  /**
+   * Cierra la cosecha liquidando a todos los recolectores (menos la comida por día, si la hubo).
+   * Después ya no se pueden registrar pesadas ni pagos.
+   */
+  async closeHarvest(harvestId: string, mealPerDay: number | null): Promise<CloseHarvestResponse> {
     return this.run('No se pudo cerrar la cosecha.', async () => {
-      const harvest = await firstValueFrom(this.harvestService.closeHarvest(harvestId));
+      const harvest = await firstValueFrom(this.harvestService.closeHarvest(harvestId, mealPerDay));
       this.setActive({ harvest: null, pickers: [], crews: [] });
       return harvest;
     });

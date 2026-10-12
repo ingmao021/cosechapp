@@ -181,6 +181,44 @@ describeIfDb('API contract (e2e)', () => {
   });
 
 
+  it('closing pays everyone (meals per day for all), history statement adds up', async () => {
+    const owner = await registerUser();
+    const auth = (r: request.Test) => r.set('Authorization', owner.token);
+    const harvestId = (await auth(http.post('/harvests')).send({ name: 'Cierre', pricePerKilogram: 1000 }).expect(201)).body.id;
+    const addPerson = async (firstName: string) => {
+      const workerId = (await auth(http.post('/workers')).send({ firstName }).expect(201)).body.id;
+      return (await auth(http.post(`/harvests/${harvestId}/pickers`)).send({ workerId }).expect(201)).body.id as string;
+    };
+    const ana = await addPerson('Ana');
+    const beto = await addPerson('Beto');
+    await auth(http.post('/weighings')).send({ harvestPickerId: ana, kilograms: 20 }).expect(201);
+    await auth(http.post('/weighings')).send({ harvestPickerId: beto, kilograms: 10 }).expect(201);
+    // Beto se fue antes: se le pagó con "Pagar ahora".
+    await auth(http.post('/payments/pay-now')).send({ harvestPickerId: beto, harvestId, includesMeals: false }).expect(201);
+
+    const preview = await auth(http.get(`/harvests/${harvestId}/close-preview`))
+      .query({ includesMeals: true, mealPerDay: 2000 })
+      .expect(200);
+    expect(preview.body).toMatchObject({ settledPickers: 1, totalNet: 18000, totalMeals: 2000 });
+    expect(preview.body.pickers).toEqual([
+      expect.objectContaining({ harvestPickerId: ana, displayName: 'Ana', mealDays: 1, mealDeduction: 2000, net: 18000 }),
+    ]);
+
+    const closed = await auth(http.patch(`/harvests/${harvestId}/close`)).send({ includesMeals: true, mealPerDay: 2000 }).expect(200);
+    expect(closed.body).toMatchObject({ status: 'closed', settlement: { settledPickers: 1, totalNet: 18000, totalMeals: 2000 } });
+
+    const pickers = (await auth(http.get(`/harvests/${harvestId}/pickers`)).expect(200)).body;
+    expect(pickers.every((p: { balanceDue: number }) => p.balanceDue === 0)).toBe(true);
+
+    const statement = (await auth(http.get(`/harvests/${harvestId}/pickers/${ana}/statement`)).expect(200)).body;
+    expect(statement).toMatchObject({ displayName: 'Ana', totalKilograms: 20, gross: 20000, totalPaid: 18000, totalMeals: 2000, total: 20000, balanceDue: 0 });
+    expect(statement.days).toHaveLength(1);
+    expect(statement.payments).toEqual([expect.objectContaining({ amount: 18000, mealDeduction: 2000, isSettlement: true })]);
+
+    const detail = (await auth(http.get(`/harvests/${harvestId}/detail`)).expect(200)).body;
+    expect(detail.totalPayments).toBe(28000); // 18.000 Ana + 10.000 Beto, en efectivo
+  });
+
   describe('harvest flow', () => {
     let owner: { token: string };
     let intruder: { token: string };

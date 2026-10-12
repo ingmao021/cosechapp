@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { startOfDayInColombia, startOfWeekInColombia } from '@shared/time/colombia-time';
 
+const COLOMBIA_OFFSET_MS = -5 * 60 * 60 * 1000;
+
 /** Recolector de una cosecha con su nombre y acumulados, listo para mostrar. */
 export interface PickerStats {
   id: string;
@@ -26,6 +28,28 @@ export interface PickerStats {
   balanceDue: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** Detalle de un recolector para el historial: kilos por día, pagos y total. Montos en positivo. */
+export interface PickerStatement {
+  pickerId: string;
+  displayName: string;
+  status: 'active' | 'archived';
+  pricePerKilogram: number;
+  /** Un registro por día con pesadas (hora de Colombia), del más antiguo al más reciente. */
+  days: Array<{ date: string; kilograms: number; amount: number }>;
+  totalKilograms: number;
+  /** Kilos × precio. */
+  gross: number;
+  payments: Array<{ id: string; dateTime: Date; amount: number; mealDeduction: number; isSettlement: boolean }>;
+  /** Efectivo recibido. */
+  totalPaid: number;
+  /** Comida descontada. */
+  totalMeals: number;
+  /** Lo que ganó el trabajador: efectivo + comida descontada. */
+  total: number;
+  /** Lo que quedó sin pagar (solo cosechas cerradas antes de liquidar al cierre). */
+  balanceDue: number;
 }
 
 /**
@@ -101,6 +125,51 @@ export class PrismaHarvestQueries {
         updatedAt: picker.updatedAt,
       };
     });
+  }
+
+  async pickerStatement(harvestId: string, pickerId: string, pricePerKilogram: number): Promise<PickerStatement | null> {
+    const client = this.prisma.getClient();
+    const picker = await client.harvestPicker.findFirst({
+      where: { id: pickerId, harvestId },
+      include: { worker: true, weightRecords: { orderBy: { dateTime: 'asc' } }, payments: { orderBy: { dateTime: 'asc' } } },
+    });
+    if (!picker) return null;
+
+    // Kilos por día en hora de Colombia ("AAAA-MM-DD").
+    const byDay = new Map<string, number>();
+    for (const record of picker.weightRecords) {
+      const day = new Date(startOfDayInColombia(record.dateTime).getTime() + COLOMBIA_OFFSET_MS).toISOString().slice(0, 10);
+      byDay.set(day, (byDay.get(day) ?? 0) + Number(record.kilograms));
+    }
+    const days = [...byDay].map(([date, kilograms]) => ({ date, kilograms, amount: kilograms * pricePerKilogram }));
+    const totalKilograms = days.reduce((sum, day) => sum + day.kilograms, 0);
+    const gross = totalKilograms * pricePerKilogram;
+
+    const payments = picker.payments.map((payment) => ({
+      id: payment.id,
+      dateTime: payment.dateTime,
+      amount: -Number(payment.amount), // se guardan en negativo
+      mealDeduction: payment.includesMeals ? Number(payment.mealDetail) || 0 : 0,
+      isSettlement: payment.isSettlement,
+    }));
+    const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const totalMeals = payments.reduce((sum, payment) => sum + payment.mealDeduction, 0);
+    const alias = picker.harvestAlias ?? picker.worker.alias ?? null;
+
+    return {
+      pickerId: picker.id,
+      displayName: alias ?? `${picker.worker.firstName} ${picker.worker.lastName}`.trim(),
+      status: picker.status === 'ACTIVE' ? 'active' : 'archived',
+      pricePerKilogram,
+      days,
+      totalKilograms,
+      gross,
+      payments,
+      totalPaid,
+      totalMeals,
+      total: totalPaid + totalMeals,
+      balanceDue: Math.max(0, gross - totalPaid - totalMeals),
+    };
   }
 
   /** true si el trabajador aparece en alguna cosecha (tiene pesadas/pagos asociados o podría tenerlos). */

@@ -115,7 +115,7 @@ export class WorkerFormPage {
   private readonly harvestFacade = inject(HarvestFacade);
   /** Cuadrilla a la que se agrega el trabajador al crearlo (viene de "Agregar recolector"). */
   protected readonly crewId = this.route.snapshot.queryParamMap.get('crewId');
-  /** Viene de "Agregar persona sin cuadrilla": se agrega a la cosecha sin cuadrilla. */
+  /** Viene de "Agregar persona" (sección Sin cuadrilla): se agrega a la cosecha sin cuadrilla. */
   protected readonly solo = this.route.snapshot.queryParamMap.has('sinCuadrilla');
 
   readonly name = signal('');

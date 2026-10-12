@@ -120,7 +120,7 @@ import { NetworkService } from '../../network/services/network.service';
           }
           <ion-button expand="block" fill="outline" color="primary" [disabled]="!network.isOnline()" (click)="addSoloPicker()">
             <ion-icon name="person-add-outline" slot="start"></ion-icon>
-            Agregar persona sin cuadrilla
+            Agregar persona
           </ion-button>
           @if (!network.isOnline()) {
             <p class="text-level-4 solo-hint">Necesitas conexión para agregar personas.</p>

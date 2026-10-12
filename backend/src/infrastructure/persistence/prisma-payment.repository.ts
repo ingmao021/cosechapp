@@ -51,6 +51,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
       prisma.dateTime,
       prisma.createdAt,
       prisma.updatedAt,
+      prisma.isSettlement,
     );
   }
 
@@ -64,6 +65,7 @@ export class PrismaPaymentRepository implements PaymentRepository {
       dateTime: domain.dateTime,
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
+      isSettlement: domain.isSettlement,
     };
   }
 }
