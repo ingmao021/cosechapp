@@ -11,6 +11,8 @@ import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonSpinner } from '@ionic/angular/ion-spinner';
+import { IonModal } from '@ionic/angular/ion-modal';
+import { IonDatetime } from '@ionic/angular/ion-datetime';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { addIcons } from 'ionicons';
 import {
@@ -34,6 +36,11 @@ import { NetworkService } from '../../network/services/network.service';
 import { apiErrorMessage } from '../../shared/utils';
 
 type Step = 'close' | 'sale' | 'costs';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const COLOMBIA_OFFSET_MS = -5 * 60 * 60 * 1000;
+/** Día en Colombia ("AAAA-MM-DD"), sin importar la zona horaria del teléfono; daysAgo 1 = ayer. */
+const colombiaDay = (daysAgo = 0) => new Date(Date.now() + COLOMBIA_OFFSET_MS - daysAgo * DAY_MS).toISOString().slice(0, 10);
 
 const today = () => {
   const now = new Date();
@@ -62,6 +69,8 @@ const today = () => {
     IonButton,
     IonIcon,
     IonSpinner,
+    IonModal,
+    IonDatetime,
     AppInputComponent,
     AppButtonPrimaryComponent,
     CurrencyPipe,
@@ -218,15 +227,40 @@ const today = () => {
                   placeholder="Ej: 18000"
                   errorMessage="Escribe el precio al que vendiste cada kilo."
                 ></app-input>
-                <app-input
-                  label="Fecha de la venta"
-                  name="saleDate"
-                  [(ngModel)]="saleDate"
-                  required
-                  placeholder="AAAA-MM-DD"
-                  helperText="Formato año-mes-día."
-                  errorMessage="Escribe la fecha de la venta."
-                ></app-input>
+                <!-- Fecha con un toque: sin escribir y sin venir ya marcada -->
+                <div class="sale-date">
+                  <span class="sale-date__label" id="sale-date-label">Fecha de la venta</span>
+                  <div class="choice choice--three" role="radiogroup" aria-labelledby="sale-date-label">
+                    <button type="button" role="radio" class="choice__option" [class.selected]="saleDateChoice() === 'today'"
+                      [attr.aria-checked]="saleDateChoice() === 'today'" (click)="pickSaleDay('today')">Hoy</button>
+                    <button type="button" role="radio" class="choice__option" [class.selected]="saleDateChoice() === 'yesterday'"
+                      [attr.aria-checked]="saleDateChoice() === 'yesterday'" (click)="pickSaleDay('yesterday')">Ayer</button>
+                    <button type="button" role="radio" class="choice__option" [class.selected]="saleDateChoice() === 'other'"
+                      [attr.aria-checked]="saleDateChoice() === 'other'" (click)="calendarOpen.set(true)">Otro día</button>
+                  </div>
+                  @if (saleDateLabel()) {
+                    <p class="sale-date__chosen" aria-live="polite">✓ {{ saleDateLabel() }}</p>
+                  }
+                </div>
+                <ion-modal [isOpen]="calendarOpen()" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]" (didDismiss)="calendarOpen.set(false)">
+                  <ng-template>
+                    <div class="calendar">
+                      <h3 class="text-level-2">¿Qué día vendiste?</h3>
+                      <ion-datetime
+                        presentation="date"
+                        locale="es-CO"
+                        [firstDayOfWeek]="1"
+                        [max]="maxSaleDate"
+                        [value]="saleDateChoice() === 'other' ? saleDate() : null"
+                        [showDefaultButtons]="true"
+                        doneText="Listo"
+                        cancelText="Cancelar"
+                        (ionChange)="onCalendarDate($event.detail.value)"
+                        (ionCancel)="calendarOpen.set(false)"
+                      ></ion-datetime>
+                    </div>
+                  </ng-template>
+                </ion-modal>
                 @if (saleTotal() > 0) {
                   <p class="form-page__intro">Total de la venta: <strong>{{ saleTotal() | currency }}</strong></p>
                 }
@@ -235,7 +269,7 @@ const today = () => {
                   iconStart="cash-outline"
                   [loading]="busy()"
                   loadingText="Guardando..."
-                  [disabled]="saleForm.invalid || !network.isOnline()"
+                  [disabled]="saleForm.invalid || !saleDate() || !network.isOnline()"
                 >
                   Registrar venta
                 </app-button-primary>
@@ -399,6 +433,23 @@ const today = () => {
       font: inherit;
       font-weight: var(--font-weight-bold);
     }
+    .choice--three {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .sale-date__label {
+      font-weight: var(--font-weight-bold);
+    }
+    .sale-date__chosen {
+      margin: 0;
+      color: var(--color-primary);
+      font-weight: var(--font-weight-bold);
+    }
+    .calendar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--spacing-md);
+    }
     .choice__option.selected {
       border-color: var(--color-primary);
       background: var(--color-primary);
@@ -491,7 +542,24 @@ export class HarvestClosePage {
 
   readonly dryKilograms = signal<number | null>(null);
   readonly salePrice = signal<number | null>(null);
+  /** Fecha de la venta ("AAAA-MM-DD"), vacía hasta que el caficultor la elige. */
   readonly saleDate = signal('');
+  readonly saleDateChoice = signal<'today' | 'yesterday' | 'other' | null>(null);
+  readonly calendarOpen = signal(false);
+  /** El calendario no deja elegir días futuros. */
+  protected readonly maxSaleDate = colombiaDay();
+  /** "Sábado, 11 de octubre de 2026" (mediodía, para no correr el día por zona horaria). */
+  readonly saleDateLabel = computed(() => {
+    const date = this.saleDate();
+    if (!date) return '';
+    const label = new Date(`${date}T12:00:00`).toLocaleDateString('es-CO', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  });
   readonly costDescription = signal('');
   readonly costAmount = signal<number | null>(null);
 
@@ -594,8 +662,8 @@ export class HarvestClosePage {
       this.errorMessage.set('Los kilos y el precio deben ser mayores que cero.');
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(this.saleDate())) {
-      this.errorMessage.set('Escribe la fecha como año-mes-día, por ejemplo 2026-10-01.');
+    if (!this.saleDate()) {
+      this.errorMessage.set('Elige la fecha de la venta.');
       return;
     }
     await this.runStep('No se pudo registrar la venta.', () =>
@@ -606,6 +674,21 @@ export class HarvestClosePage {
         date: this.saleDate(),
       }),
     );
+  }
+
+  pickSaleDay(day: 'today' | 'yesterday'): void {
+    this.saleDateChoice.set(day);
+    this.saleDate.set(colombiaDay(day === 'today' ? 0 : 1));
+  }
+
+  /** El calendario entrega un ISO ("2026-10-08" o "2026-10-08T…"): se guarda solo el día. */
+  onCalendarDate(value: string | string[] | null | undefined): void {
+    const iso = Array.isArray(value) ? value[0] : value;
+    if (iso) {
+      this.saleDate.set(iso.slice(0, 10));
+      this.saleDateChoice.set('other');
+    }
+    this.calendarOpen.set(false);
   }
 
   async addCost(): Promise<void> {
