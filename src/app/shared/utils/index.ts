@@ -59,3 +59,13 @@ export const apiErrorMessage = (
   if (status !== undefined && byStatus[status]) return byStatus[status];
   return fallback;
 };
+
+/**
+ * Vibración corta de confirmación para acciones de alto valor y poco frecuentes (guardar
+ * una pesada, cerrar la cosecha). En web no hay motor háptico: se ignora sin error.
+ */
+export const hapticSuccess = (): void => {
+  void import('@capacitor/haptics')
+    .then(({ Haptics, NotificationType }) => Haptics.notification({ type: NotificationType.Success }))
+    .catch(() => undefined);
+};

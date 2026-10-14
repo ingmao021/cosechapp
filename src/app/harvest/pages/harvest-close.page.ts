@@ -10,7 +10,6 @@ import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { IonModal } from '@ionic/angular/ion-modal';
 import { IonDatetime } from '@ionic/angular/ion-datetime';
 import { AlertController } from '@ionic/angular/alert-controller';
@@ -23,14 +22,14 @@ import {
   cashOutline,
   warningOutline,
 } from 'ionicons/icons';
-import { AppInputComponent, AppButtonPrimaryComponent } from '@shared/components';
+import { AppInputComponent, AppButtonPrimaryComponent, EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { HarvestFacade } from '../services/harvest.facade';
 import { HarvestService, HarvestResponse, ClosePreviewResponse } from '../services/harvest.service';
 import { ToastController } from '@ionic/angular/toast-controller';
-import { formatCurrency } from '../../shared/utils';
+import { formatCurrency, hapticSuccess } from '../../shared/utils';
 import { SaleAndCostsFacade } from '../../sale-and-costs/services/sale-and-costs.facade';
 import { NetworkService } from '../../network/services/network.service';
 import { apiErrorMessage } from '../../shared/utils';
@@ -59,6 +58,8 @@ const today = () => {
   selector: 'app-harvest-close',
   standalone: true,
   imports: [
+    EmptyStateComponent,
+    ListSkeletonComponent,
     FormsModule,
     IonContent,
     IonHeader,
@@ -68,7 +69,6 @@ const today = () => {
     IonTitle,
     IonButton,
     IonIcon,
-    IonSpinner,
     IonModal,
     IonDatetime,
     AppInputComponent,
@@ -89,11 +89,11 @@ const today = () => {
 
     <ion-content>
       @if (!harvest()) {
-        <div class="loading-center">
+        <div class="form-page">
           @if (loading()) {
-            <ion-spinner name="crescent"></ion-spinner>
+            <app-list-skeleton [rows]="3" [avatar]="false"></app-list-skeleton>
           } @else {
-            <p class="form-page__intro">No hay una cosecha para cerrar.</p>
+            <app-empty-state icon="alert-circle-outline" title="No hay una cosecha para cerrar"></app-empty-state>
           }
         </div>
       } @else {
@@ -242,7 +242,7 @@ const today = () => {
                     <p class="sale-date__chosen" aria-live="polite">✓ {{ saleDateLabel() }}</p>
                   }
                 </div>
-                <ion-modal [isOpen]="calendarOpen()" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]" (didDismiss)="calendarOpen.set(false)">
+                <ion-modal class="sheet-modal" [isOpen]="calendarOpen()" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]" [handle]="true" (didDismiss)="calendarOpen.set(false)">
                   <ng-template>
                     <div class="calendar">
                       <h3 class="text-level-2">¿Qué día vendiste?</h3>
@@ -360,6 +360,7 @@ const today = () => {
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
       text-align: center;
+      transition: border-color var(--dur-fast) ease, color var(--dur-fast) ease;
     }
     .steps li.done {
       border-color: var(--color-primary-muted);
@@ -371,7 +372,7 @@ const today = () => {
     }
     .card {
       padding: var(--spacing-md);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
       background: var(--color-surface);
       box-shadow: var(--shadow-card);
     }
@@ -396,13 +397,16 @@ const today = () => {
     .summary dd {
       margin: 0;
       font-weight: var(--font-weight-bold);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      overflow-wrap: anywhere;
     }
     .summary .strong dt {
       color: var(--color-text);
     }
     .summary .total {
       padding-top: var(--spacing-sm);
-      border-top: 2px solid var(--color-primary);
+      border-top: 1px solid rgba(43, 36, 32, 0.08);
       font-size: var(--font-size-lg);
     }
     .summary .total dt {
@@ -432,6 +436,19 @@ const today = () => {
       color: var(--color-text);
       font: inherit;
       font-weight: var(--font-weight-bold);
+      transition:
+        transform var(--dur-press) var(--ease-out),
+        background-color var(--dur-fast) ease,
+        border-color var(--dur-fast) ease,
+        color var(--dur-fast) ease;
+    }
+    .choice__option:active {
+      transform: scale(0.97);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .choice__option:active {
+        transform: none;
+      }
     }
     .choice--three {
       grid-template-columns: repeat(3, 1fr);
@@ -448,7 +465,11 @@ const today = () => {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: var(--spacing-md);
+      padding: var(--spacing-lg) var(--spacing-md) calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+    }
+    .calendar h3 {
+      margin: 0 0 var(--spacing-sm);
+      font-family: var(--font-family-display);
     }
     .choice__option.selected {
       border-color: var(--color-primary);
@@ -474,7 +495,7 @@ const today = () => {
       grid-template-columns: 1fr auto;
       column-gap: var(--spacing-sm);
       padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
     }
     .settle-list__name {
       font-weight: var(--font-weight-bold);
@@ -485,6 +506,7 @@ const today = () => {
       color: var(--color-text-muted);
     }
     .settle-list strong {
+      font-variant-numeric: tabular-nums;
       grid-column: 2;
       grid-row: 1 / span 2;
       align-self: center;
@@ -496,9 +518,10 @@ const today = () => {
       list-style: none;
       margin: 0;
       padding: 0;
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
       background: var(--color-surface);
       box-shadow: var(--shadow-card);
+      font-variant-numeric: tabular-nums;
     }
     .row {
       display: flex;
@@ -507,7 +530,7 @@ const today = () => {
       gap: var(--spacing-md);
       min-height: var(--list-row-height);
       padding: var(--spacing-sm) var(--list-row-padding-h);
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
       font-family: var(--font-family-body);
     }
     .row:last-child {
@@ -517,11 +540,6 @@ const today = () => {
       display: block;
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
-    }
-    .loading-center {
-      display: flex;
-      justify-content: center;
-      padding: var(--spacing-xl);
     }
   `],
 })
@@ -638,6 +656,7 @@ export class HarvestClosePage {
     await this.runStep('No se pudo cerrar la cosecha.', async () => {
       const closed = await this.harvestFacade.closeHarvest(harvest.id, mealPerDay);
       this.harvest.set(closed);
+      hapticSuccess();
       const { settledPickers, totalNet } = closed.settlement;
       const toast = await this.toastController.create({
         message: settledPickers > 0

@@ -4,6 +4,7 @@ import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@a
 import { provideIonicAngular } from '@ionic/angular';
 import { routes } from './app.routes';
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
+import { navAnimation } from './core/animations/nav.animation';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -12,6 +13,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptorsFromDi()),
     // Adjunta el JWT a cada petición; sin esto el backend responde 401 a todo lo protegido.
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
-    provideIonicAngular({ mode: 'md' }),
+    provideIonicAngular({ mode: 'md', navAnimation }),
   ],
 };

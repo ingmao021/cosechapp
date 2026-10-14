@@ -1,5 +1,4 @@
 import { Component, effect, inject, signal } from '@angular/core';
-import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -9,8 +8,6 @@ import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButtons } from '@ionic/angular/ion-buttons';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { IonAvatar } from '@ionic/angular/ion-avatar';
@@ -19,6 +16,7 @@ import { IonItemOptions } from '@ionic/angular/ion-item-options';
 import { IonItemSliding } from '@ionic/angular/ion-item-sliding';
 import { IonList } from '@ionic/angular/ion-list';
 import { IonToast } from '@ionic/angular/ion-toast';
+import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
 import { addIcons } from 'ionicons';
 import { personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForwardOutline, peopleOutline } from 'ionicons/icons';
 import { WorkerFacade } from '../services/worker.facade';
@@ -33,7 +31,8 @@ import { apiErrorMessage } from '../../shared/utils';
   selector: 'app-worker-catalog',
   standalone: true,
   imports: [
-    IonSpinner,
+    EmptyStateComponent,
+    ListSkeletonComponent,
     IonBackButton,
     IonContent,
     IonHeader,
@@ -42,8 +41,6 @@ import { apiErrorMessage } from '../../shared/utils';
     IonButtons,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
     IonItem,
     IonLabel,
     IonAvatar,
@@ -61,7 +58,7 @@ import { apiErrorMessage } from '../../shared/utils';
         </ion-buttons>
         <ion-title class="text-level-1">Catálogo de trabajadores</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="solid" color="primary" (click)="goToCreate()">
+          <ion-button fill="clear" color="primary" aria-label="Agregar trabajador" (click)="goToCreate()">
             <ion-icon name="person-add-outline" slot="icon-only"></ion-icon>
           </ion-button>
         </ion-buttons>
@@ -69,29 +66,22 @@ import { apiErrorMessage } from '../../shared/utils';
     </ion-header>
 
     <ion-content class="ion-padding">
-      @if (workerFacade.isLoading()) {
-        <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
-        </div>
+      @if (workerFacade.isLoading() && workerFacade.workers().length === 0) {
+        <app-list-skeleton [rows]="5"></app-list-skeleton>
       } @else if (workerFacade.workers().length === 0) {
-        <!-- Estado vacío -->
-        <ion-card class="empty-state-card">
-          <ion-card-content class="text-center">
-            <ion-icon name="people-outline" size="large" color="medium"></ion-icon>
-            <h2 class="text-level-2 ion-margin-top">Sin trabajadores</h2>
-            <p class="text-level-4 ion-margin">Agrega tu primer trabajador al catálogo.</p>
-            <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="goToCreate()">
-              <ion-icon name="person-add-outline" slot="start"></ion-icon>
-              Agregar trabajador
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
+        <app-empty-state icon="people-outline" title="Sin trabajadores">
+          <p>Agrega tu primer trabajador al catálogo.</p>
+          <ion-button fill="solid" color="primary" (click)="goToCreate()">
+            <ion-icon name="person-add-outline" slot="start"></ion-icon>
+            Agregar trabajador
+          </ion-button>
+        </app-empty-state>
       } @else {
         <!-- Lista de trabajadores -->
-        <ion-list lines="full">
+        <ion-list lines="full" class="worker-list">
           @for (worker of workerFacade.workers(); track worker.id) {
             <ion-item-sliding>
-              <ion-item (click)="goToEdit(worker.id)" lines="full">
+              <ion-item button [detail]="false" (click)="goToEdit(worker.id)" lines="full">
                 <ion-avatar slot="start">
                   <ion-icon name="person-outline"></ion-icon>
                 </ion-avatar>
@@ -151,24 +141,30 @@ import { apiErrorMessage } from '../../shared/utils';
     </ion-content>
   `,
   styles: [`
-    .empty-state-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      text-align: center;
-      padding: var(--spacing-xl) var(--spacing-md);
+    /* La lista es una sola tarjeta: filas separadas por líneas finas, esquinas redondeadas. */
+    .worker-list {
+      padding: 0;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      background: var(--color-surface);
     }
-    .text-center {
-      text-align: center;
-    }
-    .loading-center {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 50vh;
+    .worker-list h3 {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     ion-avatar {
-      --background: var(--color-primary);
-      --color: var(--color-text-on-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
+    }
+    ion-avatar ion-icon {
+      font-size: 20px;
     }
     ion-item {
       --background: var(--color-surface);

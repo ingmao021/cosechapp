@@ -1,5 +1,4 @@
 import { Component, computed, effect, inject } from '@angular/core';
-import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -9,17 +8,18 @@ import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { addIcons } from 'ionicons';
 import { peopleOutline, addOutline, chevronForwardOutline, alertCircleOutline, personAddOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { ToastController } from '@ionic/angular/toast-controller';
 import { apiErrorMessage } from '../../shared/utils';
-import { HarvestPickerCardComponent, PickerCardData } from '@shared/components';
+import {
+  EmptyStateComponent,
+  HarvestPickerCardComponent,
+  ListSkeletonComponent,
+  PickerCardData,
+} from '@shared/components';
 import { PickerActionsService } from '../services/picker-actions.service';
 import { NetworkService } from '../../network/services/network.service';
 
@@ -32,11 +32,13 @@ import { NetworkService } from '../../network/services/network.service';
   selector: 'app-crews',
   standalone: true,
   imports: [
-    IonSpinner,
     IonButtons,
     IonBackButton,
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonCard, IonCardContent, IonCardTitle, IonCardSubtitle,
-    HarvestPickerCardComponent],
+    IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon,
+    HarvestPickerCardComponent,
+    EmptyStateComponent,
+    ListSkeletonComponent,
+  ],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -49,22 +51,15 @@ import { NetworkService } from '../../network/services/network.service';
 
     <ion-content class="ion-padding">
       @if (harvestFacade.isLoading() && !harvestFacade.hasActiveHarvest()) {
-        <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
-        </div>
+        <app-list-skeleton [rows]="3"></app-list-skeleton>
       } @else if (!harvestFacade.hasActiveHarvest()) {
-        <!-- Sin cosecha activa -->
-        <ion-card class="empty-state-card">
-          <ion-card-content class="text-center">
-            <ion-icon name="alert-circle-outline" size="large" color="warning"></ion-icon>
-            <h2 class="text-level-2 ion-margin-top">Sin cosecha activa</h2>
-            <p class="text-level-4 ion-margin">Abre una cosecha para gestionar cuadrillas.</p>
-            <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="goToOpenHarvest()">
-              <ion-icon name="add-outline" slot="start"></ion-icon>
-              Abrir cosecha
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
+        <app-empty-state icon="alert-circle-outline" title="Sin cosecha activa">
+          <p>Abre una cosecha para gestionar cuadrillas.</p>
+          <ion-button fill="solid" color="primary" (click)="goToOpenHarvest()">
+            <ion-icon name="add-outline" slot="start"></ion-icon>
+            Abrir cosecha
+          </ion-button>
+        </app-empty-state>
       } @else {
         <div class="header-actions">
           <h2 class="text-level-2">Cuadrillas de "{{ harvestFacade.activeHarvestName() }}"</h2>
@@ -78,46 +73,44 @@ import { NetworkService } from '../../network/services/network.service';
         </div>
 
         @if (harvestFacade.activeHarvestCrews().length === 0) {
-          <!-- Estado vacío -->
-          <ion-card class="empty-state-card">
-            <ion-card-content class="text-center">
-              <ion-icon name="people-outline" size="large" color="medium"></ion-icon>
-              <h3 class="text-level-2 ion-margin-top">Sin cuadrillas</h3>
-              <p class="text-level-4 ion-margin">Crea una cuadrilla para agrupar recolectores. Si alguien cosecha solo, agrégalo abajo, en "Sin cuadrilla".</p>
-              <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="createCrew()">
-                <ion-icon name="add-outline" slot="start"></ion-icon>
-                Crear cuadrilla
-              </ion-button>
-            </ion-card-content>
-          </ion-card>
+          <app-empty-state icon="people-outline" title="Sin cuadrillas">
+            <p>Crea una cuadrilla para agrupar recolectores. Si alguien cosecha solo, agrégalo abajo, en "Sin cuadrilla".</p>
+            <ion-button fill="solid" color="primary" (click)="createCrew()">
+              <ion-icon name="add-outline" slot="start"></ion-icon>
+              Crear cuadrilla
+            </ion-button>
+          </app-empty-state>
         } @else {
           <!-- Lista de cuadrillas -->
-          @for (crew of harvestFacade.activeHarvestCrews(); track crew.id) {
-            <ion-card class="crew-card" (click)="goToCrewDetail(crew.id)">
-              <ion-card-content>
-                <div class="crew-info">
-                  <ion-card-title class="text-level-3">{{ crew.name }}</ion-card-title>
-                  <ion-card-subtitle class="text-level-4">{{ getPickersCount(crew.id) }} recolectores</ion-card-subtitle>
-                </div>
-                <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
-              </ion-card-content>
-            </ion-card>
-          }
+          <div class="crew-list stagger-in">
+            @for (crew of harvestFacade.activeHarvestCrews(); track crew.id) {
+              <button type="button" class="crew-row tappable" (click)="goToCrewDetail(crew.id)">
+                <span class="crew-row__icon" aria-hidden="true"><ion-icon name="people-outline"></ion-icon></span>
+                <span class="crew-row__info">
+                  <span class="crew-row__name">{{ crew.name }}</span>
+                  <span class="crew-row__meta"><span class="num">{{ getPickersCount(crew.id) }}</span> {{ getPickersCount(crew.id) === 1 ? 'recolector' : 'recolectores' }}</span>
+                </span>
+                <ion-icon name="chevron-forward-outline" class="crew-row__chevron" aria-hidden="true"></ion-icon>
+              </button>
+            }
+          </div>
         }
 
         <!-- Personas que cosechan solas, sin cuadrilla -->
         <section class="solo-section" aria-labelledby="solo-title">
           <h2 id="solo-title" class="text-level-2">Sin cuadrilla @if (soloPickers().length > 0) { ({{ soloPickers().length }}) }</h2>
           <p class="text-level-4 solo-hint">Personas que vienen a cosechar solas, sin cuadrilla.</p>
-          @for (picker of soloPickers(); track picker.id) {
-            <app-harvest-picker-card
-              [picker]="picker"
-              [showMenu]="network.isOnline()"
-              (cardClick)="goToPickerDetail($event)"
-              (weighClick)="goToWeighing($event)"
-              (menuClick)="openPickerMenu($event)"
-            ></app-harvest-picker-card>
-          }
+          <div class="stagger-in">
+            @for (picker of soloPickers(); track picker.id) {
+              <app-harvest-picker-card
+                [picker]="picker"
+                [showMenu]="network.isOnline()"
+                (cardClick)="goToPickerDetail($event)"
+                (weighClick)="goToWeighing($event)"
+                (menuClick)="openPickerMenu($event)"
+              ></app-harvest-picker-card>
+            }
+          </div>
           <ion-button expand="block" fill="outline" color="primary" [disabled]="!network.isOnline()" (click)="addSoloPicker()">
             <ion-icon name="person-add-outline" slot="start"></ion-icon>
             Agregar persona
@@ -138,25 +131,68 @@ import { NetworkService } from '../../network/services/network.service';
       flex-wrap: wrap;
       gap: var(--spacing-sm);
     }
-    .empty-state-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      text-align: center;
-      padding: var(--spacing-xl) var(--spacing-md);
+    .header-actions h2 {
+      margin: 0;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
-    .crew-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      margin-bottom: var(--card-gap-vertical);
-      cursor: pointer;
+    .crew-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--card-gap-vertical);
     }
-    .crew-card ion-card-content {
+    .crew-row {
       display: flex;
       align-items: center;
       gap: var(--spacing-md);
+      width: 100%;
+      min-height: var(--picker-card-min-height);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: none;
+      border-radius: var(--radius-lg);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-card);
+      color: var(--color-text);
+      font-family: var(--font-family-body);
+      text-align: left;
+      cursor: pointer;
     }
-    .crew-info {
+    .crew-row__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
+    }
+    .crew-row__icon ion-icon {
+      font-size: 20px;
+    }
+    .crew-row__info {
       flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .crew-row__name {
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-bold);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .crew-row__meta {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+    .crew-row__chevron {
+      flex-shrink: 0;
+      font-size: 20px;
+      color: var(--color-text-muted);
     }
     .solo-section {
       margin-top: var(--spacing-xl);
@@ -167,15 +203,6 @@ import { NetworkService } from '../../network/services/network.service';
     .solo-hint {
       margin: 0 0 var(--spacing-md);
       color: var(--color-text-muted);
-    }
-    .loading-center {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 50vh;
-    }
-    .text-center {
-      text-align: center;
     }
   `],
 })

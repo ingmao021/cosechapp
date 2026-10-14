@@ -40,6 +40,7 @@ import { AuthFacade } from '../services/auth.facade';
               maxlength="20"
               inputmode="numeric"
               autocomplete="username"
+              enterkeyhint="next"
               errorMessage="Escribe tu cédula (mínimo 5 dígitos)."
             ></app-input>
 
@@ -52,6 +53,7 @@ import { AuthFacade } from '../services/auth.facade';
               minlength="6"
               maxlength="50"
               autocomplete="current-password"
+              enterkeyhint="go"
               errorMessage="La contraseña tiene al menos 6 caracteres."
             ></app-input>
 

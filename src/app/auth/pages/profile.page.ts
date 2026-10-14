@@ -54,22 +54,26 @@ import { Router } from '@angular/router';
             </div>
           </div>
 
-          <div class="profile-actions">
-            <ion-button fill="outline" color="primary" (click)="changePassword()">
-              <ion-icon name="key-outline" slot="start"></ion-icon>
-              Cambiar contraseña
-            </ion-button>
-            <ion-button fill="outline" color="primary" (click)="goToWorkerCatalog()">
-              <ion-icon name="people-outline" slot="start"></ion-icon>
-              Catálogo de trabajadores
-            </ion-button>
-            <ion-button fill="outline" color="primary" (click)="goToPrivacy()">
-              <ion-icon name="document-outline" slot="start"></ion-icon>
-              Aviso de privacidad
-            </ion-button>
-          </div>
+          <!-- Ajustes como filas: se leen como opciones de la app, no como tres botones iguales. -->
+          <nav class="settings" aria-label="Opciones de la cuenta">
+            <button type="button" class="settings__row" (click)="goToWorkerCatalog()">
+              <span class="settings__icon" aria-hidden="true"><ion-icon name="people-outline"></ion-icon></span>
+              <span class="settings__label">Catálogo de trabajadores</span>
+              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
+            </button>
+            <button type="button" class="settings__row" (click)="changePassword()">
+              <span class="settings__icon" aria-hidden="true"><ion-icon name="key-outline"></ion-icon></span>
+              <span class="settings__label">Cambiar contraseña</span>
+              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
+            </button>
+            <button type="button" class="settings__row" (click)="goToPrivacy()">
+              <span class="settings__icon" aria-hidden="true"><ion-icon name="document-outline"></ion-icon></span>
+              <span class="settings__label">Aviso de privacidad</span>
+              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
+            </button>
+          </nav>
 
-          <ion-button fill="solid" color="danger" expand="block" class="logout-btn" (click)="logout()">
+          <ion-button fill="outline" color="danger" expand="block" class="logout-btn" (click)="logout()">
             <ion-icon name="log-out-outline" slot="start"></ion-icon>
             Cerrar sesión
           </ion-button>
@@ -95,8 +99,7 @@ import { Router } from '@angular/router';
   `,
   styles: [`
     .profile-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
+      --card-shadow: var(--shadow-card);
       margin-bottom: var(--spacing-md);
     }
     .profile-header {
@@ -109,8 +112,9 @@ import { Router } from '@angular/router';
       width: var(--avatar-size);
       height: var(--avatar-size);
       --border-radius: var(--avatar-radius);
-      background: var(--color-primary);
-      color: var(--color-text-on-primary);
+      flex-shrink: 0;
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -123,16 +127,75 @@ import { Router } from '@angular/router';
     }
     .profile-info {
       flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
     .profile-info h2,
     .profile-label {
       margin: 0;
     }
-    .profile-actions {
+    .settings {
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-md);
+      margin: 0 calc(-1 * var(--spacing-sm)) var(--spacing-md);
+    }
+    .settings__row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      width: 100%;
+      min-height: var(--list-row-height);
+      padding: 0 var(--spacing-sm);
+      border: none;
+      border-radius: var(--radius-md);
+      background: transparent;
+      color: var(--color-text);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-md);
+      text-align: left;
+      cursor: pointer;
+      transition:
+        transform var(--dur-press) var(--ease-out),
+        background-color var(--dur-fast) ease;
+    }
+    .settings__row:active {
+      background: var(--color-surface-muted);
+    }
+    /* Divisor alineado con el texto, no con el ícono, como en los ajustes nativos. */
+    .settings__row + .settings__row {
+      position: relative;
+    }
+    .settings__row + .settings__row::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: calc(var(--spacing-sm) + 36px + var(--spacing-md));
+      right: var(--spacing-sm);
+      height: 1px;
+      background: rgba(43, 36, 32, 0.08);
+    }
+    .settings__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
+    }
+    .settings__icon ion-icon {
+      font-size: 20px;
+    }
+    .settings__label {
+      flex: 1;
+      min-width: 0;
+      font-weight: var(--font-weight-bold);
+    }
+    .settings__chevron {
+      font-size: 20px;
+      color: var(--color-text-muted);
     }
     .logout-btn {
       --border-radius: var(--radius-full);
@@ -140,9 +203,7 @@ import { Router } from '@angular/router';
       min-height: 48px;
     }
     .legal-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      border: 1px solid var(--color-border);
+      --card-shadow: var(--shadow-card);
     }
   `],
 })

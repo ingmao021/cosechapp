@@ -59,6 +59,8 @@ import { apiErrorMessage } from '../../shared/utils';
             maxlength="100"
             placeholder="Ej: Primer pasón, Mitaca 2026"
             errorMessage="Escribe un nombre para la cosecha."
+            autocapitalize="sentences"
+            enterkeyhint="next"
           ></app-input>
 
           <app-input
@@ -67,6 +69,7 @@ import { apiErrorMessage } from '../../shared/utils';
             name="pricePerKilogram"
             [(ngModel)]="pricePerKilogram"
             required
+            enterkeyhint="done"
             inputmode="numeric"
             placeholder="Ej: 1200"
             helperText="Lo que pagas al recolector por cada kilo de café cereza."

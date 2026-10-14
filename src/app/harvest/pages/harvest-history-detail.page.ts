@@ -1,6 +1,5 @@
 import { Component, effect, inject, computed } from '@angular/core';
 import { IonNote } from '@ionic/angular/ion-note';
-import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -22,6 +21,7 @@ import { chevronForwardOutline, cashOutline, timeOutline, personOutline, restaur
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
+import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
 import { HistoryFacade } from '../services/history.facade';
 
 /**
@@ -35,7 +35,6 @@ import { HistoryFacade } from '../services/history.facade';
   imports: [
     IonButtons,
     IonBackButton,
-    IonSpinner,
     IonNote,
     IonContent,
     IonHeader,
@@ -53,6 +52,8 @@ import { HistoryFacade } from '../services/history.facade';
     CurrencyPipe,
     DateFormatPipe,
     KilosPipe,
+    EmptyStateComponent,
+    ListSkeletonComponent,
   ],
   template: `
     <ion-header>
@@ -66,19 +67,15 @@ import { HistoryFacade } from '../services/history.facade';
 
     <ion-content class="ion-padding">
       @if (historyFacade.isLoading()) {
-        <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
-        </div>
+        <app-list-skeleton [rows]="4" [avatar]="false"></app-list-skeleton>
       } @else if (!historyFacade.selectedHarvest()) {
-        <div class="empty-state text-center">
-          <ion-icon name="alert-circle-outline" size="large" color="warning"></ion-icon>
-          <h2 class="text-level-2 ion-margin-top">Cosecha no encontrada</h2>
-          <p class="text-level-4 ion-margin">No se pudo cargar el detalle de la cosecha.</p>
-          <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="goBack()">
+        <app-empty-state icon="alert-circle-outline" title="Cosecha no encontrada">
+          <p>No se pudo cargar el detalle de la cosecha.</p>
+          <ion-button fill="solid" color="primary" (click)="goBack()">
             <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
             Volver al historial
           </ion-button>
-        </div>
+        </app-empty-state>
       } @else {
         <p class="detail-dates text-level-4">
           {{ openingDate() | dateFormat: 'date' }} – {{ closingDate() | dateFormat: 'date' }}
@@ -231,7 +228,7 @@ import { HistoryFacade } from '../services/history.facade';
       flex-direction: column;
       gap: 2px;
       padding: 0 0 var(--spacing-md);
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
     }
     .detail-dates {
       margin: 0 0 var(--spacing-md);
@@ -257,18 +254,31 @@ import { HistoryFacade } from '../services/history.facade';
       color: var(--color-primary);
     }
     .section-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      margin-bottom: var(--spacing-md);
+      --card-shadow: var(--shadow-card);
+      margin: 0 0 var(--spacing-md);
+      font-variant-numeric: tabular-nums;
+    }
+    .sale-row,
+    .summary-row,
+    .total-costs {
+      align-items: baseline;
+      gap: var(--spacing-sm);
+    }
+    .sale-row > :last-child,
+    .summary-row > :last-child,
+    .total-costs > :last-child {
+      text-align: right;
+      overflow-wrap: anywhere;
     }
     .sale-row {
       display: flex;
       justify-content: space-between;
       padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
     }
     .sale-row.total {
-      border-bottom: 2px solid var(--color-primary);
+      border-bottom: none;
+      padding-top: var(--spacing-sm);
       font-weight: bold;
     }
     .total-costs {
@@ -276,7 +286,7 @@ import { HistoryFacade } from '../services/history.facade';
       justify-content: space-between;
       margin-top: var(--spacing-sm);
       padding-top: var(--spacing-sm);
-      border-top: 1px solid var(--color-border);
+      border-top: 1px solid rgba(43, 36, 32, 0.08);
     }
     .profit-summary {
       display: flex;
@@ -287,13 +297,19 @@ import { HistoryFacade } from '../services/history.facade';
       display: flex;
       justify-content: space-between;
       padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
     }
+    /* El resultado final va en un bloque propio, no tras una raya: se lee como la respuesta. */
     .summary-row.final {
+      flex-wrap: wrap;
       border-bottom: none;
-      border-top: 2px solid var(--color-primary);
-      padding-top: var(--spacing-sm);
-      margin-top: var(--spacing-xs);
+      margin-top: var(--spacing-sm);
+      padding: var(--spacing-md);
+      border-radius: var(--radius-md);
+      background: var(--color-primary-soft);
+    }
+    .summary-row.final:has(.loss) {
+      background: rgba(122, 46, 34, 0.08);
     }
   `],
 })
