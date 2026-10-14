@@ -352,6 +352,8 @@ Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en
 
 **Sin señal** (componente `app-sync-status`, arriba de las pantallas de campo): "Sin conexión. Puedes seguir registrando pesadas. Datos de las HH:MM", "N pesadas por enviar" y, si alguna fue rechazada, la lista con el motivo. Las acciones que requieren conexión (pagar, abrir/cerrar cosecha, agregar recolectores) se desactivan y dicen "Necesitas conexión para…".
 
+**Acción bloqueada**: cuando algo todavía no se puede hacer, se dice por qué y cuál es el paso siguiente. Al tocar "Cerrar cosecha" sin kilos pesados aparece un diálogo ("Aún no hay kilos pesados", con "Ir a pesar"); si se llega a la pantalla de cierre por otro camino, el paso queda reemplazado por un aviso `.notice` (tinte cálido de advertencia, ícono, título, motivo y acción) y no se puede cerrar.
+
 **Carga y vacío**: la primera carga de una lista muestra un esqueleto con la forma de sus filas (`app-list-skeleton`), no un spinner centrado; al refrescar se queda lo que ya se ve. Una lista sin datos usa `app-empty-state`: ícono de línea en marrón (sin círculo ni recuadro detrás), título en Zilla Slab, una frase y, si existe, la acción que resuelve el vacío.
 
 ### 2.7 Contrato de API

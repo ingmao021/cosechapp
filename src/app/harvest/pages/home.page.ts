@@ -312,6 +312,10 @@ export class HomePage {
   readonly todayKilograms = computed(() =>
     this.activeHarvestPickers().reduce((total, picker) => total + picker.todayKilograms, 0),
   );
+  /** Kilos de toda la cosecha, incluidos los de recolectores ya quitados y las pesadas sin enviar. */
+  private readonly harvestKilograms = computed(() =>
+    this.harvestFacade.activeHarvestPickers().reduce((total, picker) => total + picker.totalKilograms, 0),
+  );
 
   constructor() {
     addIcons({ scaleOutline, addOutline, closeOutline, pricetagOutline, addCircleOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline, ellipsisVertical, createOutline, trashOutline });
@@ -328,9 +332,25 @@ export class HomePage {
     this.router.navigate(['/harvest/crews']);
   }
 
+  /** Sin kilos pesados no hay nada que pagar ni vender: se avisa en lugar de abrir el cierre. */
   goToCloseHarvest(): void {
-    // Navegar a pantalla de cierre de cosecha (venta + costos)
-    this.router.navigate(['/harvest/close']);
+    if (this.harvestKilograms() > 0) {
+      this.router.navigate(['/harvest/close']);
+      return;
+    }
+    void this.warnNoKilograms();
+  }
+
+  private async warnNoKilograms(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Aún no hay kilos pesados',
+      message: `"${this.harvestFacade.activeHarvestName()}" no tiene pesadas. Registra al menos una antes de cerrarla; si la abriste por error, puedes eliminarla desde el menú de opciones de la cosecha.`,
+      buttons: [
+        { text: 'Entendido', role: 'cancel' },
+        { text: 'Ir a pesar', role: 'confirm', handler: () => this.goToWeigh() },
+      ],
+    });
+    await alert.present();
   }
 
   openHarvest(): void {

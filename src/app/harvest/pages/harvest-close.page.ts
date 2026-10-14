@@ -15,6 +15,7 @@ import { IonDatetime } from '@ionic/angular/ion-datetime';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { addIcons } from 'ionicons';
 import {
+  scaleOutline,
   alertCircleOutline,
   addOutline,
   checkmarkCircleOutline,
@@ -120,6 +121,23 @@ const today = () => {
 
           @switch (step()) {
             @case ('close') {
+              @if (!hasKilograms()) {
+                <!-- Sin pesadas no hay nada que pagar ni vender: el cierre queda bloqueado. -->
+                <section class="notice" role="alert">
+                  <ion-icon name="scale-outline" aria-hidden="true"></ion-icon>
+                  <div class="notice__body">
+                    <h2>Aún no hay kilos pesados</h2>
+                    <p>
+                      "{{ harvest()!.name }}" no tiene pesadas. Registra al menos una antes de cerrarla.
+                      Si la abriste por error, puedes eliminarla desde el menú de opciones en Inicio.
+                    </p>
+                    <ion-button fill="solid" color="primary" (click)="goToWeigh()">
+                      <ion-icon name="scale-outline" slot="start"></ion-icon>
+                      Ir a pesar
+                    </ion-button>
+                  </div>
+                </section>
+              } @else {
               <section class="card">
                 <h2 class="text-level-2">{{ harvest()!.name }}</h2>
                 <dl class="summary">
@@ -199,6 +217,7 @@ const today = () => {
               >
                 Cerrar cosecha
               </app-button-primary>
+              }
             }
 
             @case ('sale') {
@@ -604,10 +623,14 @@ export class HarvestClosePage {
     return this.harvest()?.status === 'active' ? fromPickers : (this.profit()?.projectedDryKilograms ?? 0) * 5;
   });
   readonly projectedDryKilograms = computed(() => this.totalCherryKilograms() / 5);
+  /** Mientras carga se asume que sí hay kilos, para no mostrar el bloqueo por un instante. */
+  readonly hasKilograms = computed(
+    () => this.loading() || this.harvestFacade.isLoading() || this.totalCherryKilograms() > 0,
+  );
   readonly saleTotal = computed(() => (this.dryKilograms() ?? 0) * (this.salePrice() ?? 0));
 
   constructor() {
-    addIcons({ alertCircleOutline, addOutline, checkmarkCircleOutline, lockClosedOutline, cashOutline, warningOutline });
+    addIcons({ scaleOutline, alertCircleOutline, addOutline, checkmarkCircleOutline, lockClosedOutline, cashOutline, warningOutline });
     void this.load();
   }
 
@@ -651,7 +674,7 @@ export class HarvestClosePage {
   async closeHarvest(): Promise<void> {
     const harvest = this.harvest();
     const mealPerDay = this.selectedMealPerDay();
-    if (!harvest || mealPerDay === undefined || !(await this.confirmClose(harvest.name))) return;
+    if (!harvest || mealPerDay === undefined || !this.hasKilograms() || !(await this.confirmClose(harvest.name))) return;
 
     await this.runStep('No se pudo cerrar la cosecha.', async () => {
       const closed = await this.harvestFacade.closeHarvest(harvest.id, mealPerDay);
@@ -732,6 +755,10 @@ export class HarvestClosePage {
   finish(): void {
     const harvest = this.harvest();
     this.router.navigate(harvest ? ['/harvest/history', harvest.id] : ['/history'], { replaceUrl: true });
+  }
+
+  goToWeigh(): void {
+    this.router.navigate(['/harvest/crews']);
   }
 
   private async load(): Promise<void> {

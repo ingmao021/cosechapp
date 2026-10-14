@@ -498,17 +498,24 @@ a,
   font-size: 20px;
 }
 
-/* Diálogos (ion-alert): mismo criterio que los botones, texto en oración. */
-ion-alert .alert-button {
+/* Diálogos (ion-alert): mismo criterio que los botones, texto en oración.
+   `ion-alert.md` gana a las reglas `.sc-ion-alert-md` de Ionic (MAYÚSCULAS, 4px). */
+ion-alert.md .alert-button {
   text-transform: none;
   letter-spacing: normal;
   font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-full);
 }
-ion-alert .alert-button:not(.alert-button-role-cancel) {
+ion-alert.md .alert-button:not(.alert-button-role-cancel) {
   color: var(--color-primary);
 }
-ion-alert .alert-button-role-cancel {
+ion-alert.md .alert-button-role-cancel {
   color: var(--color-text-muted);
+}
+/* Acciones destructivas (eliminar, cerrar): rojo tierra, nunca el verde de confirmar. */
+ion-alert.md .alert-button.alert-button-role-destructive,
+ion-alert.md .alert-button.alert-button-danger {
+  color: var(--color-accent-alert);
 }
 
 /* ==========================================================================
@@ -586,6 +593,12 @@ ion-modal::part(handle) {
   background: var(--color-border);
 }
 
+/* Con la barra de pestañas en pantalla, el aviso sube por encima de ella: si no,
+   queda tapado justo donde el pulgar toca. */
+body:has(ion-tab-bar) ion-toast {
+  --toast-lift: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  transform: translateY(calc(-1 * var(--toast-lift)));
+}
 ion-toast {
   --border-radius: var(--radius-md);
   --box-shadow: var(--shadow-raised);
@@ -596,13 +609,26 @@ ion-toast {
   font-weight: var(--font-weight-bold);
 }
 
-ion-alert {
-  --border-radius: var(--radius-lg);
-  --box-shadow: var(--shadow-raised);
+/* ion-alert (md) no expone variables de radio ni sombra: se fijan en el contenedor. */
+ion-alert.md .alert-wrapper {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
+  background: var(--color-surface);
 }
-ion-alert .alert-title {
+ion-alert.md .alert-title {
   font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+ion-alert.md .alert-message {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+ion-alert.md .alert-button-group {
+  padding: 0 var(--spacing-sm) var(--spacing-sm);
 }
 
 ion-action-sheet {
@@ -674,4 +700,56 @@ p {
    pestañas raíz, para que nombres como "Catálogo de trabajadores" no se corten. */
 ion-toolbar:has(ion-back-button) ion-title.text-level-1 {
   font-size: 1.375rem;
+}
+
+/* ==========================================================================
+   AVISO DE BLOQUEO (.notice): una acción que todavía no se puede hacer, con el
+   motivo y el paso siguiente. Tinte cálido de advertencia, sin borde lateral.
+   ========================================================================== */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-radius: var(--radius-lg);
+  background: rgba(183, 121, 31, 0.1);
+  animation: notice-in var(--dur-base) var(--ease-out);
+}
+.notice > ion-icon {
+  flex-shrink: 0;
+  font-size: 28px;
+  color: var(--ion-color-warning-shade);
+}
+.notice__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.notice h2 {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+.notice p {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.notice ion-button {
+  margin: var(--spacing-xs) 0 0;
+}
+@keyframes notice-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes notice-in {
+    from { opacity: 0; }
+  }
 }
