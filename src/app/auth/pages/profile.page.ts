@@ -9,7 +9,7 @@ import { IonAvatar } from '@ionic/angular/ion-avatar';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { addIcons } from 'ionicons';
-import { personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline, openOutline } from 'ionicons/icons';
+import { personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline } from 'ionicons/icons';
 import { AuthFacade } from '../services/auth.facade';
 import { SyncFacade } from '../../sync/services/sync.facade';
 import { AlertController } from '@ionic/angular/alert-controller';
@@ -54,49 +54,50 @@ import { Router } from '@angular/router';
             </div>
           </div>
 
-          <div class="profile-actions">
-            <ion-button fill="outline" color="primary" (click)="changePassword()">
-              <ion-icon name="key-outline" slot="start"></ion-icon>
-              Cambiar contraseña
-            </ion-button>
-            <ion-button fill="outline" color="primary" (click)="goToWorkerCatalog()">
-              <ion-icon name="people-outline" slot="start"></ion-icon>
-              Catálogo de trabajadores
-            </ion-button>
-            <ion-button fill="outline" color="primary" (click)="goToPrivacy()">
-              <ion-icon name="document-outline" slot="start"></ion-icon>
-              Aviso de privacidad
-            </ion-button>
-          </div>
+          <!-- Ajustes como filas: se leen como opciones de la app, no como tres botones iguales. -->
+          <nav class="settings" aria-label="Opciones de la cuenta">
+            <button type="button" class="settings__row" (click)="goToWorkerCatalog()">
+              <span class="settings__icon" aria-hidden="true"><ion-icon name="people-outline"></ion-icon></span>
+              <span class="settings__label">Catálogo de trabajadores</span>
+              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
+            </button>
+            <button type="button" class="settings__row" (click)="changePassword()">
+              <span class="settings__icon" aria-hidden="true"><ion-icon name="key-outline"></ion-icon></span>
+              <span class="settings__label">Cambiar contraseña</span>
+              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
+            </button>
+            <button type="button" class="settings__row" (click)="goToPrivacy()">
+              <span class="settings__icon" aria-hidden="true"><ion-icon name="document-outline"></ion-icon></span>
+              <span class="settings__label">Aviso de privacidad</span>
+              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
+            </button>
+          </nav>
 
-          <ion-button fill="solid" color="danger" expand="block" class="logout-btn" (click)="logout()">
+          <ion-button fill="outline" color="danger" expand="block" class="logout-btn" (click)="logout()">
             <ion-icon name="log-out-outline" slot="start"></ion-icon>
             Cerrar sesión
           </ion-button>
         </ion-card-content>
       </ion-card>
 
-      <!-- Info legal -->
-      <ion-card class="legal-card">
-        <ion-card-content>
-          <h3 class="text-level-3 ion-margin-bottom">Información legal</h3>
-          <p class="text-level-4">
-            Esta app procesa datos personales bajo la Ley 1581 de 2012 (Habeas Data).
-            Al usar la app, autorizas el tratamiento de tus datos y los de tus recolectores
-            para la gestión de cosechas y pagos.
-          </p>
-          <ion-button fill="clear" color="primary" size="small" (click)="goToPrivacy()">
-            <ion-icon name="open-outline" slot="end"></ion-icon>
-            Ver política completa
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
+      <!-- Info legal: nota al pie, no otra tarjeta compitiendo con la de la cuenta. -->
+      <section class="legal" aria-labelledby="legal-title">
+        <h3 id="legal-title">Información legal</h3>
+        <p>
+          Esta app procesa datos personales bajo la Ley 1581 de 2012 (Habeas Data).
+          Al usar la app, autorizas el tratamiento de tus datos y los de tus recolectores
+          para la gestión de cosechas y pagos.
+        </p>
+        <ion-button fill="clear" color="primary" size="small" (click)="goToPrivacy()">
+          Ver política completa
+          <ion-icon name="chevron-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+      </section>
     </ion-content>
   `,
   styles: [`
     .profile-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
+      --card-shadow: var(--shadow-card);
       margin-bottom: var(--spacing-md);
     }
     .profile-header {
@@ -109,8 +110,9 @@ import { Router } from '@angular/router';
       width: var(--avatar-size);
       height: var(--avatar-size);
       --border-radius: var(--avatar-radius);
-      background: var(--color-primary);
-      color: var(--color-text-on-primary);
+      flex-shrink: 0;
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -123,26 +125,96 @@ import { Router } from '@angular/router';
     }
     .profile-info {
       flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
     .profile-info h2,
     .profile-label {
       margin: 0;
     }
-    .profile-actions {
+    .settings {
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-md);
+      margin: 0 calc(-1 * var(--spacing-sm)) var(--spacing-md);
+    }
+    .settings__row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      width: 100%;
+      min-height: var(--list-row-height);
+      padding: 0 var(--spacing-sm);
+      border: none;
+      border-radius: var(--radius-md);
+      background: transparent;
+      color: var(--color-text);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-md);
+      text-align: left;
+      cursor: pointer;
+      transition:
+        transform var(--dur-press) var(--ease-out),
+        background-color var(--dur-fast) ease;
+    }
+    .settings__row:active {
+      background: var(--color-surface-muted);
+    }
+    /* Divisor alineado con el texto, no con el ícono, como en los ajustes nativos. */
+    .settings__row + .settings__row {
+      position: relative;
+    }
+    .settings__row + .settings__row::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: calc(var(--spacing-sm) + 24px + var(--spacing-md));
+      right: var(--spacing-sm);
+      height: 1px;
+      background: rgba(43, 36, 32, 0.08);
+    }
+    /* Ícono de lista de Android: solo el trazo, sin recuadro de color detrás. */
+    .settings__icon {
+      display: flex;
+      flex-shrink: 0;
+      width: 24px;
+      color: var(--color-primary);
+    }
+    .settings__icon ion-icon {
+      font-size: 24px;
+    }
+    .settings__label {
+      flex: 1;
+      min-width: 0;
+      font-weight: var(--font-weight-bold);
+    }
+    .settings__chevron {
+      font-size: 20px;
+      color: var(--color-text-muted);
     }
     .logout-btn {
       --border-radius: var(--radius-full);
       height: 48px;
       min-height: 48px;
     }
-    .legal-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      border: 1px solid var(--color-border);
+    .legal {
+      padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-xl);
+      font-family: var(--font-family-body);
+    }
+    .legal h3 {
+      margin: 0 0 var(--spacing-xs);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+    }
+    .legal p {
+      margin: 0;
+      max-width: 60ch;
+      font-size: var(--font-size-sm);
+      line-height: 1.5;
+      color: var(--color-text-muted);
+    }
+    .legal ion-button {
+      margin: var(--spacing-xs) 0 0 calc(-1 * var(--spacing-sm));
     }
   `],
 })
@@ -156,7 +228,7 @@ export class ProfilePage {
   readonly profilePhoto = this.authFacade.userProfilePhoto;
 
   constructor() {
-    addIcons({ personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline, openOutline });
+    addIcons({ personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline });
   }
 
   changePassword(): void {

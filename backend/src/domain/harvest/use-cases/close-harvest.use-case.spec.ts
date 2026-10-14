@@ -7,7 +7,7 @@ import { Harvest } from '../harvest.entity';
 import { HarvestWorker } from '../harvest-worker.entity';
 import { Payment } from '@domain/payment/payment.entity';
 import { Weighing } from '@domain/weighing/weighing.entity';
-import { HarvestNotActiveError, HarvestAlreadyClosedError } from '@shared/errors/domain-errors';
+import { HarvestNotActiveError, HarvestAlreadyClosedError, HarvestHasNoWeighingsError } from '@shared/errors/domain-errors';
 import { HarvestStatus } from '../harvest-status.enum';
 import { settlementFor } from '@domain/payment/settlement';
 
@@ -115,6 +115,22 @@ describe('CloseHarvestUseCase (closing pays everyone)', () => {
 
     expect(preview.settledPickers).toBe(2);
     expect(harvests.closeWithSettlements).not.toHaveBeenCalled();
+  });
+
+  it('refuses to close a harvest with no weighed kilos and saves nothing', async () => {
+    weighings = { ana: [], beto: [], ceci: [] };
+
+    await expect(useCase.execute({ harvestId: 'h1', farmId: 'farm-1' })).rejects.toThrow(HarvestHasNoWeighingsError);
+    expect(harvests.closeWithSettlements).not.toHaveBeenCalled();
+  });
+
+  it('closes when only an archived picker has kilos (their weighings belong to the harvest)', async () => {
+    weighings = { ana: [], beto: [], ceci: [weighing('ceci', 5, '2026-10-06T15:00:00Z')] };
+    payments = { ana: [], beto: [], ceci: [] };
+
+    const result = await useCase.execute({ harvestId: 'h1', farmId: 'farm-1' });
+
+    expect(result.harvest.status).toBe(HarvestStatus.CLOSED);
   });
 
   it('rejects a missing or already closed harvest', async () => {

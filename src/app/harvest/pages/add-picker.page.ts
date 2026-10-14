@@ -13,11 +13,12 @@ import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { ToastController } from '@ionic/angular/toast-controller';
 import { addIcons } from 'ionicons';
-import { personAddOutline, checkmarkCircle, swapHorizontalOutline, addCircleOutline } from 'ionicons/icons';
+import { personAddOutline, checkmarkCircle, swapHorizontalOutline, addCircleOutline, searchOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
 import { WorkerFacade } from '../../worker/services/worker.facade';
 import { WorkerResponse } from '../../worker/services/worker.service';
 import { apiErrorMessage } from '../../shared/utils';
+import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
 
 type WorkerState = 'available' | 'in-this-crew' | 'in-other-crew' | 'archived';
 
@@ -56,6 +57,8 @@ const normalize = (text: string) =>
     IonIcon,
     IonSearchbar,
     IonSpinner,
+    EmptyStateComponent,
+    ListSkeletonComponent,
   ],
   template: `
     <ion-header>
@@ -92,18 +95,22 @@ const normalize = (text: string) =>
         }
 
         @if (workerFacade.isLoading() && workerFacade.workers().length === 0) {
-          <div class="loading-center"><ion-spinner name="crescent"></ion-spinner></div>
+          <app-list-skeleton [rows]="4" [avatar]="false"></app-list-skeleton>
         } @else if (workerFacade.workers().length === 0) {
-          <p class="empty">Tu catálogo de trabajadores está vacío. Crea el primero con el botón de arriba.</p>
+          <app-empty-state icon="person-add-outline" title="Catálogo vacío">
+            <p>Crea el primer trabajador con el botón de arriba.</p>
+          </app-empty-state>
         } @else if (rows().length === 0) {
-          <p class="empty">Ningún trabajador coincide con "{{ query() }}".</p>
+          <app-empty-state icon="search-outline" title="Sin resultados" [flat]="true">
+            <p>Ningún trabajador coincide con "{{ query() }}".</p>
+          </app-empty-state>
         } @else {
           <ul class="worker-list">
             @for (row of rows(); track row.worker.id) {
               <li>
                 <button
                   type="button"
-                  class="worker-row"
+                  class="worker-row tappable"
                   [disabled]="row.state === 'in-this-crew' || row.state === 'archived' || busyId() !== null"
                   (click)="select(row)"
                 >
@@ -172,7 +179,7 @@ const normalize = (text: string) =>
       gap: var(--spacing-md);
       padding: var(--spacing-sm) var(--list-row-padding-h);
       border: none;
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
       background: var(--color-surface);
       box-shadow: var(--shadow-card);
       font-family: var(--font-family-body);
@@ -183,12 +190,15 @@ const normalize = (text: string) =>
     .worker-row:disabled {
       cursor: default;
       opacity: 0.7;
+      transform: none;
     }
     .worker-row__name {
       display: flex;
       flex-direction: column;
+      min-width: 0;
       font-size: var(--font-size-md);
       font-weight: var(--font-weight-bold);
+      overflow-wrap: anywhere;
     }
     .worker-row__name small {
       font-size: var(--font-size-sm);
@@ -200,22 +210,13 @@ const normalize = (text: string) =>
       align-items: center;
       gap: var(--spacing-xs);
       flex-shrink: 0;
+      max-width: 45%;
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
+      text-align: right;
     }
     .worker-row__state ion-icon {
       font-size: 20px;
-    }
-    .empty {
-      margin: 0;
-      text-align: center;
-      font-family: var(--font-family-body);
-      color: var(--color-text-muted);
-    }
-    .loading-center {
-      display: flex;
-      justify-content: center;
-      padding: var(--spacing-xl);
     }
   `],
 })
@@ -260,7 +261,7 @@ export class AddPickerPage {
   });
 
   constructor() {
-    addIcons({ personAddOutline, checkmarkCircle, swapHorizontalOutline, addCircleOutline });
+    addIcons({ personAddOutline, checkmarkCircle, swapHorizontalOutline, addCircleOutline, searchOutline });
     this.workerFacade.loadWorkers();
     if (!this.harvestFacade.hasActiveHarvest()) {
       this.harvestFacade.loadActiveHarvest();

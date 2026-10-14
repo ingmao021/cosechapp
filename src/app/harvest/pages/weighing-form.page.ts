@@ -16,7 +16,7 @@ import { AppInputComponent, AppButtonPrimaryComponent, SyncStatusComponent } fro
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { HarvestFacade } from '../services/harvest.facade';
 import { SyncFacade } from '../../sync/services/sync.facade';
-import { apiErrorMessage, formatKilos } from '../../shared/utils';
+import { apiErrorMessage, formatKilos, hapticSuccess } from '../../shared/utils';
 
 /** Máximo razonable para una sola pesada (mismo límite que valida el backend). */
 const MAX_KILOGRAMS = 1000;
@@ -73,6 +73,7 @@ const MAX_KILOGRAMS = 1000;
             [(ngModel)]="kilograms"
             required
             inputmode="decimal"
+            enterkeyhint="done"
             placeholder="Ej: 25.5"
             helperText="Kilos de café cereza de esta pesada."
             errorMessage="Escribe los kilos de la pesada."
@@ -149,6 +150,7 @@ export class WeighingFormPage {
         outcome === 'sent'
           ? `Pesada guardada: ${formatKilos(rounded)}.`
           : `Pesada guardada en el teléfono: ${formatKilos(rounded)}. Se enviará al volver la señal.`;
+      hapticSuccess();
       const toast = await this.toastController.create({ message, color: 'success', duration: 2500, position: 'bottom' });
       await toast.present();
       this.navController.navigateBack(this.pickerUrl);

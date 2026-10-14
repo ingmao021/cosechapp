@@ -51,10 +51,12 @@ const LEAVE_MS = 250;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 32px;
+      gap: 24px;
     }
+    /* Tamaño mediano: acompaña al fondo sin llenar la pantalla. A más de ~180dp la
+       acuarela se ve tosca (se nota el escalado y pesa más que la marca). */
     .splash__sack {
-      width: min(64vw, 320px);
+      width: min(42vw, 180px);
       opacity: 0;
       animation:
         sack-in 800ms cubic-bezier(0.22, 1, 0.36, 1) 350ms forwards,

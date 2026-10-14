@@ -64,6 +64,8 @@ import { apiErrorMessage } from '../../shared/utils';
             maxlength="50"
             placeholder="Ej: Juancho"
             autocomplete="name"
+            autocapitalize="words"
+            enterkeyhint="next"
             errorMessage="Escribe el nombre o alias."
           ></app-input>
 
@@ -76,6 +78,7 @@ import { apiErrorMessage } from '../../shared/utils';
             placeholder="Ej: 3001234567"
             inputmode="tel"
             autocomplete="tel"
+            enterkeyhint="done"
           ></app-input>
         </div>
 

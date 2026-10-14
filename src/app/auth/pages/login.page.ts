@@ -21,9 +21,11 @@ import { AuthFacade } from '../services/auth.facade';
   styleUrl: './auth-layout.css',
   template: `
     <ion-content class="auth">
+      <div class="auth__hero" aria-hidden="true"></div>
       <main class="auth__body">
         <header class="auth__brand">
-          <img class="auth__logo" src="assets/brand/logo.png" alt="CosechApp" />
+          <img class="auth__sack" src="assets/brand/splash-sack.webp" alt="" aria-hidden="true" />
+          <p class="auth__wordmark">CosechApp</p>
           <p class="auth__tagline">Pesadas y pagos de tu cosecha, con o sin señal.</p>
         </header>
 
@@ -40,6 +42,7 @@ import { AuthFacade } from '../services/auth.facade';
               maxlength="20"
               inputmode="numeric"
               autocomplete="username"
+              enterkeyhint="next"
               errorMessage="Escribe tu cédula (mínimo 5 dígitos)."
             ></app-input>
 
@@ -52,6 +55,7 @@ import { AuthFacade } from '../services/auth.facade';
               minlength="6"
               maxlength="50"
               autocomplete="current-password"
+              enterkeyhint="go"
               errorMessage="La contraseña tiene al menos 6 caracteres."
             ></app-input>
 

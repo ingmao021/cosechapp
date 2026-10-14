@@ -11,8 +11,8 @@ export const formatKilos = (value: number): string => {
 export const formatCurrency = (value: number): string => {
   if (value === null || value === undefined || isNaN(value)) return '$ 0 COP';
   const rounded = Math.round(value);
-  const formatted = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `$ ${formatted} COP`;
+  const formatted = Math.abs(rounded).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${rounded < 0 ? '−' : ''}$ ${formatted} COP`;
 };
 
 /** Mensajes en español para los errores de dominio que devuelve el backend (campo `error`). */
@@ -34,6 +34,7 @@ const DOMAIN_ERROR_MESSAGES: Record<string, string> = {
   HarvestHasRecordsError: 'Esta cosecha ya tiene pesadas o pagos: no se puede eliminar. Ciérrala con "Cerrar cosecha".',
   HarvestHasPaymentsError: 'Ya hay pagos en esta cosecha: el precio por kilo no se puede cambiar. Puedes corregir el nombre.',
   PickerHasRecordsError: 'Este recolector ya tiene pesadas o pagos: no se puede eliminar.',
+  HarvestHasNoWeighingsError: 'Esta cosecha aún no tiene kilos pesados: registra al menos una pesada antes de cerrarla.',
 };
 
 /**
@@ -58,4 +59,14 @@ export const apiErrorMessage = (
   if (code && DOMAIN_ERROR_MESSAGES[code]) return DOMAIN_ERROR_MESSAGES[code];
   if (status !== undefined && byStatus[status]) return byStatus[status];
   return fallback;
+};
+
+/**
+ * Vibración corta de confirmación para acciones de alto valor y poco frecuentes (guardar
+ * una pesada, cerrar la cosecha). En web no hay motor háptico: se ignora sin error.
+ */
+export const hapticSuccess = (): void => {
+  void import('@capacitor/haptics')
+    .then(({ Haptics, NotificationType }) => Haptics.notification({ type: NotificationType.Success }))
+    .catch(() => undefined);
 };

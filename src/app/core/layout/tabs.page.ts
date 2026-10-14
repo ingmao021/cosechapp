@@ -1,11 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { IonTabs } from '@ionic/angular/ion-tabs';
 import { IonTabBar } from '@ionic/angular/ion-tab-bar';
 import { IonTabButton } from '@ionic/angular/ion-tab-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { addIcons } from 'ionicons';
-import { homeOutline, pricetagOutline, timeOutline, personOutline } from 'ionicons/icons';
+import { home, homeOutline, pricetag, pricetagOutline, time, timeOutline, person, personOutline } from 'ionicons/icons';
 
 /**
  * Layout principal con barra de navegación inferior (4 tabs).
@@ -20,25 +20,25 @@ import { homeOutline, pricetagOutline, timeOutline, personOutline } from 'ionico
   standalone: true,
   imports: [IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
   template: `
-    <ion-tabs>
+    <ion-tabs (ionTabsDidChange)="selected.set($event.tab)">
       <ion-tab-bar slot="bottom" class="tabs-bar">
         <ion-tab-button tab="home" href="/home">
-          <ion-icon name="home-outline" aria-hidden="true"></ion-icon>
+          <ion-icon [name]="selected() === 'home' ? 'home' : 'home-outline'" aria-hidden="true"></ion-icon>
           <ion-label>Inicio</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="price-news" href="/price-news">
-          <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
-          <ion-label>Precio y Noticias</ion-label>
+          <ion-icon [name]="selected() === 'price-news' ? 'pricetag' : 'pricetag-outline'" aria-hidden="true"></ion-icon>
+          <ion-label>Precio y noticias</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="history" href="/history">
-          <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+          <ion-icon [name]="selected() === 'history' ? 'time' : 'time-outline'" aria-hidden="true"></ion-icon>
           <ion-label>Historial</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="profile" href="/profile">
-          <ion-icon name="person-outline" aria-hidden="true"></ion-icon>
+          <ion-icon [name]="selected() === 'profile' ? 'person' : 'person-outline'" aria-hidden="true"></ion-icon>
           <ion-label>Perfil</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
@@ -49,8 +49,8 @@ import { homeOutline, pricetagOutline, timeOutline, personOutline } from 'ionico
       --height: var(--bottom-nav-height);
       --min-height: var(--bottom-nav-height);
       --background: var(--color-surface);
-      --border-color: var(--color-border);
-      --padding-bottom: env(safe-area-inset-bottom);
+      --border-color: rgba(43, 36, 32, 0.08);
+      --padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     ion-tab-button {
       --color: var(--color-text-muted);
@@ -67,7 +67,10 @@ import { homeOutline, pricetagOutline, timeOutline, personOutline } from 'ionico
   `],
 })
 export class TabsPage {
+  /** Pestaña activa: su ícono pasa a relleno, como en las apps nativas. */
+  protected readonly selected = signal('home');
+
   constructor() {
-    addIcons({ homeOutline, pricetagOutline, timeOutline, personOutline });
+    addIcons({ home, homeOutline, pricetag, pricetagOutline, time, timeOutline, person, personOutline });
   }
 }

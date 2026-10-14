@@ -19,11 +19,12 @@ import { refreshCircleOutline } from 'ionicons/icons';
       [fill]="fill()"
       [color]="color()"
       [disabled]="disabled() || loading()"
+      [class.is-inactive]="disabled() && !loading()"
       (click)="onClick($event)"
     >
       @if (loading()) {
-        <ion-icon name="refresh-circle-outline" slot="start" class="spin"></ion-icon>
-        {{ loadingText() }}
+        <ion-icon name="refresh-circle-outline" slot="start" class="spin swap-in"></ion-icon>
+        <span class="swap-in">{{ loadingText() }}</span>
       } @else {
         @if (iconStart()) {
           <ion-icon [name]="iconStart()" slot="start"></ion-icon>
@@ -65,12 +66,36 @@ import { refreshCircleOutline } from 'ionicons/icons';
       --background-hover: var(--color-secondary);
       --color: var(--color-text-on-primary);
     }
+    /* Un giro rápido hace que la espera se sienta más corta. */
+    /* Desactivado (faltan datos): gris neutro de Material, no el verde lavado al 50%,
+       que parece un error de la app. Cargando conserva el color: el giro ya lo dice. */
+    ion-button.button-disabled {
+      opacity: 1;
+    }
+    ion-button.is-inactive {
+      --background: rgba(43, 36, 32, 0.08);
+      --color: rgba(43, 36, 32, 0.45);
+      --box-shadow: none;
+    }
     .spin {
-      animation: spin 1s linear infinite;
+      animation: swap-in 200ms ease-out, spin 700ms linear infinite;
     }
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+    /* El cambio de texto a "Cargando…" se funde con un leve desenfoque: se lee como
+       un mismo botón que cambia de estado, no como dos botones que se reemplazan. */
+    .swap-in {
+      animation: swap-in 200ms ease-out;
+    }
+    @keyframes swap-in {
+      from { opacity: 0; filter: blur(2px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .spin {
+        animation: spin 1400ms linear infinite;
+      }
     }
   `],
 })

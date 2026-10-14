@@ -150,12 +150,38 @@
      ========================================================================== */
   --radius-sm: 6px;          /* inputs */
   --radius-md: 12px;         /* tarjetas recolector, cuadrilla */
+  --radius-lg: 16px;         /* tarjetas destacadas, hojas inferiores */
   --radius-full: 999px;      /* botones acción principal (pill), chips */
 
   /* ==========================================================================
      SOMBRAS
      ========================================================================== */
-  --shadow-card: 0 1px 3px rgba(43, 36, 32, 0.12);
+  /* En capas y semitransparentes: un anillo de 1px define el borde sin la dureza de un
+     borde sólido, y dos sombras suaves dan la profundidad. */
+  --shadow-card:
+    0 0 0 1px rgba(43, 36, 32, 0.06),
+    0 1px 2px rgba(43, 36, 32, 0.06),
+    0 2px 8px rgba(43, 36, 32, 0.05);
+  --shadow-raised:
+    0 0 0 1px rgba(43, 36, 32, 0.05),
+    0 4px 12px rgba(43, 36, 32, 0.08),
+    0 12px 32px rgba(43, 36, 32, 0.08);
+
+  /* Superficie presionada / estados vacíos (un paso sobre el fondo, sin color nuevo). */
+  --color-surface-muted: rgba(43, 36, 32, 0.04);
+  --color-primary-soft: rgba(50, 89, 27, 0.1);
+
+  /* ==========================================================================
+     MOVIMIENTO (Design System §2.8)
+     ease-out para lo que entra o sale, ease-in-out para lo que se mueve en pantalla.
+     Nunca ease-in. Interfaz por debajo de 300ms; la salida más rápida que la entrada.
+     ========================================================================== */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press: 140ms;   /* feedback al presionar */
+  --dur-fast: 180ms;    /* colores, foco, salidas */
+  --dur-base: 240ms;    /* entradas de páginas, listas y avisos */
 
   /* ==========================================================================
      TOUCH TARGETS (Material Design Android)
@@ -290,6 +316,14 @@
 
 html {
   font-size: 16px; /* base para rem, pero usamos dp/sp via variables */
+  -webkit-text-size-adjust: 100%; /* sin inflado de fuente en horizontal */
+}
+
+/* La app tiene sus propios contenedores de scroll: el rebote de la página entera
+   y el "jalar para recargar" del WebView no deben moverla. */
+html,
+body {
+  overscroll-behavior: none;
 }
 
 body {
@@ -362,12 +396,21 @@ ion-item {
   --color: var(--color-text);
 }
 
+/* ion-card (md) no expone --border-radius ni --box-shadow: se fijan aquí, con más
+   especificidad que `.card-md`. Una tarjeta destacada cambia solo --card-shadow. */
 ion-card {
   --background: var(--color-surface);
-  --border-radius: var(--radius-md);
-  --box-shadow: var(--shadow-card);
   padding: var(--picker-card-padding);
   min-height: var(--picker-card-min-height);
+}
+ion-card.md {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow, var(--shadow-card));
+}
+
+/* Header: una línea fina en lugar de la sombra pesada de Material. */
+ion-header.header-md {
+  box-shadow: 0 1px 0 rgba(43, 36, 32, 0.08);
 }
 
 ion-chip {
@@ -390,6 +433,7 @@ ion-tab-bar {
 ion-tab-button {
   --color: var(--color-text-muted);
   --color-selected: var(--color-primary);
+  transition: color var(--dur-fast) ease;
 }
 
 ion-icon {
@@ -454,15 +498,258 @@ a,
   font-size: 20px;
 }
 
-/* Diálogos (ion-alert): mismo criterio que los botones, texto en oración. */
-ion-alert .alert-button {
+/* Diálogos (ion-alert): mismo criterio que los botones, texto en oración.
+   `ion-alert.md` gana a las reglas `.sc-ion-alert-md` de Ionic (MAYÚSCULAS, 4px). */
+ion-alert.md .alert-button {
   text-transform: none;
   letter-spacing: normal;
   font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-full);
 }
-ion-alert .alert-button:not(.alert-button-role-cancel) {
+ion-alert.md .alert-button:not(.alert-button-role-cancel) {
   color: var(--color-primary);
 }
-ion-alert .alert-button-role-cancel {
+ion-alert.md .alert-button-role-cancel {
   color: var(--color-text-muted);
+}
+/* Acciones destructivas (eliminar, cerrar): rojo tierra, nunca el verde de confirmar. */
+ion-alert.md .alert-button.alert-button-role-destructive,
+ion-alert.md .alert-button.alert-button-danger {
+  color: var(--color-accent-alert);
+}
+
+/* ==========================================================================
+   INTERACCIÓN TÁCTIL (Design System §2.8)
+   ========================================================================== */
+
+/* Los controles responden al instante (sin espera de doble toque) y un toque largo
+   no selecciona su texto. El contenido (nombres, montos) sigue siendo seleccionable. */
+button,
+ion-button,
+ion-chip,
+ion-tab-button,
+ion-segment-button,
+ion-item[button],
+.tappable {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Feedback al presionar: el control se hunde apenas al tocarlo, no al soltarlo. */
+ion-button,
+ion-item[button],
+.tappable {
+  transition: transform var(--dur-press) var(--ease-out);
+}
+ion-button:active {
+  transform: scale(0.97);
+}
+/* Tarjetas y filas tocables son anchas: el mismo hundimiento se nota más, así que es
+   más sutil (0.98 en tarjetas, 0.99 en filas de lista). */
+.tappable:active {
+  transform: scale(0.98);
+}
+ion-item[button]:active {
+  transform: scale(0.99);
+}
+
+/* Cifras: dígitos de ancho fijo para que kilos y montos no "bailen" al cambiar. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Entrada escalonada de listas: solo en la primera carga (la clase la pone la página)
+   y solo los primeros ítems; el resto aparece ya en su sitio. */
+@keyframes list-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.stagger-in > * {
+  animation: list-item-in var(--dur-base) var(--ease-out) backwards;
+}
+.stagger-in > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-in > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-in > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-in > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-in > *:nth-child(6) { animation-delay: 200ms; }
+.stagger-in > *:nth-child(n + 7) { animation: none; }
+
+/* ==========================================================================
+   OVERLAYS: hojas inferiores, avisos, diálogos y menús de acciones
+   ========================================================================== */
+ion-modal.sheet-modal,
+ion-modal[initial-breakpoint] {
+  --border-radius: var(--radius-lg);
+  --box-shadow: var(--shadow-raised);
+  --backdrop-opacity: 0.32;
+}
+ion-modal::part(handle) {
+  width: 36px;
+  height: 4px;
+  background: var(--color-border);
+}
+
+/* Con la barra de pestañas en pantalla, el aviso sube por encima de ella: si no,
+   queda tapado justo donde el pulgar toca. */
+body:has(ion-tab-bar) ion-toast {
+  --toast-lift: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  transform: translateY(calc(-1 * var(--toast-lift)));
+}
+ion-toast {
+  --border-radius: var(--radius-md);
+  --box-shadow: var(--shadow-raised);
+  --background: var(--color-text);
+  --color: #ffffff;
+  --button-color: #ffffff;
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ion-alert (md) no expone variables de radio ni sombra: se fijan en el contenedor. */
+ion-alert.md .alert-wrapper {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
+  background: var(--color-surface);
+}
+ion-alert.md .alert-title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+ion-alert.md .alert-message {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+ion-alert.md .alert-button-group {
+  padding: 0 var(--spacing-sm) var(--spacing-sm);
+}
+
+ion-action-sheet {
+  --background: var(--color-surface);
+}
+ion-action-sheet .action-sheet-container {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+ion-action-sheet .action-sheet-group {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+ion-action-sheet .action-sheet-title {
+  font-family: var(--font-family-body);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+ion-action-sheet .action-sheet-button {
+  text-transform: none;
+}
+
+/* ==========================================================================
+   MOVIMIENTO REDUCIDO: menos movimiento, no cero. Se conservan opacidad y color,
+   se quitan desplazamientos y escalas.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  ion-button:active,
+  ion-item[button]:active,
+  .tappable:active {
+    transform: none;
+  }
+  @keyframes list-item-in {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+/* ==========================================================================
+   SUPERFICIES DEL NAVEGADOR (Design System §2.8): selección, cursor y foco
+   también llevan la marca, no los valores por defecto del WebView.
+   ========================================================================== */
+::selection {
+  background: rgba(50, 89, 27, 0.22);
+  color: var(--color-text);
+}
+input,
+textarea {
+  caret-color: var(--color-primary);
+}
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   TIPOGRAFÍA: títulos equilibrados y párrafos sin palabras huérfanas
+   ========================================================================== */
+h1,
+h2,
+h3,
+ion-title {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
+/* Título de pantalla en páginas internas (con "volver"): un paso más chico que en las
+   pestañas raíz, para que nombres como "Catálogo de trabajadores" no se corten. */
+ion-toolbar:has(ion-back-button) ion-title.text-level-1 {
+  font-size: 1.375rem;
+}
+
+/* ==========================================================================
+   AVISO DE BLOQUEO (.notice): una acción que todavía no se puede hacer, con el
+   motivo y el paso siguiente. Tinte cálido de advertencia, sin borde lateral.
+   ========================================================================== */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-radius: var(--radius-lg);
+  background: rgba(183, 121, 31, 0.1);
+  animation: notice-in var(--dur-base) var(--ease-out);
+}
+.notice > ion-icon {
+  flex-shrink: 0;
+  font-size: 28px;
+  color: var(--ion-color-warning-shade);
+}
+.notice__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.notice h2 {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+.notice p {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.notice ion-button {
+  margin: var(--spacing-xs) 0 0;
+}
+@keyframes notice-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes notice-in {
+    from { opacity: 0; }
+  }
 }

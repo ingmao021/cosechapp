@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonLabel, IonBadge, IonButtons, IonSpinner } from '@ionic/angular';
+import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonLabel, IonBadge, IonButtons, IonSkeletonText } from '@ionic/angular';
+import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
 import { addIcons } from 'ionicons';
 import { pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline, notificationsOutline, openOutline, sparklesOutline, cloudOfflineOutline } from 'ionicons/icons';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
@@ -18,7 +19,9 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   selector: 'app-price-news',
   standalone: true,
   imports: [
-    IonSpinner,
+    IonSkeletonText,
+    EmptyStateComponent,
+    ListSkeletonComponent,
     IonContent,
     IonHeader,
     IonToolbar,
@@ -37,7 +40,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   template: `
     <ion-header>
       <ion-toolbar>
-        <ion-title class="text-level-1">Precio y Noticias</ion-title>
+        <ion-title class="text-level-1">Precio y noticias</ion-title>
         <ion-buttons slot="end">
           <ion-button fill="clear" (click)="goToNotifications()" aria-label="Notificaciones">
             <ion-icon name="notifications-outline" slot="icon-only"></ion-icon>
@@ -54,10 +57,11 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
         <ion-refresher-content pulling-icon="refresh-outline"></ion-refresher-content>
       </ion-refresher>
 
-      <!-- Spinner solo en la primera carga; al refrescar se queda lo que ya se ve -->
+      <!-- Esqueleto solo en la primera carga; al refrescar se queda lo que ya se ve -->
       @if (facade.isLoading() && isEmpty()) {
-        <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
+        <div class="skeleton" role="status" aria-label="Cargando precio y noticias">
+          <ion-skeleton-text [animated]="true" class="skeleton__price"></ion-skeleton-text>
+          <app-list-skeleton [rows]="3" [avatar]="false"></app-list-skeleton>
         </div>
       } @else {
         @if (facade.isOfflineData()) {
@@ -113,11 +117,11 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
           </div>
 
           @if (facade.news().length === 0) {
-            <div class="empty-state">
-              <ion-icon name="newspaper-outline" size="large" color="medium"></ion-icon>
-              <p class="text-level-4">Todavía no hay noticias. Se actualizan cada mañana.</p>
-            </div>
+            <app-empty-state icon="newspaper-outline" title="Sin noticias por ahora" [flat]="true">
+              <p>Se actualizan cada mañana.</p>
+            </app-empty-state>
           } @else {
+            <div class="stagger-in">
             @for (news of facade.news(); track news.id) {
               <ion-card class="news-card">
                 <ion-card-content>
@@ -133,6 +137,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
                 </ion-card-content>
               </ion-card>
             }
+            </div>
           }
         </section>
 
@@ -146,11 +151,26 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   `,
   styles: [`
     .fnc-price-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
+      --card-shadow: var(--shadow-raised);
+      position: relative;
       margin: var(--spacing-md);
-      background: linear-gradient(135deg, var(--color-primary) 0%, var(--ion-color-primary-shade) 100%);
+      --background: var(--color-primary);
+      background: var(--color-primary);
       color: var(--color-text-on-primary);
+    }
+    /* Firma de la marca: las ramas de café del arranque, multiplicadas sobre el verde.
+       El blanco del dibujo desaparece y solo quedan los trazos, un verde más hondo. */
+    .fnc-price-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('/assets/brand/splash-bg.webp') center 30% / 160% auto no-repeat;
+      mix-blend-mode: multiply;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    .fnc-price-card ion-card-content {
+      position: relative;
     }
     .fnc-price-card ion-card-content {
       display: flex;
@@ -168,9 +188,12 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     }
     .price-value {
       font-family: var(--font-family-display);
-      font-size: 3rem;
+      /* Grande, pero sin desbordar un precio de 7 dígitos en 360dp. */
+      font-size: clamp(1.75rem, 8vw, 2.75rem);
       font-weight: var(--font-weight-bold);
       line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
     }
     .price-empty {
       font-family: var(--font-family-display);
@@ -205,10 +228,17 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       color: var(--color-text-muted);
     }
     .notification-banner {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
+      --card-shadow: var(--shadow-card);
       margin: var(--spacing-md);
-      border-left: 4px solid var(--color-primary);
+      --background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)), var(--color-surface);
+    }
+    .notification-banner ion-card-content {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+    .notification-banner ion-label {
+      flex: 1;
     }
     .section {
       padding: 0 var(--spacing-md) var(--spacing-lg);
@@ -224,12 +254,16 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       margin: 0;
     }
     .news-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
+      --card-shadow: var(--shadow-card);
       margin: 0 0 var(--card-gap-vertical);
     }
+    /* El ion-card global ya trae padding: aquí el contenido manda, sin doble margen. */
+    .news-card,
+    .fnc-price-card {
+      padding: 0;
+    }
     .news-card ion-card-content {
-      padding: var(--spacing-md);
+      padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs);
     }
     .news-meta {
       margin: 0 0 var(--spacing-xs);
@@ -259,16 +293,19 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       line-height: 1.4;
       color: var(--color-text-muted);
     }
-    .empty-state {
-      text-align: center;
-      padding: var(--spacing-lg) var(--spacing-md);
-      color: var(--color-text-muted);
-    }
-    .loading-center {
+    .skeleton {
       display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 50vh;
+      flex-direction: column;
+      gap: var(--spacing-lg);
+      padding: var(--spacing-md);
+    }
+    .skeleton__price {
+      --background: rgba(43, 36, 32, 0.07);
+      --background-rgb: 43, 36, 32;
+      width: 100%;
+      height: 168px;
+      margin: 0;
+      border-radius: var(--radius-lg);
     }
   `],
 })

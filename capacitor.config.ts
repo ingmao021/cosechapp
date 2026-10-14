@@ -22,6 +22,13 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    // Barra de estado con íconos oscuros sobre el header blanco: se lee como parte de la app.
+    // En Android 15+ (edge-to-edge) el color de fondo lo pone la app; el estilo sí aplica.
+    StatusBar: {
+      style: 'LIGHT',
+      backgroundColor: '#FFFFFF',
+      overlaysWebView: false,
+    },
     // SecureStorage para JWT (AES-GCM + Android Keystore)
     SecureStorage: {
       // configuración por defecto OK

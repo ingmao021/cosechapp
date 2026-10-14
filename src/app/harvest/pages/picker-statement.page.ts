@@ -7,10 +7,10 @@ import { IonToolbar } from '@ionic/angular/ion-toolbar';
 import { IonButtons } from '@ionic/angular/ion-buttons';
 import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
-import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { HarvestService, PickerStatementResponse } from '../services/harvest.service';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
+import { ListSkeletonComponent } from '@shared/components';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { apiErrorMessage } from '../../shared/utils';
 
@@ -21,7 +21,7 @@ import { apiErrorMessage } from '../../shared/utils';
 @Component({
   selector: 'app-picker-statement',
   standalone: true,
-  imports: [IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, IonSpinner, CurrencyPipe, KilosPipe, DateFormatPipe],
+  imports: [IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, CurrencyPipe, KilosPipe, DateFormatPipe, ListSkeletonComponent],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -34,7 +34,7 @@ import { apiErrorMessage } from '../../shared/utils';
 
     <ion-content class="ion-padding">
       @if (loading()) {
-        <div class="loading-center"><ion-spinner name="crescent"></ion-spinner></div>
+        <app-list-skeleton [rows]="3" [avatar]="false"></app-list-skeleton>
       } @else if (error()) {
         <p class="form-error" role="alert">{{ error() }}</p>
       } @else if (statement(); as s) {
@@ -107,9 +107,10 @@ import { apiErrorMessage } from '../../shared/utils';
     .card {
       margin-bottom: var(--spacing-md);
       padding: var(--spacing-md);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
       background: var(--color-surface);
       box-shadow: var(--shadow-card);
+      font-variant-numeric: tabular-nums;
     }
     .card h2 {
       margin: 0 0 var(--spacing-sm);
@@ -123,6 +124,7 @@ import { apiErrorMessage } from '../../shared/utils';
       font-family: var(--font-family-display);
       font-size: var(--font-size-xl);
       color: var(--color-primary);
+      overflow-wrap: anywhere;
     }
     .days {
       width: 100%;
@@ -133,7 +135,7 @@ import { apiErrorMessage } from '../../shared/utils';
     .days td {
       padding: var(--spacing-xs) 0;
       text-align: right;
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
     }
     .days th:first-child,
     .days td:first-child {
@@ -154,11 +156,12 @@ import { apiErrorMessage } from '../../shared/utils';
       justify-content: space-between;
       gap: var(--spacing-sm);
       padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid var(--color-border);
+      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
     }
     .payments li div {
       display: flex;
       flex-direction: column;
+      min-width: 0;
     }
     .summary {
       margin: 0;
@@ -166,6 +169,7 @@ import { apiErrorMessage } from '../../shared/utils';
     .summary div {
       display: flex;
       justify-content: space-between;
+      gap: var(--spacing-sm);
       padding: 2px 0;
     }
     .summary dt,
@@ -174,11 +178,6 @@ import { apiErrorMessage } from '../../shared/utils';
     }
     .due {
       color: var(--ion-color-danger);
-    }
-    .loading-center {
-      display: flex;
-      justify-content: center;
-      padding: var(--spacing-xl);
     }
   `],
 })

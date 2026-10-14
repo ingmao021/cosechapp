@@ -13,6 +13,7 @@ import {
   IdempotencyKeyConflictError,
   HarvestHasRecordsError,
   HarvestHasPaymentsError,
+  HarvestHasNoWeighingsError,
   PickerHasRecordsError,
   WorkerHasHarvestHistoryError,
   IncorrectCurrentPasswordError,
@@ -51,6 +52,7 @@ export function domainErrorStatus(error: DomainError): HttpStatus {
     error instanceof WorkerHasHarvestHistoryError ||
     error instanceof HarvestHasRecordsError ||
     error instanceof HarvestHasPaymentsError ||
+    error instanceof HarvestHasNoWeighingsError ||
     error instanceof PickerHasRecordsError
   ) {
     return HttpStatus.CONFLICT;
