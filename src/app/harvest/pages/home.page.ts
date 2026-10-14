@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
@@ -8,10 +8,7 @@ import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardHeader } from '@ionic/angular/ion-card-header';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
+import { IonSkeletonText } from '@ionic/angular/ion-skeleton-text';
 import { addIcons } from 'ionicons';
 import { scaleOutline, addOutline, closeOutline, pricetagOutline, addCircleOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline, ellipsisVertical, createOutline, trashOutline } from 'ionicons/icons';
 import { ActionSheetController } from '@ionic/angular/action-sheet-controller';
@@ -24,6 +21,8 @@ import { NetworkService } from '../../network/services/network.service';
 import { SyncFacade } from '../../sync/services/sync.facade';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
+import { KilosPipe } from '@shared/pipes/kilos.pipe';
+import { EmptyStateComponent } from '@shared/components';
 
 /**
  * Pantalla Inicio (Home) — Cosecha activa.
@@ -47,12 +46,11 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
     IonButton,
     IonIcon,
     IonCard,
-    IonCardContent,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardSubtitle,
+    IonSkeletonText,
+    EmptyStateComponent,
     CurrencyPipe,
     DateFormatPipe,
+    KilosPipe,
   ],
   template: `
     <ion-header>
@@ -64,115 +62,192 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
     <ion-content class="ion-padding">
       @if (harvestFacade.hasActiveHarvest()) {
         <!-- Cosecha activa -->
-        <ion-card class="harvest-header-card">
-          <ion-card-header class="harvest-header">
-            <div class="harvest-header__text">
-              <ion-card-title class="text-level-2">{{ harvestFacade.activeHarvestName() }}</ion-card-title>
-              <ion-card-subtitle class="text-level-4">
-                Pagas {{ harvestFacade.activeHarvestPrice() | currency }} por kilo
-              </ion-card-subtitle>
+        <ion-card class="harvest-card">
+          <div class="harvest-card__head">
+            <div class="harvest-card__title">
+              <h2>{{ harvestFacade.activeHarvestName() }}</h2>
+              <p class="harvest-card__price">
+                Pagas <span class="num">{{ harvestFacade.activeHarvestPrice() | currency }}</span> por kilo
+              </p>
             </div>
-            <ion-button fill="clear" color="medium" class="harvest-header__menu" aria-label="Opciones de la cosecha" (click)="openHarvestMenu()">
+            <ion-button fill="clear" color="medium" class="harvest-card__menu" aria-label="Opciones de la cosecha" (click)="openHarvestMenu()">
               <ion-icon name="ellipsis-vertical" slot="icon-only"></ion-icon>
             </ion-button>
-          </ion-card-header>
-          <ion-card-content>
-            <!-- Solo datos reales: estado de conexión y precio FNC si existe -->
-            <div class="status-row">
-              @if (sync.pendingCount() > 0) {
-                <span class="status-pill status-pill--offline">
-                  <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
-                  {{ sync.pendingCount() }} {{ sync.pendingCount() === 1 ? 'pesada' : 'pesadas' }} por enviar
-                </span>
-              } @else if (!network.isOnline()) {
-                <span class="status-pill status-pill--offline">
-                  <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
-                  Sin conexión · se guarda en el teléfono
-                </span>
-              } @else if (sync.lastSync()) {
-                <span class="status-pill">
-                  <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
-                  Todo enviado · {{ sync.lastSync() | dateFormat: 'time' }}
-                </span>
-              } @else {
-                <span class="status-pill">
-                  <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
-                  En línea
-                </span>
-              }
-              @if (priceAndNewsFacade.hasPrice()) {
-                <span class="status-pill">
-                  <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
-                  FNC {{ priceAndNewsFacade.formattedPrice() }} · {{ priceAndNewsFacade.priceDate() }}
-                </span>
-              }
+          </div>
+
+          <!-- Resumen del día: solo datos reales de la cosecha cargada. -->
+          <dl class="stats">
+            <div class="stat">
+              <dt>Kilos hoy</dt>
+              <dd class="num">{{ todayKilograms() | kilos }}</dd>
             </div>
-            <div class="main-actions">
-              <ion-button expand="block" fill="solid" color="primary" class="weigh-btn" (click)="goToWeigh()">
-                <ion-icon name="scale-outline" slot="start"></ion-icon>
-                Pesar
-              </ion-button>
-              <ion-button expand="block" fill="outline" color="danger" class="close-harvest-btn" (click)="goToCloseHarvest()">
-                <ion-icon name="close-outline" slot="start"></ion-icon>
-                Cerrar cosecha
-              </ion-button>
+            <div class="stat">
+              <dt>Recolectores</dt>
+              <dd class="num">{{ activePickers() }}</dd>
             </div>
-          </ion-card-content>
-        </ion-card>
-      } @else {
-        <!-- Estado vacío: no hay cosecha activa -->
-        <ion-card class="empty-state-card">
-          <ion-card-content class="text-center">
-            <ion-icon name="add-circle-outline" size="large" color="primary"></ion-icon>
-            <h2 class="text-level-2 ion-margin-top">No hay cosecha activa</h2>
-            <p class="text-level-4 ion-margin">Abre una nueva cosecha para empezar a registrar pesadas.</p>
-            <ion-button fill="solid" color="primary" class="ion-margin-top" (click)="openHarvest()">
-              <ion-icon name="add-outline" slot="start"></ion-icon>
-              Abrir nueva cosecha
+          </dl>
+
+          <div class="status-row">
+            @if (sync.pendingCount() > 0) {
+              <span class="status-pill status-pill--offline">
+                <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
+                {{ sync.pendingCount() }} {{ sync.pendingCount() === 1 ? 'pesada' : 'pesadas' }} por enviar
+              </span>
+            } @else if (!network.isOnline()) {
+              <span class="status-pill status-pill--offline">
+                <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+                Sin conexión · se guarda en el teléfono
+              </span>
+            } @else if (sync.lastSync()) {
+              <span class="status-pill">
+                <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
+                Todo enviado · {{ sync.lastSync() | dateFormat: 'time' }}
+              </span>
+            } @else {
+              <span class="status-pill">
+                <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
+                En línea
+              </span>
+            }
+            @if (priceAndNewsFacade.hasPrice()) {
+              <span class="status-pill">
+                <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
+                FNC {{ priceAndNewsFacade.formattedPrice() }} · {{ priceAndNewsFacade.priceDate() }}
+              </span>
+            }
+          </div>
+
+          <div class="main-actions">
+            <ion-button expand="block" fill="solid" color="primary" class="weigh-btn" (click)="goToWeigh()">
+              <ion-icon name="scale-outline" slot="start"></ion-icon>
+              Pesar
             </ion-button>
-          </ion-card-content>
+            <ion-button expand="block" fill="outline" color="danger" class="close-harvest-btn" (click)="goToCloseHarvest()">
+              <ion-icon name="close-outline" slot="start"></ion-icon>
+              Cerrar cosecha
+            </ion-button>
+          </div>
         </ion-card>
+      } @else if (harvestFacade.isLoading()) {
+        <!-- Primera carga: la forma de la tarjeta, sin pasar antes por "No hay cosecha activa". -->
+        <div class="harvest-card harvest-card--skeleton" role="status" aria-label="Cargando cosecha">
+          <ion-skeleton-text [animated]="true" class="sk sk--title"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" class="sk sk--line"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" class="sk sk--stats"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" class="sk sk--button"></ion-skeleton-text>
+        </div>
+      } @else {
+        <app-empty-state icon="add-circle-outline" title="No hay cosecha activa">
+          <p>Abre una nueva cosecha para empezar a registrar pesadas.</p>
+          <ion-button fill="solid" color="primary" (click)="openHarvest()">
+            <ion-icon name="add-outline" slot="start"></ion-icon>
+            Abrir nueva cosecha
+          </ion-button>
+        </app-empty-state>
       }
     </ion-content>
   `,
   styles: [`
-    .harvest-header-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      margin-bottom: var(--spacing-md);
+    .harvest-card {
+      --background: var(--color-surface);
+      --card-shadow: var(--shadow-raised);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-md);
+      min-height: 0;
+      margin: 0 0 var(--spacing-md);
+      padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
     }
-    .harvest-header {
+    .harvest-card__head {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: var(--spacing-sm);
     }
-    .harvest-header__text {
+    .harvest-card__title {
       flex: 1;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
     }
-    .harvest-header__menu {
-      margin: -8px -8px 0 0;
+    .harvest-card__title p,
+    .harvest-card__title h2 {
+      margin: 0;
+    }
+    .harvest-card__title h2 {
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+    .harvest-card__price {
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+    .harvest-card__price .num {
+      color: var(--color-text);
+      font-weight: var(--font-weight-bold);
+    }
+    .harvest-card__menu {
+      margin: -8px -12px 0 0;
+    }
+    /* Las cifras del día van en una fila con líneas finas arriba y abajo, como un
+       renglón del cuaderno: sin tarjetas dentro de la tarjeta. */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin: 0;
+      padding: var(--spacing-sm) 0;
+      border-block: 1px solid rgba(43, 36, 32, 0.08);
+    }
+    .stat {
+      min-width: 0;
+      padding: var(--spacing-xs) 0;
+    }
+    .stat + .stat {
+      padding-left: var(--spacing-md);
+      border-left: 1px solid rgba(43, 36, 32, 0.08);
+    }
+    .stat dt {
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .stat dd {
+      margin: 2px 0 0;
+      font-family: var(--font-family-display);
+      font-size: var(--font-size-xl);
+      line-height: 1.1;
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .status-row {
       display: flex;
       flex-wrap: wrap;
       gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-md);
     }
     /* Etiqueta informativa, no interactiva (no usa ion-chip para no parecer botón). */
     .status-pill {
       display: inline-flex;
       align-items: center;
       gap: var(--spacing-xs);
+      max-width: 100%;
       padding: var(--spacing-xs) var(--spacing-sm);
       border-radius: var(--radius-full);
-      background: var(--color-background);
+      background: var(--color-primary-soft);
       color: var(--color-text);
       font-family: var(--font-family-body);
       font-size: var(--font-size-xs);
     }
     .status-pill ion-icon {
+      flex-shrink: 0;
       font-size: 16px;
       color: var(--color-primary);
     }
@@ -187,6 +262,9 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
       flex-direction: column;
       gap: var(--spacing-sm);
     }
+    .main-actions ion-button {
+      margin: 0;
+    }
     .weigh-btn {
       --border-radius: var(--radius-full);
       height: 56px;
@@ -199,14 +277,22 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
       height: 48px;
       min-height: 48px;
     }
-    .empty-state-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      text-align: center;
+    .harvest-card--skeleton {
+      gap: var(--spacing-sm);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-card);
     }
-    .text-center {
-      text-align: center;
+    .sk {
+      --background: rgba(43, 36, 32, 0.07);
+      --background-rgb: 43, 36, 32;
+      margin: 0;
+      border-radius: var(--radius-sm);
     }
+    .sk--title { width: 65%; height: 26px; }
+    .sk--line { width: 45%; height: 14px; }
+    .sk--stats { width: 100%; height: 64px; margin-top: var(--spacing-sm); border-radius: var(--radius-md); }
+    .sk--button { width: 100%; height: 56px; margin-top: var(--spacing-sm); border-radius: var(--radius-full); }
   `],
 })
 export class HomePage {
@@ -218,6 +304,18 @@ export class HomePage {
   private readonly actionSheetController = inject(ActionSheetController);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
+
+  private readonly activeHarvestPickers = computed(() =>
+    this.harvestFacade.activeHarvestPickers().filter((picker) => picker.status === 'active'),
+  );
+  readonly activePickers = computed(() => this.activeHarvestPickers().length);
+  readonly todayKilograms = computed(() =>
+    this.activeHarvestPickers().reduce((total, picker) => total + picker.todayKilograms, 0),
+  );
+  /** Kilos de toda la cosecha, incluidos los de recolectores ya quitados y las pesadas sin enviar. */
+  private readonly harvestKilograms = computed(() =>
+    this.harvestFacade.activeHarvestPickers().reduce((total, picker) => total + picker.totalKilograms, 0),
+  );
 
   constructor() {
     addIcons({ scaleOutline, addOutline, closeOutline, pricetagOutline, addCircleOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline, ellipsisVertical, createOutline, trashOutline });
@@ -234,9 +332,25 @@ export class HomePage {
     this.router.navigate(['/harvest/crews']);
   }
 
+  /** Sin kilos pesados no hay nada que pagar ni vender: se avisa en lugar de abrir el cierre. */
   goToCloseHarvest(): void {
-    // Navegar a pantalla de cierre de cosecha (venta + costos)
-    this.router.navigate(['/harvest/close']);
+    if (this.harvestKilograms() > 0) {
+      this.router.navigate(['/harvest/close']);
+      return;
+    }
+    void this.warnNoKilograms();
+  }
+
+  private async warnNoKilograms(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Aún no hay kilos pesados',
+      message: `"${this.harvestFacade.activeHarvestName()}" no tiene pesadas. Registra al menos una antes de cerrarla; si la abriste por error, puedes eliminarla desde el menú de opciones de la cosecha.`,
+      buttons: [
+        { text: 'Entendido', role: 'cancel' },
+        { text: 'Ir a pesar', role: 'confirm', handler: () => this.goToWeigh() },
+      ],
+    });
+    await alert.present();
   }
 
   openHarvest(): void {

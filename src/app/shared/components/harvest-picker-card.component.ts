@@ -36,9 +36,9 @@ export interface PickerCardData {
           <p class="picker-real-name">{{ picker().firstName }} {{ picker().lastName }}</p>
         }
         <p class="picker-meta">
-          <strong>{{ picker().todayKilograms | kilos }}</strong> hoy
+          <strong class="num">{{ picker().todayKilograms | kilos }}</strong> hoy
           @if (picker().balanceDue > 0) {
-            · Debes {{ picker().balanceDue | currency }}
+            · Debes <span class="num">{{ picker().balanceDue | currency }}</span>
           }
         </p>
       </div>
@@ -67,22 +67,31 @@ export interface PickerCardData {
     </div>
   `,
   styles: [`
+    :host {
+      display: block;
+    }
     .picker-card {
       display: flex;
       align-items: center;
       gap: var(--spacing-md);
       padding: var(--picker-card-padding);
       min-height: var(--picker-card-min-height);
-      border-radius: var(--picker-card-radius);
+      border-radius: var(--radius-lg);
       background: var(--color-surface);
       box-shadow: var(--shadow-card);
       margin-bottom: var(--card-gap-vertical);
+      transition: transform var(--dur-press) var(--ease-out);
     }
     .picker-card.clickable {
       cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
     }
-    .picker-card.clickable:active {
-      transform: scale(0.99);
+    /* La tarjeta entera es tocable: se hunde un poco al presionarla. Si el dedo está en
+       "Pesar" o en ⋮, solo se hunde ese botón (:has evita el doble hundimiento). */
+    .picker-card.clickable:active:not(:has(button:active)) {
+      transform: scale(0.98);
     }
     .picker-avatar {
       width: 40px;
@@ -92,8 +101,8 @@ export interface PickerCardData {
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      background: var(--color-primary);
-      color: var(--color-text-on-primary);
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
       font-family: var(--font-family-body);
       font-weight: var(--font-weight-bold);
       font-size: var(--font-size-sm);
@@ -139,6 +148,10 @@ export interface PickerCardData {
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-bold);
       cursor: pointer;
+      transition: transform var(--dur-press) var(--ease-out);
+    }
+    .weigh-btn:active {
+      transform: scale(0.95);
     }
     .weigh-btn ion-icon {
       font-size: 20px;
@@ -155,9 +168,19 @@ export interface PickerCardData {
       background: transparent;
       color: var(--color-text-muted);
       cursor: pointer;
+      transition: background-color var(--dur-fast) ease;
+    }
+    .menu-btn:active {
+      background: var(--color-surface-muted);
     }
     .menu-btn ion-icon {
       font-size: 20px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .picker-card.clickable:active:not(:has(button:active)),
+      .weigh-btn:active {
+        transform: none;
+      }
     }
   `],
 })

@@ -155,8 +155,7 @@ import { Router } from '@angular/router';
   `,
   styles: [`
     .policy-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
+      --card-shadow: var(--shadow-card);
       margin-bottom: var(--spacing-md);
     }
     .policy-section {
@@ -189,8 +188,7 @@ import { Router } from '@angular/router';
       padding-top: var(--spacing-md);
     }
     .legal-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
+      --card-shadow: var(--shadow-card);
       border: 1px solid var(--color-border);
     }
   `],

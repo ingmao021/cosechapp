@@ -42,6 +42,8 @@ import { IonInputPasswordToggle } from '@ionic/angular/ion-input-password-toggle
       [minlength]="minlength()"
       [maxlength]="maxlength()"
       [inputmode]="inputmode()"
+      [enterkeyhint]="enterkeyhint()"
+      [autocapitalize]="autocapitalize()"
       [autocomplete]="autocomplete()"
       [helperText]="helperText()"
       [errorText]="errorMessage()"
@@ -96,6 +98,10 @@ export class AppInputComponent implements ControlValueAccessor {
   maxlength = input<number | null, unknown>(null, { transform: optionalNumberAttribute });
   inputmode = input<'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url'>('text');
   autocomplete = input<string>('off');
+  /** Qué dice la tecla Enter del teclado del teléfono. */
+  enterkeyhint = input<'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send' | undefined>(undefined);
+  /** 'off' en cédulas y códigos; 'words' en nombres. */
+  autocapitalize = input<'off' | 'none' | 'on' | 'sentences' | 'words' | 'characters'>('off');
   errorMessage = input<string>('');
   /** Texto de ayuda bajo el campo (se reemplaza por errorMessage cuando hay error). */
   helperText = input<string>('');

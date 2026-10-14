@@ -8,12 +8,17 @@ import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { addIcons } from 'ionicons';
 import { personAddOutline, peopleOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
 import { PickerActionsService } from '../services/picker-actions.service';
-import { HarvestPickerCardComponent, PickerCardData, SyncStatusComponent } from '@shared/components';
+import {
+  EmptyStateComponent,
+  HarvestPickerCardComponent,
+  ListSkeletonComponent,
+  PickerCardData,
+  SyncStatusComponent,
+} from '@shared/components';
 import { NetworkService } from '../../network/services/network.service';
 
 /**
@@ -32,8 +37,9 @@ import { NetworkService } from '../../network/services/network.service';
     IonTitle,
     IonButton,
     IonIcon,
-    IonSpinner,
     HarvestPickerCardComponent,
+    EmptyStateComponent,
+    ListSkeletonComponent,
     SyncStatusComponent,
   ],
   template: `
@@ -50,20 +56,18 @@ import { NetworkService } from '../../network/services/network.service';
       <app-sync-status></app-sync-status>
 
       @if (harvestFacade.isLoading() && crewPickers().length === 0) {
-        <div class="loading-center"><ion-spinner name="crescent"></ion-spinner></div>
+        <app-list-skeleton [rows]="4"></app-list-skeleton>
       } @else if (crewPickers().length === 0) {
-        <div class="empty-state">
-          <ion-icon name="people-outline" aria-hidden="true"></ion-icon>
-          <h2 class="text-level-2">Sin recolectores</h2>
-          <p class="text-level-4">Agrega recolectores del catálogo o crea uno nuevo.</p>
+        <app-empty-state icon="people-outline" title="Sin recolectores">
+          <p>Agrega recolectores del catálogo o crea uno nuevo.</p>
           <ion-button color="primary" [disabled]="!network.isOnline()" (click)="addPicker()">
             <ion-icon name="person-add-outline" slot="start"></ion-icon>
             Agregar recolector
           </ion-button>
           @if (!network.isOnline()) {
-            <p class="text-level-4">Necesitas conexión para agregar recolectores.</p>
+            <p>Necesitas conexión para agregar recolectores.</p>
           }
-        </div>
+        </app-empty-state>
       } @else {
         <div class="list-header">
           <h2 class="text-level-2">Recolectores ({{ crewPickers().length }})</h2>
@@ -72,15 +76,17 @@ import { NetworkService } from '../../network/services/network.service';
             Agregar
           </ion-button>
         </div>
-        @for (picker of crewPickers(); track picker.id) {
-          <app-harvest-picker-card
-            [picker]="picker"
-            [showMenu]="network.isOnline()"
-            (cardClick)="goToPickerDetail($event)"
-            (weighClick)="goToWeighing($event)"
-            (menuClick)="openPickerMenu($event)"
-          ></app-harvest-picker-card>
-        }
+        <div class="stagger-in">
+          @for (picker of crewPickers(); track picker.id) {
+            <app-harvest-picker-card
+              [picker]="picker"
+              [showMenu]="network.isOnline()"
+              (cardClick)="goToPickerDetail($event)"
+              (weighClick)="goToWeighing($event)"
+              (menuClick)="openPickerMenu($event)"
+            ></app-harvest-picker-card>
+          }
+        </div>
       }
     </ion-content>
   `,
@@ -97,31 +103,7 @@ import { NetworkService } from '../../network/services/network.service';
     }
     .list-header h2 {
       margin: 0;
-    }
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--spacing-sm);
-      padding: var(--spacing-xl) var(--spacing-md);
-      text-align: center;
-      background: var(--color-surface);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-card);
-    }
-    .empty-state ion-icon[aria-hidden] {
-      font-size: 40px;
-      color: var(--color-text-muted);
-    }
-    .empty-state h2,
-    .empty-state p {
-      margin: 0;
-    }
-    .loading-center {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 50vh;
+      min-width: 0;
     }
   `],
 })

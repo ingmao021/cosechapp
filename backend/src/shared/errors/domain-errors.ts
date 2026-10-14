@@ -122,6 +122,13 @@ export class HarvestHasPaymentsError extends DomainError {
   }
 }
 
+/** La cosecha no tiene ningún kilo pesado: cerrarla no liquidaría nada ni dejaría qué vender. */
+export class HarvestHasNoWeighingsError extends DomainError {
+  constructor() {
+    super('Harvest has no weighings and cannot be closed');
+  }
+}
+
 /** El recolector ya tiene pesadas o pagos: borrarlo perdería ese registro (se archiva en su lugar). */
 export class PickerHasRecordsError extends DomainError {
   constructor() {

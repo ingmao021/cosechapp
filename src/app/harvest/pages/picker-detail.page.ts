@@ -8,7 +8,6 @@ import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { ToastController } from '@ionic/angular/toast-controller';
 import { addIcons } from 'ionicons';
@@ -18,7 +17,7 @@ import { WeighingFacade } from '../../weighing/services/weighing.facade';
 import { PaymentFacade } from '../../payment/services/payment.facade';
 import { PaymentPreviewResponse } from '../../payment/services/payment.service';
 import { NetworkService } from '../../network/services/network.service';
-import { SyncStatusComponent } from '@shared/components';
+import { ListSkeletonComponent, SyncStatusComponent } from '@shared/components';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
@@ -41,8 +40,8 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
     IonTitle,
     IonButton,
     IonIcon,
-    IonSpinner,
     SyncStatusComponent,
+    ListSkeletonComponent,
     KilosPipe,
     CurrencyPipe,
     DateFormatPipe,
@@ -63,7 +62,7 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
 
         @if (!picker()) {
           @if (harvestFacade.isLoading()) {
-            <div class="loading-center"><ion-spinner name="crescent"></ion-spinner></div>
+            <app-list-skeleton [rows]="3" [avatar]="false"></app-list-skeleton>
           } @else {
             <p class="empty">No encontramos este recolector en la cosecha activa.</p>
           }
@@ -180,7 +179,7 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
     }
     .card {
       background: var(--color-surface);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
       box-shadow: var(--shadow-card);
       padding: var(--spacing-md);
     }
@@ -194,12 +193,20 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       display: flex;
       flex-direction: column;
       gap: var(--spacing-xs);
+      min-width: 0;
+    }
+    .total + .total {
+      border-left: 1px solid rgba(43, 36, 32, 0.08);
     }
     .total__value {
       font-family: var(--font-family-display);
-      font-size: var(--font-size-lg);
+      /* Baja de tamaño en pantallas angostas para que una cifra de 7 dígitos quepa. */
+      font-size: clamp(1rem, 4.6vw, var(--font-size-lg));
       font-weight: var(--font-weight-bold);
       color: var(--color-text);
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+      line-height: 1.2;
     }
     .total__label,
     .balance__label,
@@ -218,6 +225,8 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       font-size: var(--font-size-xl);
       font-weight: var(--font-weight-bold);
       color: var(--color-primary);
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
     }
     .actions {
       display: flex;
@@ -236,7 +245,7 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       margin: 0;
       padding: 0;
       background: var(--color-surface);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
       box-shadow: var(--shadow-card);
     }
     .row {
@@ -245,7 +254,8 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       align-items: center;
       min-height: var(--list-row-height);
       padding: 0 var(--list-row-padding-h);
-      border-bottom: 1px solid var(--color-border);
+      gap: var(--spacing-sm);
+      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
       font-family: var(--font-family-body);
     }
     .row:last-child {
@@ -253,6 +263,7 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
     }
     .row__main {
       font-weight: var(--font-weight-bold);
+      font-variant-numeric: tabular-nums;
     }
     .row__meta {
       display: inline-flex;
@@ -266,11 +277,6 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       margin: 0;
       font-family: var(--font-family-body);
       color: var(--color-text-muted);
-    }
-    .loading-center {
-      display: flex;
-      justify-content: center;
-      padding: var(--spacing-xl);
     }
   `],
 })

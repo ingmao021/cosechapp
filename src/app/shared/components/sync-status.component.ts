@@ -67,12 +67,22 @@ import { HarvestFacade } from '../../harvest/services/harvest.facade';
       gap: var(--spacing-sm);
       margin: 0;
       padding: var(--spacing-sm) var(--spacing-md);
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-md);
       background: rgba(50, 89, 27, 0.08);
       color: var(--color-text);
       font-family: var(--font-family-body);
       font-size: var(--font-size-sm);
       line-height: 1.4;
+      /* Aparece sin saltar: el aviso empuja el contenido, así que entra suave. */
+      animation: note-in var(--dur-base) var(--ease-out);
+    }
+    @keyframes note-in {
+      from { opacity: 0; transform: translateY(-4px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      @keyframes note-in {
+        from { opacity: 0; }
+      }
     }
     .sync-note ion-icon {
       flex-shrink: 0;

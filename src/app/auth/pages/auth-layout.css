@@ -42,8 +42,8 @@
   gap: var(--spacing-md);
   padding: var(--spacing-lg) var(--spacing-md);
   background: var(--color-surface);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
 }
 
 .auth__title {
@@ -83,4 +83,35 @@
   font-weight: var(--font-weight-bold);
   text-transform: none;
   letter-spacing: normal;
+}
+
+/* Entrada: se ve una vez por sesión (después del splash), así que puede tener un poco de
+   presencia. La marca aparece y el panel sube detrás; nada bloquea escribir. */
+.auth__brand {
+  animation: auth-in var(--dur-base) var(--ease-out) backwards;
+}
+.auth__panel {
+  animation: auth-in 280ms var(--ease-out) 60ms backwards;
+}
+.auth__switch {
+  animation: auth-fade var(--dur-base) ease-out 120ms backwards;
+}
+
+@keyframes auth-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes auth-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth__brand,
+  .auth__panel {
+    animation-name: auth-fade;
+  }
 }

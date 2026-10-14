@@ -9,11 +9,11 @@ Taller de Design System aplicado a **CosechApp**, la app móvil de recolección 
 Define qué información y elementos se muestran en cada pantalla de CosechApp, con base en las funcionalidades ya definidas en el PRD.
 
 ### 1.0 Splash
-Al abrir la app solo se ve el logo:
-1. **Splash nativo** (Android): ícono de la app (saco de café) sobre fondo blanco `#FFFFFF`. Lo muestra el sistema desde el primer instante, mientras carga el WebView. Configurado en `capacitor.config.ts` (`SplashScreen`, `launchAutoHide: false`) y en `styles.xml` (`windowSplashScreenBackground` blanco, también con el teléfono en modo oscuro).
-2. **Sin pantalla propia:** `SplashPage` no muestra nada; el logo nativo sigue encima mientras se verifica la sesión y se oculta con un fundido de 200 ms al llegar a Login o Inicio. (El fondo animado `Cosecha_inicio_app.png` se retiró el 2026-10-11.)
+Arranque animado mientras se verifica la sesión:
+1. **Splash nativo** (Android): un instante en blanco `#FFFFFF` mientras carga el WebView. Configurado en `capacitor.config.ts` (`SplashScreen`, `launchAutoHide: false`) y en `styles.xml` (`windowSplashScreenBackground` blanco, también con el teléfono en modo oscuro).
+2. **`SplashPage`:** oculta el nativo y muestra el fondo de café (`splash-bg.webp`), luego el costal sube y aparece (`splash-sack.webp`) y tres granos laten mientras carga. Con movimiento reducido todo aparece con un fundido.
 - Sin controles ni texto interactivo: es una pantalla de transición, no requiere acción del usuario.
-- Duración: lo que tarde **lo más largo** entre la animación (~3,3 s) y la verificación de sesión (ver sección 3.1). Si el SVG no carga en 2 s, se sigue sin esperar la animación.
+- Duración: lo que tarde **lo más largo** entre 1,8 s (para que la entrada se vea completa) y la verificación de sesión (ver sección 3.1). Sale con un fundido de 250 ms hacia Login o Inicio.
 
 ### 1.1 Login / Registro
 **Login:**
@@ -267,9 +267,13 @@ Las fuentes van **empaquetadas en la app** (`src/assets/fonts/*.woff2`, subconju
 **Otros tokens**
 ```
 --radius-sm: 6dp
---radius-md: 12dp       /* tarjetas de recolector y cuadrilla */
+--radius-md: 12dp       /* bloques internos: avisos, cifras, opciones */
+--radius-lg: 16dp       /* tarjetas, filas tocables, hojas inferiores, diálogos */
 --radius-full: 999dp    /* botones de acción principal, ej. "Pagar ahora" */
---shadow-card: 0 1dp 3dp rgba(43,36,32,0.12)
+--shadow-card: anillo 1dp rgba(43,36,32,0.06) + 0 1dp 2dp 0.06 + 0 2dp 8dp 0.05
+--shadow-raised: anillo 1dp 0.05 + 0 4dp 12dp 0.08 + 0 12dp 32dp 0.08   /* tarjeta de cosecha, precio, hojas */
+--color-primary-soft: rgba(50,89,27,0.10)   /* fondo de íconos, avatares y "sin leer" */
+--color-surface-muted: rgba(43,36,32,0.04)  /* fila presionada */
 --touch-target-min: 48dp  /* mínimo de Material Design en Android — corregido desde el borrador inicial, que usaba 44px (estándar iOS, no aplica aquí) */
 ```
 
@@ -348,6 +352,10 @@ Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en
 
 **Sin señal** (componente `app-sync-status`, arriba de las pantallas de campo): "Sin conexión. Puedes seguir registrando pesadas. Datos de las HH:MM", "N pesadas por enviar" y, si alguna fue rechazada, la lista con el motivo. Las acciones que requieren conexión (pagar, abrir/cerrar cosecha, agregar recolectores) se desactivan y dicen "Necesitas conexión para…".
 
+**Acción bloqueada**: cuando algo todavía no se puede hacer, se dice por qué y cuál es el paso siguiente. Al tocar "Cerrar cosecha" sin kilos pesados aparece un diálogo ("Aún no hay kilos pesados", con "Ir a pesar"); si se llega a la pantalla de cierre por otro camino, el paso queda reemplazado por un aviso `.notice` (tinte cálido de advertencia, ícono, título, motivo y acción) y no se puede cerrar.
+
+**Carga y vacío**: la primera carga de una lista muestra un esqueleto con la forma de sus filas (`app-list-skeleton`), no un spinner centrado; al refrescar se queda lo que ya se ve. Una lista sin datos usa `app-empty-state`: ícono de línea en marrón (sin círculo ni recuadro detrás), título en Zilla Slab, una frase y, si existe, la acción que resuelve el vacío.
+
 ### 2.7 Contrato de API
 
 Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/api.e2e-spec.ts` contra una rama de Neon.
@@ -369,7 +377,7 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | 401 | Sin sesión o sesión vencida (la app vuelve a Login) |
 | 403 | Falta la clave de administrador (publicar el precio FNC, refrescar con IA) |
 | 404 | No existe **o es de otro usuario** (no se revela que exista) |
-| 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos, eliminar una cosecha o un recolector con pesadas/pagos, cambiar el precio de una cosecha con pagos |
+| 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos, eliminar una cosecha o un recolector con pesadas/pagos, cambiar el precio de una cosecha con pagos, cerrar una cosecha sin kilos pesados |
 | 422 | Regla de negocio: nada pendiente por pagar, alimentación mayor que el saldo, cosecha cerrada, contraseña actual incorrecta |
 | 429 | Login: 5 intentos fallidos seguidos con la misma cédula la bloquean 15 minutos (`TooManyLoginAttemptsError`, cabecera `Retry-After` y `retryAfterMinutes` en el cuerpo). Un ingreso correcto reinicia la cuenta |
 | 500 / 503 | Falla del servidor / base de datos caída (`GET /health`) |
@@ -386,7 +394,7 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 
 **Cierre y detalle del trabajador:**
 - `GET /harvests/:id/close-preview?includesMeals=&mealPerDay=` devuelve, por recolector con saldo, `{ harvestPickerId, displayName, totalKilograms, gross, alreadyPaid, pending, mealDays, mealDeduction, net }` y los totales `{ settledPickers, totalNet, totalMeals }`.
-- `PATCH /harvests/:id/close` recibe `{ includesMeals, mealPerDay? }` y devuelve la cosecha cerrada más `settlement`. Sin body liquida sin comida, para las apps anteriores.
+- `PATCH /harvests/:id/close` recibe `{ includesMeals, mealPerDay? }` y devuelve la cosecha cerrada más `settlement`. Sin body liquida sin comida, para las apps anteriores. 409 `HarvestHasNoWeighingsError` si la cosecha no tiene ningún kilo pesado (contando recolectores archivados).
 - `GET /harvests/:id/pickers/:pickerId/statement` devuelve los kilos por día, los pagos (con `isSettlement`) y los totales.
 - Los pagos traen `isSettlement` (columna `payments.is_settlement`).
 
@@ -406,6 +414,45 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 **Errores**: `{ statusCode, error, message }`. `error` es el código de dominio (ej. `HarvestAlreadyActiveError`), que la app traduce al español con `apiErrorMessage()`; `message` está en inglés y nunca se muestra al usuario. Un 401 en cambiar contraseña cerraría la sesión, por eso "contraseña actual incorrecta" es 422.
 
 ---
+
+### 2.8 Movimiento e interacción
+Basado en las skills de Emil Kowalski (`.claude/skills/emil-design-eng`, `mobile-native`). El movimiento sirve para dar feedback, explicar un cambio de estado o evitar saltos; nunca es decoración en algo que se usa muchas veces al día.
+
+**Tokens** (`src/theme/variables.css`)
+```
+--ease-out: cubic-bezier(0.23, 1, 0.32, 1)     /* lo que entra o sale */
+--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1) /* lo que se mueve dentro de la pantalla */
+--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1)  /* hojas inferiores */
+--dur-press: 140ms   /* feedback al presionar */
+--dur-fast: 180ms    /* colores, foco, salidas */
+--dur-base: 240ms    /* entradas de páginas, listas y avisos */
+```
+
+**Reglas**
+- Nunca `ease-in` ni `transition: all`. Toda animación de interfaz dura menos de 300 ms; la salida es más rápida que la entrada.
+- Solo se anima `transform` y `opacity` (y colores en cambios de estado).
+- **Al presionar**: los botones se hunden a `scale(0.97)`, las tarjetas y filas tocables (`.tappable`) a `0.98`, las filas de lista a `0.99`. El feedback aparece al tocar, no al soltar.
+- **Páginas** (`core/animations/nav.animation.ts`): la nueva sube 12dp y aparece en 240 ms; al volver, la que se va baja y se desvanece en 180 ms.
+- **Listas** (`.stagger-in`): en la primera carga los primeros 6 ítems entran escalonados cada 40 ms. Nunca al refrescar, al volver a la pantalla ni en búsquedas.
+- **Pestañas**: el ícono activo pasa de contorno a relleno, con transición de color.
+- **Háptica**: vibración corta solo al guardar una pesada y al cerrar la cosecha (`hapticSuccess`).
+- **Movimiento reducido** (ajuste del sistema): se quitan desplazamientos y escalas; quedan los fundidos.
+
+**Sensación nativa** (base global)
+- Sin resaltado gris al tocar, sin rebote de la página entera (`overscroll-behavior: none`) y sin selección de texto en controles con toque largo (el contenido sí se puede copiar).
+- `touch-action: manipulation` en controles: el toque responde sin la espera del doble toque.
+- Barra de estado blanca con íconos oscuros (plugin `StatusBar`), igual al header.
+- Teclado correcto por campo: `inputmode` (numérico o decimal), `enterkeyhint` (siguiente, listo, ir) y `autocapitalize` en nombres.
+- Cifras con `font-variant-numeric: tabular-nums` (clase `.num`) para que kilos y montos no se muevan al cambiar.
+- Selección de texto, cursor y anillo de foco con los colores de la marca, no los del WebView.
+
+**Reglas de composición** (skills `impeccable` y `redesign-existing-projects`, ver `PRODUCT.md`)
+- Sin etiquetas pequeñas en mayúsculas encima de un título: el título se sostiene solo.
+- Sin recuadros de color detrás de íconos sobre títulos o en listas: los íconos van solos, en un trazo. Los avatares llevan iniciales (contenido), no un ícono genérico.
+- Sin tarjetas dentro de tarjetas: dentro de una tarjeta se agrupa con líneas finas y espacio.
+- Montos negativos con el signo antes del símbolo: `−$ 276.000 COP`. Ganancia cero en color de texto; el verde es para ganar y el rojo tierra para perder.
+- Títulos en oración ("Precio y noticias"). En páginas internas el título de la barra baja a 22sp para no cortarse.
+- La tarjeta del precio FNC lleva el dibujo de ramas del arranque multiplicado sobre el verde: es la firma de la marca, no se repite en otras pantallas.
 
 ## 3. Navegación
 
@@ -439,7 +486,7 @@ Inicio (cosecha activa)
 └── Cerrar cosecha
     └── Registro de venta y costos → Resumen de ganancia de la cosecha
 
-Precio y Noticias
+Precio y noticias
 └── Notificaciones (también accesible desde el ícono de campana en cualquier pantalla)
 
 Historial de cosechas
@@ -456,7 +503,7 @@ Perfil
 **Inicio**, que muestra la cosecha activa y es el punto de entrada al flujo más usado (pesar y pagar recolectores), consistente con que el uso principal ocurre en el cafetal.
 
 ### 3.3 Elementos de navegación
-- Barra inferior de pestañas (4 ítems: Inicio, Precio y Noticias, Historial, Perfil).
+- Barra inferior de pestañas (4 ítems: Inicio, Precio y noticias, Historial, Perfil).
 - Dentro de cada pestaña, navegación por profundización (tocar una tarjeta lleva al detalle) con botón de "volver" estándar.
 - "Cuadrillas" y "Cerrar cosecha" no son pestañas propias: son acciones dentro de Inicio, porque dependen de que haya una cosecha activa.
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).

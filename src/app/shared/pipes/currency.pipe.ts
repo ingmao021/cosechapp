@@ -20,14 +20,16 @@ export class CurrencyPipe implements PipeTransform {
     // COP: sin decimales, redondear a entero
     const rounded = Math.round(value);
 
-    // Formatear con separador de miles (punto)
-    const formatted = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    // Formatear con separador de miles (punto). El signo menos va antes del "$"
+    // ("−$ 276.000", con el signo tipográfico), no pegado al número ("$ -276.000").
+    const formatted = Math.abs(rounded).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const sign = rounded < 0 ? '−' : '';
 
     let result = '';
     if (showSymbol) {
-      result = `$ ${formatted}`;
+      result = `${sign}$ ${formatted}`;
     } else {
-      result = formatted;
+      result = `${sign}${formatted}`;
     }
 
     if (showCurrencyCode) {

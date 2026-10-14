@@ -1,6 +1,4 @@
 import { Component, effect, inject } from '@angular/core';
-import { IonBadge } from '@ionic/angular/ion-badge';
-import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { CommonModule } from '@angular/common';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
@@ -10,12 +8,7 @@ import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonChip } from '@ionic/angular/ion-chip';
-import { IonLabel } from '@ionic/angular/ion-label';
-import { IonItem } from '@ionic/angular/ion-item';
-import { IonList } from '@ionic/angular/ion-list';
+import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
 import { addIcons } from 'ionicons';
 import { pricetagOutline, chevronForwardOutline, checkmarkCircleOutline, notificationsOffOutline } from 'ionicons/icons';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
@@ -31,8 +24,8 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   selector: 'app-notifications',
   standalone: true,
   imports: [
-    IonSpinner,
-    IonBadge,
+    EmptyStateComponent,
+    ListSkeletonComponent,
     IonButtons,
     IonBackButton,
     CommonModule,
@@ -42,12 +35,6 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     IonTitle,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
-    IonChip,
-    IonLabel,
-    IonItem,
-    IonList,
     CurrencyPipe,
     DateFormatPipe,
   ],
@@ -62,77 +49,107 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     </ion-header>
 
     <ion-content>
-      @if (priceAndNewsFacade.isLoading()) {
-        <div class="loading-center">
-          <ion-spinner name="crescent"></ion-spinner>
-        </div>
-      } @else if (priceAndNewsFacade.notifications().length === 0) {
-        <div class="empty-state">
-          <ion-icon name="notifications-off-outline" size="large" color="medium"></ion-icon>
-          <h2 class="text-level-2 ion-margin-top">Sin notificaciones</h2>
-          <p class="text-level-4 ion-margin">Recibirás notificaciones cuando cambie el precio del café.</p>
-        </div>
-      } @else {
-        <ion-list lines="full">
-          @for (n of priceAndNewsFacade.notifications(); track n.id) {
-            <ion-item lines="full" [class.unread]="!n.read">
-              <ion-card class="notification-card" [class.unread]="!n.read">
-                <ion-card-content>
-                  <div class="notification-header">
-                    <ion-chip [color]="n.read ? 'medium' : 'primary'" size="small">
-                      <ion-label>{{ n.read ? 'Leída' : 'Nueva' }}</ion-label>
-                    </ion-chip>
-                    @if (n.priceValue !== null) {
-                      <ion-badge color="primary" slot="end">{{ n.priceValue | currency }}</ion-badge>
+      <div class="page">
+        @if (priceAndNewsFacade.isLoading() && priceAndNewsFacade.notifications().length === 0) {
+          <app-list-skeleton [rows]="4" [avatar]="false"></app-list-skeleton>
+        } @else if (priceAndNewsFacade.notifications().length === 0) {
+          <app-empty-state icon="notifications-off-outline" title="Sin notificaciones">
+            <p>Recibirás notificaciones cuando cambie el precio del café.</p>
+          </app-empty-state>
+        } @else {
+          <ul class="notif-list stagger-in">
+            @for (n of priceAndNewsFacade.notifications(); track n.id) {
+              <li class="notif" [class.notif--unread]="!n.read">
+                <div class="notif__head">
+                  <span class="notif__status">
+                    @if (!n.read) {
+                      <span class="notif__dot" aria-hidden="true"></span>
                     }
-                  </div>
-                  <div class="notification-body">
-                    <p class="text-level-3">Cambio de precio del café FNC</p>
-                    <p class="text-level-4">{{ n.date | dateFormat:'short' }}</p>
-                  </div>
-                  @if (!n.read) {
-                    <ion-button fill="clear" color="primary" size="small" class="ion-margin-top" (click)="markAsRead(n.id)">
-                      <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-                      Marcar como leída
-                    </ion-button>
+                    {{ n.read ? 'Leída' : 'Nueva' }}
+                  </span>
+                  @if (n.priceValue !== null) {
+                    <strong class="notif__price">{{ n.priceValue | currency }}</strong>
                   }
-                </ion-card-content>
-              </ion-card>
-            </ion-item>
-          }
-        </ion-list>
-      }
+                </div>
+                <p class="notif__title">Cambio de precio del café FNC</p>
+                <p class="notif__date">{{ n.date | dateFormat:'short' }}</p>
+                @if (!n.read) {
+                  <ion-button fill="clear" color="primary" size="small" class="notif__action" (click)="markAsRead(n.id)">
+                    <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+                    Marcar como leída
+                  </ion-button>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
     </ion-content>
   `,
   styles: [`
-    .empty-state {
-      text-align: center;
-      padding: var(--spacing-xl) var(--spacing-md);
+    .page {
+      padding: var(--spacing-md) var(--screen-margin) var(--spacing-xl);
     }
-    .loading-center {
+    .notif-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 50vh;
+      flex-direction: column;
+      gap: var(--card-gap-vertical);
     }
-    .notification-card {
-      --border-radius: var(--radius-md);
-      --box-shadow: var(--shadow-card);
-      margin: var(--spacing-sm) var(--spacing-md);
-      transition: background 0.2s;
+    .notif {
+      padding: var(--spacing-md);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-card);
+      font-family: var(--font-family-body);
+      transition: background-color var(--dur-fast) ease;
     }
-    .notification-card.unread {
-      background: var(--color-background);
-      border-left: 4px solid var(--color-primary);
+    /* Sin leer: un punto y un tinte suave, no un borde grueso de color. */
+    .notif--unread {
+      background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)), var(--color-surface);
     }
-    .notification-header {
+    .notif__head {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: var(--spacing-xs);
+      gap: var(--spacing-sm);
     }
-    .notification-body {
-      margin-top: var(--spacing-xs);
+    .notif__status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text-muted);
+    }
+    .notif--unread .notif__status {
+      color: var(--color-primary);
+    }
+    .notif__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-primary);
+    }
+    .notif__price {
+      font-variant-numeric: tabular-nums;
+      color: var(--color-text);
+    }
+    .notif__title {
+      margin: var(--spacing-sm) 0 0;
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+    }
+    .notif__date {
+      margin: 2px 0 0;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+    .notif__action {
+      margin: var(--spacing-xs) 0 0 calc(-1 * var(--spacing-sm));
     }
   `],
 })
