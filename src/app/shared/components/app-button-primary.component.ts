@@ -19,6 +19,7 @@ import { refreshCircleOutline } from 'ionicons/icons';
       [fill]="fill()"
       [color]="color()"
       [disabled]="disabled() || loading()"
+      [class.is-inactive]="disabled() && !loading()"
       (click)="onClick($event)"
     >
       @if (loading()) {
@@ -66,6 +67,16 @@ import { refreshCircleOutline } from 'ionicons/icons';
       --color: var(--color-text-on-primary);
     }
     /* Un giro rápido hace que la espera se sienta más corta. */
+    /* Desactivado (faltan datos): gris neutro de Material, no el verde lavado al 50%,
+       que parece un error de la app. Cargando conserva el color: el giro ya lo dice. */
+    ion-button.button-disabled {
+      opacity: 1;
+    }
+    ion-button.is-inactive {
+      --background: rgba(43, 36, 32, 0.08);
+      --color: rgba(43, 36, 32, 0.45);
+      --box-shadow: none;
+    }
     .spin {
       animation: swap-in 200ms ease-out, spin 700ms linear infinite;
     }
