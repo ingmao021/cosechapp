@@ -83,3 +83,7 @@ backend/node_modules
 backend/dist
 backend/coverage 
 
+
+# Caché incremental de TypeScript
+*.tsbuildinfo
+desktop.ini

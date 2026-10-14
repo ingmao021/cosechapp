@@ -17,7 +17,9 @@
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:background">@android:color/white</item>
         <item name="windowSplashScreenBackground">@android:color/white</item>
+        <!-- Splash nativo en blanco liso: el fondo y el costal aparecen animados en SplashPage -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_blank</item>
     </style>
 </resources>

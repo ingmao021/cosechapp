@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { SaleAndCostsService, RecordSaleDto, AddProductionCostDto, SaleResponse, ProductionCostResponse, ProfitResponse, DryKgProjectionResponse } from './sale-and-costs.service';
+import { SaleAndCostsService, RecordSaleDto, AddProductionCostDto, SaleResponse, ProductionCostResponse, ProfitResponse } from './sale-and-costs.service';
 import { apiErrorMessage } from '../../shared/utils';
 
 /**
@@ -11,7 +11,6 @@ import { apiErrorMessage } from '../../shared/utils';
  * - costs: ProductionCostResponse[]
  * - grossProfit: number
  * - actualProfit: number
- * - projectedDryKg: number
  * - isLoading: boolean
  * - error: string | null
  *
@@ -19,7 +18,6 @@ import { apiErrorMessage } from '../../shared/utils';
  * - loadHarvestProfit(harvestId)
  * - recordSale(dto)
  * - addProductionCost(dto)
- * - projectDryKilograms(cherryKilograms)
  *
  * Delega llamadas HTTP al SaleAndCostsService.
  */
@@ -33,7 +31,6 @@ export class SaleAndCostsFacade {
   private readonly _costs = signal<ProductionCostResponse[]>([]);
   private readonly _grossProfit = signal<number>(0);
   private readonly _actualProfit = signal<number>(0);
-  private readonly _projectedDryKg = signal<number>(0);
   private readonly _isLoading = signal(false);
   private readonly _error = signal<string | null>(null);
 
@@ -43,7 +40,6 @@ export class SaleAndCostsFacade {
   readonly costs = this._costs.asReadonly();
   readonly grossProfit = this._grossProfit.asReadonly();
   readonly actualProfit = this._actualProfit.asReadonly();
-  readonly projectedDryKg = this._projectedDryKg.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly error = this._error.asReadonly();
 
@@ -123,25 +119,6 @@ export class SaleAndCostsFacade {
   }
 
   /**
-   * Proyecta kilos secos a partir de kilos cereza.
-   */
-  async projectDryKilograms(cherryKilograms: number): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-
-    try {
-      const result = await this.saleAndCostsService.projectDryKilograms(cherryKilograms).toPromise();
-      if (result) {
-        this._projectedDryKg.set(result.projectedDryKilograms);
-      }
-    } catch (err: any) {
-      this._error.set(apiErrorMessage(err, 'Error al proyectar kilos secos'));
-    } finally {
-      this._isLoading.set(false);
-    }
-  }
-
-  /**
    * Limpia el error actual.
    */
   clearError(): void {
@@ -157,7 +134,6 @@ export class SaleAndCostsFacade {
     this._costs.set([]);
     this._grossProfit.set(0);
     this._actualProfit.set(0);
-    this._projectedDryKg.set(0);
     this._error.set(null);
   }
 }

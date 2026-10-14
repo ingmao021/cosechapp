@@ -371,6 +371,7 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | 404 | No existe **o es de otro usuario** (no se revela que exista) |
 | 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos, eliminar una cosecha o un recolector con pesadas/pagos, cambiar el precio de una cosecha con pagos |
 | 422 | Regla de negocio: nada pendiente por pagar, alimentación mayor que el saldo, cosecha cerrada, contraseña actual incorrecta |
+| 429 | Login: 5 intentos fallidos seguidos con la misma cédula la bloquean 15 minutos (`TooManyLoginAttemptsError`, cabecera `Retry-After` y `retryAfterMinutes` en el cuerpo). Un ingreso correcto reinicia la cuenta |
 | 500 / 503 | Falla del servidor / base de datos caída (`GET /health`) |
 
 **Cosecha y recolectores** (`/harvests`, JWT): correcciones agregadas el 2026-10-11

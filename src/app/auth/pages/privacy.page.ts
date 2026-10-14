@@ -15,7 +15,6 @@ import { IonItem } from '@ionic/angular/ion-item';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, documentTextOutline, shieldOutline, personOutline, lockClosedOutline } from 'ionicons/icons';
-import { AuthFacade } from '../services/auth.facade';
 import { Router } from '@angular/router';
 
 /**

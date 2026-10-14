@@ -14,7 +14,7 @@ import { OwnershipModule } from '@infrastructure/http/ownership.module';
   controllers: [SaleAndCostsController],
   providers: [
     SaleAndCostsService,
-    useCaseProvider(RecordSaleUseCase, ['SALE_REPOSITORY', 'HARVEST_REPOSITORY', 'PAYMENT_REPOSITORY', 'WEIGHING_REPOSITORY', 'HARVEST_WORKER_REPOSITORY']),
+    useCaseProvider(RecordSaleUseCase, ['SALE_REPOSITORY', 'HARVEST_REPOSITORY', 'PAYMENT_REPOSITORY', 'HARVEST_WORKER_REPOSITORY']),
     useCaseProvider(AddProductionCostUseCase, ['PRODUCTION_COST_REPOSITORY', 'HARVEST_REPOSITORY', 'SALE_REPOSITORY']),
     useCaseProvider(GetHarvestProfitUseCase, ['SALE_REPOSITORY', 'PAYMENT_REPOSITORY', 'WEIGHING_REPOSITORY', 'HARVEST_WORKER_REPOSITORY', 'HARVEST_REPOSITORY', 'PRODUCTION_COST_REPOSITORY']),
     DryKilogramProjector,

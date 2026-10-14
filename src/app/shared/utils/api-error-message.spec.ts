@@ -20,4 +20,11 @@ describe('apiErrorMessage', () => {
       'Cédula o contraseña incorrectas.',
     );
   });
+
+  it('tells how long to wait after too many failed logins', () => {
+    const err = { status: 429, error: { error: 'TooManyLoginAttemptsError', retryAfterMinutes: 12 } };
+    expect(apiErrorMessage(err, 'fallback')).toBe(
+      'Hiciste muchos intentos con esta cédula. Por seguridad, espera 12 minutos e intenta de nuevo.',
+    );
+  });
 });

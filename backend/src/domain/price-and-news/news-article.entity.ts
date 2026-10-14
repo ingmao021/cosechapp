@@ -3,11 +3,9 @@ import { BusinessRuleViolationError } from '@shared/errors/domain-errors';
 export enum NewsKind {
   /** Noticia reciente del café (FNC, Cenicafé, mercado). */
   NEWS = 'NEWS',
-  /** Tip agronómico del mes. */
-  TIP = 'TIP',
 }
 
-/** Noticia (o tip) de una fuente real, con su enlace original. */
+/** Noticia de una fuente real, con su enlace original. */
 export class NewsArticle {
   private constructor(
     public readonly id: string,
@@ -17,8 +15,6 @@ export class NewsArticle {
     public readonly summary: string,
     public readonly url: string,
     public readonly publishedAt: Date,
-    /** Mes ("AAAA-MM") al que pertenece un tip; null en las noticias. */
-    public readonly month: string | null,
     public readonly createdAt: Date,
   ) {}
 
@@ -30,7 +26,6 @@ export class NewsArticle {
     summary: string;
     url: string;
     publishedAt: Date;
-    month?: string | null;
   }): NewsArticle {
     const title = input.title.trim();
     // El resumen es opcional: el RSS de noticias no trae texto y no se inventa uno.
@@ -52,7 +47,6 @@ export class NewsArticle {
       summary,
       input.url,
       input.publishedAt,
-      input.month ?? null,
       new Date(),
     );
   }
@@ -65,9 +59,8 @@ export class NewsArticle {
     summary: string,
     url: string,
     publishedAt: Date,
-    month: string | null,
     createdAt: Date,
   ): NewsArticle {
-    return new NewsArticle(id, kind, title, source, summary, url, publishedAt, month, createdAt);
+    return new NewsArticle(id, kind, title, source, summary, url, publishedAt, createdAt);
   }
 }

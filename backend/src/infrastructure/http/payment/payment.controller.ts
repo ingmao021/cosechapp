@@ -1,5 +1,4 @@
 import { Controller, Post, Get, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 
 import { PaymentService } from './payment.service';
 import { Payment } from '@domain/payment/payment.entity';
@@ -11,17 +10,12 @@ interface AuthRequest {
   user: AuthUser;
 }
 
-@ApiTags('payments')
 @Controller('payments')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post('pay-now')
-  @ApiOperation({ summary: 'Pay a picker the pending balance' })
-  @ApiResponse({ status: 201, description: 'Payment created' })
-  @ApiResponse({ status: 422, description: 'Nothing pending, or meal deduction too high' })
   async payNow(@Request() req: AuthRequest, @Body() dto: PayNowDto) {
     const result = await this.paymentService.payNow(req.user, {
       harvestPickerId: dto.harvestPickerId,
@@ -38,8 +32,6 @@ export class PaymentController {
   }
 
   @Get('picker/:harvestPickerId/preview')
-  @ApiOperation({ summary: 'Breakdown of what would be paid now (gross, already paid, meals, net)' })
-  @ApiParam({ name: 'harvestPickerId', description: 'Harvest Picker ID' })
   async preview(
     @Request() req: AuthRequest,
     @Param('harvestPickerId') harvestPickerId: string,
@@ -55,16 +47,12 @@ export class PaymentController {
   }
 
   @Get('picker/:harvestPickerId')
-  @ApiOperation({ summary: 'Get all payments for a picker' })
-  @ApiParam({ name: 'harvestPickerId', description: 'Harvest Picker ID' })
   async getPaymentsByPicker(@Request() req: AuthRequest, @Param('harvestPickerId') harvestPickerId: string) {
     const payments = await this.paymentService.getPaymentsByPicker(req.user, harvestPickerId);
     return payments.map(toPaymentResponse);
   }
 
   @Get('picker/:harvestPickerId/total')
-  @ApiOperation({ summary: 'Get total paid to a picker (positive amount)' })
-  @ApiParam({ name: 'harvestPickerId', description: 'Harvest Picker ID' })
   async getTotalPaidByPicker(@Request() req: AuthRequest, @Param('harvestPickerId') harvestPickerId: string) {
     const total = await this.paymentService.getTotalPaidByPicker(req.user, harvestPickerId);
     return { harvestPickerId, totalPaid: -total };

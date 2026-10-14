@@ -6,7 +6,7 @@ import { apiErrorMessage } from '../../shared/utils';
 import { OfflineStore } from '../../sync/services/offline-store';
 import { HarvestFacade } from '../../harvest/services/harvest.facade';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
-import { AuthService, LoginRequest, RegisterRequest, AuthResponse, ChangePasswordRequest } from './auth.service';
+import { AuthService, AuthResponse } from './auth.service';
 
 const TOKEN_KEY = 'jwt';
 
@@ -14,8 +14,7 @@ const TOKEN_KEY = 'jwt';
  * Facade de Autenticación — Estado (Signals) + Orquestación.
  *
  * Expone signals de solo lectura hacia los componentes:
- * - isAuthenticated: boolean
- * - currentUser: { id, nationalId, profilePhoto? } | null
+ * - userNationalId / userProfilePhoto
  * - isLoading: boolean
  *
  * Métodos de acción:
@@ -35,14 +34,11 @@ export class AuthFacade {
   private readonly offlineStore = inject(OfflineStore);
 
   // Estado privado (signals)
-  private readonly _isAuthenticated = signal(false);
   private readonly _currentUser = signal<AuthResponse['coffeeGrower'] | null>(null);
   private readonly _isLoading = signal(true); // true durante initSession
   private readonly _error = signal<string | null>(null);
 
   // Señales públicas de solo lectura
-  readonly isAuthenticated = this._isAuthenticated.asReadonly();
-  readonly currentUser = this._currentUser.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly error = this._error.asReadonly();
 
@@ -68,13 +64,11 @@ export class AuthFacade {
       const token = await this.getStoredToken();
 
       if (!token) {
-        this._isAuthenticated.set(false);
         this._currentUser.set(null);
         return '/auth/login';
       }
 
       const me = await firstValueFrom(this.authService.me());
-      this._isAuthenticated.set(true);
       this._currentUser.set({
         id: me.id,
         nationalId: me.nationalId,
@@ -85,13 +79,11 @@ export class AuthFacade {
     } catch (err) {
       if (err instanceof HttpErrorResponse && err.status === 401) {
         await this.clearStoredToken();
-        this._isAuthenticated.set(false);
         this._currentUser.set(null);
         this._error.set('Tu sesión expiró. Ingresa de nuevo.');
         return '/auth/login';
       }
       // Sin conexión: el timeout de sesión lo decide el backend, no el cliente.
-      this._isAuthenticated.set(true);
       return '/home';
     } finally {
       this._isLoading.set(false);
@@ -111,7 +103,6 @@ export class AuthFacade {
 
       if (response?.accessToken) {
         await this.storeToken(response.accessToken);
-        this._isAuthenticated.set(true);
         this._currentUser.set(response.coffeeGrower);
         await this.router.navigate(['/home'], { replaceUrl: true });
       } else {
@@ -138,7 +129,6 @@ export class AuthFacade {
 
       if (response?.accessToken) {
         await this.storeToken(response.accessToken);
-        this._isAuthenticated.set(true);
         this._currentUser.set(response.coffeeGrower);
         await this.router.navigate(['/home'], { replaceUrl: true });
       } else {
@@ -157,7 +147,6 @@ export class AuthFacade {
    */
   async logout(): Promise<void> {
     await this.clearStoredToken();
-    this._isAuthenticated.set(false);
     this._currentUser.set(null);
     // No deben quedar datos de esta cuenta en el teléfono ni en memoria.
     this.offlineStore.clearAll();

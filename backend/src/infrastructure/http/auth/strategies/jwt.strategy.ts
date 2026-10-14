@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { CoffeeGrowerRepository } from '@domain/auth/coffee-grower.repository';
 import { Farm } from '@domain/farm/farm.entity';
 import { FarmRepository } from '@domain/farm/farm.repository';
+import { jwtSecret } from '../jwt-secret';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -16,7 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'dev-secret',
+      secretOrKey: jwtSecret(configService),
     });
   }
 

@@ -32,7 +32,5 @@ export class NetworkService {
   }
 
   // Computed para conveniencia
-  readonly isWifi = computed(() => this.connectionType() === 'wifi');
-  readonly isCellular = computed(() => this.connectionType() === 'cellular');
   readonly isOffline = computed(() => !this.isOnline());
 }

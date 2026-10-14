@@ -46,10 +46,15 @@ export const apiErrorMessage = (
   fallback = 'Ocurrió un error inesperado. Intenta de nuevo.',
   byStatus: Record<number, string> = {},
 ): string => {
-  const httpError = err as { status?: number; error?: { error?: string } } | null;
+  const httpError = err as { status?: number; error?: { error?: string; retryAfterMinutes?: number } } | null;
   const status = httpError?.status;
   if (status === 0) return 'No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.';
   const code = httpError?.error?.error;
+  if (code === 'TooManyLoginAttemptsError') {
+    const minutes = httpError?.error?.retryAfterMinutes ?? 15;
+    const wait = minutes === 1 ? '1 minuto' : `${minutes} minutos`;
+    return `Hiciste muchos intentos con esta cédula. Por seguridad, espera ${wait} e intenta de nuevo.`;
+  }
   if (code && DOMAIN_ERROR_MESSAGES[code]) return DOMAIN_ERROR_MESSAGES[code];
   if (status !== undefined && byStatus[status]) return byStatus[status];
   return fallback;

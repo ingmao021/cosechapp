@@ -77,6 +77,13 @@ export class InvalidCredentialsError extends DomainError {
     super('Invalid national ID or password');
   }
 }
+/** Demasiados ingresos fallidos seguidos con la misma cédula. */
+export class TooManyLoginAttemptsError extends DomainError {
+  constructor(public readonly retryAfterMinutes: number) {
+    super(`Too many failed login attempts. Try again in ${retryAfterMinutes} minutes.`);
+  }
+}
+
 export class ResourceNotFoundError extends DomainError {}
 
 export class BusinessRuleViolationError extends DomainError {}

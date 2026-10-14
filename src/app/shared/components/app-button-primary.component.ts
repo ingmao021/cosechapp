@@ -1,4 +1,4 @@
-import { Component, booleanAttribute, input, output, HostBinding } from '@angular/core';
+import { Component, booleanAttribute, input, output } from '@angular/core';
 import { IonButton, IonIcon } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { refreshCircleOutline } from 'ionicons/icons';

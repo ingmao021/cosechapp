@@ -60,24 +60,10 @@ export class PriceAndNewsService {
   }
 
   /**
-   * Obtiene el historial de precios del café.
-   */
-  getCoffeePriceHistory(): Observable<CoffeePriceResponse[]> {
-    return this.http.get<CoffeePriceResponse[]>(`${this.baseUrl}/coffee-price/history`);
-  }
-
-  /**
    * Obtiene notificaciones del usuario actual.
    */
   getNotifications(): Observable<NotificationResponse[]> {
     return this.http.get<NotificationResponse[]>(`${this.baseUrl}/notifications`);
-  }
-
-  /**
-   * Obtiene notificaciones no leídas.
-   */
-  getUnreadNotifications(): Observable<NotificationResponse[]> {
-    return this.http.get<NotificationResponse[]>(`${this.baseUrl}/notifications/unread`);
   }
 
   /**

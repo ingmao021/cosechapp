@@ -1,8 +1,7 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaHarvestQueries } from '@infrastructure/persistence/prisma-harvest-queries';
 import { WorkerHasHarvestHistoryError } from '@shared/errors/domain-errors';
 import { CatalogWorker } from '@domain/worker/worker.entity';
-import { WorkerRepository } from '@domain/worker/worker.repository';
 import { CreateWorkerUseCase } from '@domain/worker/use-cases/create-worker.use-case';
 import { GetWorkerUseCase } from '@domain/worker/use-cases/get-worker.use-case';
 import { ListWorkersUseCase } from '@domain/worker/use-cases/list-workers.use-case';
@@ -12,7 +11,6 @@ import { DeleteWorkerUseCase } from '@domain/worker/use-cases/delete-worker.use-
 @Injectable()
 export class WorkerService {
   constructor(
-    @Inject('WORKER_REPOSITORY') private readonly workerRepository: WorkerRepository,
     private readonly createWorkerUseCase: CreateWorkerUseCase,
     private readonly getWorkerUseCase: GetWorkerUseCase,
     private readonly listWorkersUseCase: ListWorkersUseCase,

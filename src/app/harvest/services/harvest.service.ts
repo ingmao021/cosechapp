@@ -238,20 +238,12 @@ export class HarvestService {
     return this.http.get<PickerStatsResponse[]>(`${this.baseUrl}/${harvestId}/pickers`);
   }
 
-  getActivePickers(harvestId: string): Observable<PickerStatsResponse[]> {
-    return this.http.get<PickerStatsResponse[]>(`${this.baseUrl}/${harvestId}/pickers/active`);
-  }
-
   createCrew(harvestId: string, dto: CreateCrewDto): Observable<CrewResponse> {
     return this.http.post<CrewResponse>(`${this.baseUrl}/${harvestId}/crews`, dto);
   }
 
   listCrews(harvestId: string): Observable<CrewResponse[]> {
     return this.http.get<CrewResponse[]>(`${this.baseUrl}/${harvestId}/crews`);
-  }
-
-  getCrew(harvestId: string, crewId: string): Observable<CrewResponse> {
-    return this.http.get<CrewResponse>(`${this.baseUrl}/${harvestId}/crews/${crewId}`);
   }
 
   updateCrew(harvestId: string, crewId: string, dto: UpdateCrewDto): Observable<CrewResponse> {

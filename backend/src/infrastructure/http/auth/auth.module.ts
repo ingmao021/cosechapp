@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { BcryptService } from './bcrypt.service';
+import { jwtSecret } from './jwt-secret';
 import { PersistenceModule } from '@infrastructure/persistence/persistence.module';
 
 @Module({
@@ -16,7 +17,7 @@ import { PersistenceModule } from '@infrastructure/persistence/persistence.modul
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'dev-secret',
+        secret: jwtSecret(configService),
         signOptions: {
           expiresIn: configService.get<string>('JWT_EXPIRATION') || '7d',
         } as any,
