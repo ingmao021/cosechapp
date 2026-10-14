@@ -5,7 +5,12 @@ import { PaymentRepository } from '@domain/payment/payment.repository';
 import { WeighingRepository } from '@domain/weighing/weighing.repository';
 import { Payment } from '@domain/payment/payment.entity';
 import { PickerSettlement, settlementFor } from '@domain/payment/settlement';
-import { HarvestNotActiveError, HarvestAlreadyClosedError, BusinessRuleViolationError } from '@shared/errors/domain-errors';
+import {
+  HarvestNotActiveError,
+  HarvestAlreadyClosedError,
+  HarvestHasNoWeighingsError,
+  BusinessRuleViolationError,
+} from '@shared/errors/domain-errors';
 
 export interface CloseHarvestUseCaseInput {
   harvestId: string;
@@ -34,7 +39,8 @@ export interface CloseHarvestUseCaseOutput extends CloseHarvestPreview {
  * Cierra la cosecha liquidando a todos: a cada recolector con saldo se le registra el pago de
  * lo pendiente, menos la comida por día (si el caficultor eligió "con alimentación"). Pagar uno
  * por uno ("Pagar ahora") queda solo para quien se va antes de terminar la cogida.
- * La liquidación y el cierre se guardan juntos (todo o nada).
+ * La liquidación y el cierre se guardan juntos (todo o nada). Sin ningún kilo pesado no se
+ * cierra: no habría nada que liquidar ni que vender (una cosecha creada por error se elimina).
  */
 export class CloseHarvestUseCase {
   constructor(
@@ -52,6 +58,8 @@ export class CloseHarvestUseCase {
   async execute(input: CloseHarvestUseCaseInput): Promise<CloseHarvestUseCaseOutput> {
     const harvest = await this.activeHarvest(input);
     const preview = await this.settle(harvest, this.parseMealPerDay(input.mealPerDay));
+    // Cuenta también a los recolectores archivados: sus pesadas son parte de la cosecha.
+    if (!preview.pickers.some((line) => line.totalKilograms > 0)) throw new HarvestHasNoWeighingsError();
 
     const closingDate = new Date();
     const payments = preview.pickers

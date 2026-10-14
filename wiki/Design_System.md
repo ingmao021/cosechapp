@@ -377,7 +377,7 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | 401 | Sin sesión o sesión vencida (la app vuelve a Login) |
 | 403 | Falta la clave de administrador (publicar el precio FNC, refrescar con IA) |
 | 404 | No existe **o es de otro usuario** (no se revela que exista) |
-| 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos, eliminar una cosecha o un recolector con pesadas/pagos, cambiar el precio de una cosecha con pagos |
+| 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos, eliminar una cosecha o un recolector con pesadas/pagos, cambiar el precio de una cosecha con pagos, cerrar una cosecha sin kilos pesados |
 | 422 | Regla de negocio: nada pendiente por pagar, alimentación mayor que el saldo, cosecha cerrada, contraseña actual incorrecta |
 | 429 | Login: 5 intentos fallidos seguidos con la misma cédula la bloquean 15 minutos (`TooManyLoginAttemptsError`, cabecera `Retry-After` y `retryAfterMinutes` en el cuerpo). Un ingreso correcto reinicia la cuenta |
 | 500 / 503 | Falla del servidor / base de datos caída (`GET /health`) |
@@ -394,7 +394,7 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 
 **Cierre y detalle del trabajador:**
 - `GET /harvests/:id/close-preview?includesMeals=&mealPerDay=` devuelve, por recolector con saldo, `{ harvestPickerId, displayName, totalKilograms, gross, alreadyPaid, pending, mealDays, mealDeduction, net }` y los totales `{ settledPickers, totalNet, totalMeals }`.
-- `PATCH /harvests/:id/close` recibe `{ includesMeals, mealPerDay? }` y devuelve la cosecha cerrada más `settlement`. Sin body liquida sin comida, para las apps anteriores.
+- `PATCH /harvests/:id/close` recibe `{ includesMeals, mealPerDay? }` y devuelve la cosecha cerrada más `settlement`. Sin body liquida sin comida, para las apps anteriores. 409 `HarvestHasNoWeighingsError` si la cosecha no tiene ningún kilo pesado (contando recolectores archivados).
 - `GET /harvests/:id/pickers/:pickerId/statement` devuelve los kilos por día, los pagos (con `isSettlement`) y los totales.
 - Los pagos traen `isSettlement` (columna `payments.is_settlement`).
 

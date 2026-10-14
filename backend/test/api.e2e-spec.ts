@@ -426,5 +426,14 @@ describeIfDb('API contract (e2e)', () => {
         costs: [{ description: 'Abono', amount: 10000 }],
       });
     });
+
+    it('a harvest with no weighed kilos cannot be closed (409) and can still be deleted', async () => {
+      const empty = (
+        await http.post('/harvests').set('Authorization', owner.token).send({ name: 'Sin pesadas', pricePerKilogram: 1000 }).expect(201)
+      ).body.id;
+      const close = await http.patch(`/harvests/${empty}/close`).set('Authorization', owner.token).expect(409);
+      expect(close.body.error).toBe('HarvestHasNoWeighingsError');
+      await http.delete(`/harvests/${empty}`).set('Authorization', owner.token).expect(204);
+    });
   });
 });

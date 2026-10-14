@@ -34,6 +34,7 @@ const DOMAIN_ERROR_MESSAGES: Record<string, string> = {
   HarvestHasRecordsError: 'Esta cosecha ya tiene pesadas o pagos: no se puede eliminar. Ciérrala con "Cerrar cosecha".',
   HarvestHasPaymentsError: 'Ya hay pagos en esta cosecha: el precio por kilo no se puede cambiar. Puedes corregir el nombre.',
   PickerHasRecordsError: 'Este recolector ya tiene pesadas o pagos: no se puede eliminar.',
+  HarvestHasNoWeighingsError: 'Esta cosecha aún no tiene kilos pesados: registra al menos una pesada antes de cerrarla.',
 };
 
 /**
