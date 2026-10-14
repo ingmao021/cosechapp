@@ -11,8 +11,8 @@ export const formatKilos = (value: number): string => {
 export const formatCurrency = (value: number): string => {
   if (value === null || value === undefined || isNaN(value)) return '$ 0 COP';
   const rounded = Math.round(value);
-  const formatted = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `$ ${formatted} COP`;
+  const formatted = Math.abs(rounded).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${rounded < 0 ? '−' : ''}$ ${formatted} COP`;
 };
 
 /** Mensajes en español para los errores de dominio que devuelve el backend (campo `error`). */

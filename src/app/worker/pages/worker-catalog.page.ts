@@ -82,17 +82,13 @@ import { apiErrorMessage } from '../../shared/utils';
           @for (worker of workerFacade.workers(); track worker.id) {
             <ion-item-sliding>
               <ion-item button [detail]="false" (click)="goToEdit(worker.id)" lines="full">
-                <ion-avatar slot="start">
-                  <ion-icon name="person-outline"></ion-icon>
-                </ion-avatar>
+                <ion-avatar slot="start" aria-hidden="true">{{ initials(worker.firstName, worker.lastName) }}</ion-avatar>
                 <ion-label>
                   <h3 class="text-level-3">{{ worker.displayName }}</h3>
-                  <p class="text-level-4">
-                    {{ worker.firstName }} {{ worker.lastName }}
-                    @if (worker.alias) {
-                      <span> • {{ worker.alias }}</span>
-                    }
-                  </p>
+                  <!-- El nombre completo solo aporta cuando se muestra el alias arriba. -->
+                  @if (worker.alias) {
+                    <p class="text-level-4">{{ worker.firstName }} {{ worker.lastName }}</p>
+                  }
                   @if (worker.phoneNumber) {
                     <p class="text-level-4">
                       <ion-icon name="call-outline" size="small"></ion-icon>
@@ -163,8 +159,10 @@ import { apiErrorMessage } from '../../shared/utils';
       background: var(--color-primary-soft);
       color: var(--color-primary);
     }
-    ion-avatar ion-icon {
-      font-size: 20px;
+    ion-avatar {
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-bold);
     }
     ion-item {
       --background: var(--color-surface);
@@ -184,6 +182,12 @@ export class WorkerCatalogPage {
 
   showDeleteConfirm = signal(false);
   workerToDelete = signal<any | null>(null);
+
+  /** Iniciales de las dos primeras palabras del nombre (igual que la tarjeta del recolector). */
+  initials(firstName: string, lastName: string | null): string {
+    const words = `${firstName} ${lastName ?? ''}`.trim().split(/\s+/);
+    return words.slice(0, 2).map((word) => word.charAt(0)).join('').toUpperCase();
+  }
 
   constructor() {
     addIcons({ personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForwardOutline, peopleOutline });

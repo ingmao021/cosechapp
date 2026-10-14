@@ -352,7 +352,7 @@ Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en
 
 **Sin señal** (componente `app-sync-status`, arriba de las pantallas de campo): "Sin conexión. Puedes seguir registrando pesadas. Datos de las HH:MM", "N pesadas por enviar" y, si alguna fue rechazada, la lista con el motivo. Las acciones que requieren conexión (pagar, abrir/cerrar cosecha, agregar recolectores) se desactivan y dicen "Necesitas conexión para…".
 
-**Carga y vacío**: la primera carga de una lista muestra un esqueleto con la forma de sus filas (`app-list-skeleton`), no un spinner centrado; al refrescar se queda lo que ya se ve. Una lista sin datos usa `app-empty-state`: ícono en un círculo verde suave, título en Zilla Slab, una frase y, si existe, la acción que resuelve el vacío.
+**Carga y vacío**: la primera carga de una lista muestra un esqueleto con la forma de sus filas (`app-list-skeleton`), no un spinner centrado; al refrescar se queda lo que ya se ve. Una lista sin datos usa `app-empty-state`: ícono de línea en marrón (sin círculo ni recuadro detrás), título en Zilla Slab, una frase y, si existe, la acción que resuelve el vacío.
 
 ### 2.7 Contrato de API
 
@@ -442,6 +442,15 @@ Basado en las skills de Emil Kowalski (`.claude/skills/emil-design-eng`, `mobile
 - Barra de estado blanca con íconos oscuros (plugin `StatusBar`), igual al header.
 - Teclado correcto por campo: `inputmode` (numérico o decimal), `enterkeyhint` (siguiente, listo, ir) y `autocapitalize` en nombres.
 - Cifras con `font-variant-numeric: tabular-nums` (clase `.num`) para que kilos y montos no se muevan al cambiar.
+- Selección de texto, cursor y anillo de foco con los colores de la marca, no los del WebView.
+
+**Reglas de composición** (skills `impeccable` y `redesign-existing-projects`, ver `PRODUCT.md`)
+- Sin etiquetas pequeñas en mayúsculas encima de un título: el título se sostiene solo.
+- Sin recuadros de color detrás de íconos sobre títulos o en listas: los íconos van solos, en un trazo. Los avatares llevan iniciales (contenido), no un ícono genérico.
+- Sin tarjetas dentro de tarjetas: dentro de una tarjeta se agrupa con líneas finas y espacio.
+- Montos negativos con el signo antes del símbolo: `−$ 276.000 COP`. Ganancia cero en color de texto; el verde es para ganar y el rojo tierra para perder.
+- Títulos en oración ("Precio y noticias"). En páginas internas el título de la barra baja a 22sp para no cortarse.
+- La tarjeta del precio FNC lleva el dibujo de ramas del arranque multiplicado sobre el verde: es la firma de la marca, no se repite en otras pantallas.
 
 ## 3. Navegación
 
@@ -475,7 +484,7 @@ Inicio (cosecha activa)
 └── Cerrar cosecha
     └── Registro de venta y costos → Resumen de ganancia de la cosecha
 
-Precio y Noticias
+Precio y noticias
 └── Notificaciones (también accesible desde el ícono de campana en cualquier pantalla)
 
 Historial de cosechas
@@ -492,7 +501,7 @@ Perfil
 **Inicio**, que muestra la cosecha activa y es el punto de entrada al flujo más usado (pesar y pagar recolectores), consistente con que el uso principal ocurre en el cafetal.
 
 ### 3.3 Elementos de navegación
-- Barra inferior de pestañas (4 ítems: Inicio, Precio y Noticias, Historial, Perfil).
+- Barra inferior de pestañas (4 ítems: Inicio, Precio y noticias, Historial, Perfil).
 - Dentro de cada pestaña, navegación por profundización (tocar una tarjeta lleva al detalle) con botón de "volver" estándar.
 - "Cuadrillas" y "Cerrar cosecha" no son pestañas propias: son acciones dentro de Inicio, porque dependen de que haya una cosecha activa.
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).

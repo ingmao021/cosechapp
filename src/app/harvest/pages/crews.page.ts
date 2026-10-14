@@ -85,7 +85,7 @@ import { NetworkService } from '../../network/services/network.service';
           <div class="crew-list stagger-in">
             @for (crew of harvestFacade.activeHarvestCrews(); track crew.id) {
               <button type="button" class="crew-row tappable" (click)="goToCrewDetail(crew.id)">
-                <span class="crew-row__icon" aria-hidden="true"><ion-icon name="people-outline"></ion-icon></span>
+                <span class="crew-row__avatar" aria-hidden="true">{{ initials(crew.name) }}</span>
                 <span class="crew-row__info">
                   <span class="crew-row__name">{{ crew.name }}</span>
                   <span class="crew-row__meta"><span class="num">{{ getPickersCount(crew.id) }}</span> {{ getPickersCount(crew.id) === 1 ? 'recolector' : 'recolectores' }}</span>
@@ -157,7 +157,9 @@ import { NetworkService } from '../../network/services/network.service';
       text-align: left;
       cursor: pointer;
     }
-    .crew-row__icon {
+    /* Mismo avatar de iniciales que la tarjeta del recolector: la cuadrilla se reconoce
+       por su nombre, no por un ícono genérico repetido. */
+    .crew-row__avatar {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -167,9 +169,8 @@ import { NetworkService } from '../../network/services/network.service';
       border-radius: 50%;
       background: var(--color-primary-soft);
       color: var(--color-primary);
-    }
-    .crew-row__icon ion-icon {
-      font-size: 20px;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-bold);
     }
     .crew-row__info {
       flex: 1;
@@ -251,6 +252,11 @@ export class CrewsPage {
 
   goToWeighing(picker: PickerCardData): void {
     this.router.navigate(['/harvest/pickers', picker.id, 'weighing', 'new']);
+  }
+
+  /** Iniciales de las dos primeras palabras del nombre de la cuadrilla. */
+  initials(name: string): string {
+    return name.trim().split(/\s+/).slice(0, 2).map((word) => word.charAt(0)).join('').toUpperCase();
   }
 
   getPickersCount(crewId: string): number {

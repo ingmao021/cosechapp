@@ -9,7 +9,7 @@ import { IonAvatar } from '@ionic/angular/ion-avatar';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { addIcons } from 'ionicons';
-import { personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline, openOutline } from 'ionicons/icons';
+import { personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline } from 'ionicons/icons';
 import { AuthFacade } from '../services/auth.facade';
 import { SyncFacade } from '../../sync/services/sync.facade';
 import { AlertController } from '@ionic/angular/alert-controller';
@@ -80,21 +80,19 @@ import { Router } from '@angular/router';
         </ion-card-content>
       </ion-card>
 
-      <!-- Info legal -->
-      <ion-card class="legal-card">
-        <ion-card-content>
-          <h3 class="text-level-3 ion-margin-bottom">Información legal</h3>
-          <p class="text-level-4">
-            Esta app procesa datos personales bajo la Ley 1581 de 2012 (Habeas Data).
-            Al usar la app, autorizas el tratamiento de tus datos y los de tus recolectores
-            para la gestión de cosechas y pagos.
-          </p>
-          <ion-button fill="clear" color="primary" size="small" (click)="goToPrivacy()">
-            <ion-icon name="open-outline" slot="end"></ion-icon>
-            Ver política completa
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
+      <!-- Info legal: nota al pie, no otra tarjeta compitiendo con la de la cuenta. -->
+      <section class="legal" aria-labelledby="legal-title">
+        <h3 id="legal-title">Información legal</h3>
+        <p>
+          Esta app procesa datos personales bajo la Ley 1581 de 2012 (Habeas Data).
+          Al usar la app, autorizas el tratamiento de tus datos y los de tus recolectores
+          para la gestión de cosechas y pagos.
+        </p>
+        <ion-button fill="clear" color="primary" size="small" (click)="goToPrivacy()">
+          Ver política completa
+          <ion-icon name="chevron-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+      </section>
     </ion-content>
   `,
   styles: [`
@@ -169,24 +167,20 @@ import { Router } from '@angular/router';
       content: '';
       position: absolute;
       top: 0;
-      left: calc(var(--spacing-sm) + 36px + var(--spacing-md));
+      left: calc(var(--spacing-sm) + 24px + var(--spacing-md));
       right: var(--spacing-sm);
       height: 1px;
       background: rgba(43, 36, 32, 0.08);
     }
+    /* Ícono de lista de Android: solo el trazo, sin recuadro de color detrás. */
     .settings__icon {
       display: flex;
-      align-items: center;
-      justify-content: center;
       flex-shrink: 0;
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-md);
-      background: var(--color-primary-soft);
+      width: 24px;
       color: var(--color-primary);
     }
     .settings__icon ion-icon {
-      font-size: 20px;
+      font-size: 24px;
     }
     .settings__label {
       flex: 1;
@@ -202,8 +196,25 @@ import { Router } from '@angular/router';
       height: 48px;
       min-height: 48px;
     }
-    .legal-card {
-      --card-shadow: var(--shadow-card);
+    .legal {
+      padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-xl);
+      font-family: var(--font-family-body);
+    }
+    .legal h3 {
+      margin: 0 0 var(--spacing-xs);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+    }
+    .legal p {
+      margin: 0;
+      max-width: 60ch;
+      font-size: var(--font-size-sm);
+      line-height: 1.5;
+      color: var(--color-text-muted);
+    }
+    .legal ion-button {
+      margin: var(--spacing-xs) 0 0 calc(-1 * var(--spacing-sm));
     }
   `],
 })
@@ -217,7 +228,7 @@ export class ProfilePage {
   readonly profilePhoto = this.authFacade.userProfilePhoto;
 
   constructor() {
-    addIcons({ personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline, openOutline });
+    addIcons({ personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline });
   }
 
   changePassword(): void {

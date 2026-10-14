@@ -65,7 +65,6 @@ import { EmptyStateComponent } from '@shared/components';
         <ion-card class="harvest-card">
           <div class="harvest-card__head">
             <div class="harvest-card__title">
-              <p class="harvest-card__eyebrow">Cosecha activa</p>
               <h2>{{ harvestFacade.activeHarvestName() }}</h2>
               <p class="harvest-card__price">
                 Pagas <span class="num">{{ harvestFacade.activeHarvestPrice() | currency }}</span> por kilo
@@ -132,7 +131,6 @@ import { EmptyStateComponent } from '@shared/components';
       } @else if (harvestFacade.isLoading()) {
         <!-- Primera carga: la forma de la tarjeta, sin pasar antes por "No hay cosecha activa". -->
         <div class="harvest-card harvest-card--skeleton" role="status" aria-label="Cargando cosecha">
-          <ion-skeleton-text [animated]="true" class="sk sk--eyebrow"></ion-skeleton-text>
           <ion-skeleton-text [animated]="true" class="sk sk--title"></ion-skeleton-text>
           <ion-skeleton-text [animated]="true" class="sk sk--line"></ion-skeleton-text>
           <ion-skeleton-text [animated]="true" class="sk sk--stats"></ion-skeleton-text>
@@ -177,14 +175,6 @@ import { EmptyStateComponent } from '@shared/components';
     .harvest-card__title h2 {
       margin: 0;
     }
-    .harvest-card__eyebrow {
-      font-family: var(--font-family-body);
-      font-size: var(--font-size-xs);
-      font-weight: var(--font-weight-bold);
-      color: var(--color-primary);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
     .harvest-card__title h2 {
       font-family: var(--font-family-display);
       font-size: var(--font-size-xl);
@@ -205,17 +195,22 @@ import { EmptyStateComponent } from '@shared/components';
     .harvest-card__menu {
       margin: -8px -12px 0 0;
     }
+    /* Las cifras del día van en una fila con líneas finas arriba y abajo, como un
+       renglón del cuaderno: sin tarjetas dentro de la tarjeta. */
     .stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: var(--spacing-sm);
       margin: 0;
+      padding: var(--spacing-sm) 0;
+      border-block: 1px solid rgba(43, 36, 32, 0.08);
     }
     .stat {
       min-width: 0;
-      padding: var(--spacing-sm) var(--spacing-md);
-      border-radius: var(--radius-md);
-      background: var(--color-background);
+      padding: var(--spacing-xs) 0;
+    }
+    .stat + .stat {
+      padding-left: var(--spacing-md);
+      border-left: 1px solid rgba(43, 36, 32, 0.08);
     }
     .stat dt {
       font-family: var(--font-family-body);
@@ -225,7 +220,8 @@ import { EmptyStateComponent } from '@shared/components';
     .stat dd {
       margin: 2px 0 0;
       font-family: var(--font-family-display);
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-xl);
+      line-height: 1.1;
       font-weight: var(--font-weight-bold);
       color: var(--color-text);
       overflow: hidden;
@@ -293,7 +289,6 @@ import { EmptyStateComponent } from '@shared/components';
       margin: 0;
       border-radius: var(--radius-sm);
     }
-    .sk--eyebrow { width: 30%; height: 12px; }
     .sk--title { width: 65%; height: 26px; }
     .sk--line { width: 45%; height: 14px; }
     .sk--stats { width: 100%; height: 64px; margin-top: var(--spacing-sm); border-radius: var(--radius-md); }

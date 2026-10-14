@@ -29,7 +29,7 @@ import { home, homeOutline, pricetag, pricetagOutline, time, timeOutline, person
 
         <ion-tab-button tab="price-news" href="/price-news">
           <ion-icon [name]="selected() === 'price-news' ? 'pricetag' : 'pricetag-outline'" aria-hidden="true"></ion-icon>
-          <ion-label>Precio y Noticias</ion-label>
+          <ion-label>Precio y noticias</ion-label>
         </ion-tab-button>
 
         <ion-tab-button tab="history" href="/history">

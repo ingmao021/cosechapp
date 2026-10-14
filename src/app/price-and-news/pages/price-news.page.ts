@@ -40,7 +40,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   template: `
     <ion-header>
       <ion-toolbar>
-        <ion-title class="text-level-1">Precio y Noticias</ion-title>
+        <ion-title class="text-level-1">Precio y noticias</ion-title>
         <ion-buttons slot="end">
           <ion-button fill="clear" (click)="goToNotifications()" aria-label="Notificaciones">
             <ion-icon name="notifications-outline" slot="icon-only"></ion-icon>
@@ -152,9 +152,25 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   styles: [`
     .fnc-price-card {
       --card-shadow: var(--shadow-raised);
+      position: relative;
       margin: var(--spacing-md);
-      background: linear-gradient(135deg, var(--color-primary) 0%, var(--ion-color-primary-shade) 100%);
+      --background: var(--color-primary);
+      background: var(--color-primary);
       color: var(--color-text-on-primary);
+    }
+    /* Firma de la marca: las ramas de café del arranque, multiplicadas sobre el verde.
+       El blanco del dibujo desaparece y solo quedan los trazos, un verde más hondo. */
+    .fnc-price-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('/assets/brand/splash-bg.webp') center 30% / 160% auto no-repeat;
+      mix-blend-mode: multiply;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    .fnc-price-card ion-card-content {
+      position: relative;
     }
     .fnc-price-card ion-card-content {
       display: flex;
@@ -241,8 +257,13 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       --card-shadow: var(--shadow-card);
       margin: 0 0 var(--card-gap-vertical);
     }
+    /* El ion-card global ya trae padding: aquí el contenido manda, sin doble margen. */
+    .news-card,
+    .fnc-price-card {
+      padding: 0;
+    }
     .news-card ion-card-content {
-      padding: var(--spacing-md);
+      padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs);
     }
     .news-meta {
       margin: 0 0 var(--spacing-xs);

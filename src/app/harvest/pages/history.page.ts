@@ -55,8 +55,14 @@ import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
                 <button type="button" class="harvest-row tappable" (click)="goToDetail(harvest.id)">
                   <span class="harvest-row__info">
                     <span class="harvest-row__name">{{ harvest.name }}</span>
+                    @let opened = harvest.openingDate | dateFormat: 'date';
+                    @let closed = harvest.closingDate | dateFormat: 'date';
+                    <!-- Un solo día si abrió y cerró el mismo día; cada fecha nunca se parte. -->
                     <span class="harvest-row__dates">
-                      {{ harvest.openingDate | dateFormat: 'date' }} – {{ harvest.closingDate | dateFormat: 'date' }}
+                      <span class="nowrap">{{ opened }}</span>
+                      @if (closed !== opened) {
+                        – <span class="nowrap">{{ closed }}</span>
+                      }
                     </span>
                   </span>
                   <span class="harvest-row__profit">
@@ -64,6 +70,7 @@ import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
                     <span
                       class="harvest-row__value"
                       [class.harvest-row__value--loss]="(harvest.actualProfit ?? 0) < 0"
+                      [class.harvest-row__value--even]="(harvest.actualProfit ?? 0) === 0"
                     >
                       {{ harvest.actualProfit === null ? '—' : (harvest.actualProfit | currency) }}
                     </span>
@@ -122,6 +129,9 @@ import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .nowrap {
+      white-space: nowrap;
+    }
     .harvest-row__dates,
     .harvest-row__label {
       font-size: var(--font-size-sm);
@@ -143,6 +153,10 @@ import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
     }
     .harvest-row__value--loss {
       color: var(--color-accent-alert);
+    }
+    /* Sin ganancia ni pérdida: color neutro, el verde se reserva para ganar. */
+    .harvest-row__value--even {
+      color: var(--color-text);
     }
     .harvest-row > ion-icon {
       color: var(--color-text-muted);

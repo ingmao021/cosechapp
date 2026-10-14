@@ -2,7 +2,7 @@ import { Component, input } from '@angular/core';
 import { IonIcon } from '@ionic/angular/ion-icon';
 
 /**
- * Molécula: estado vacío (Design System §2.6). Ícono en un círculo suave, título y, por
+ * Molécula: estado vacío (Design System §2.6). Ícono de línea, título y, por
  * proyección, el texto de ayuda y la acción que resuelve el vacío.
  * Uso:
  *   <app-empty-state icon="people-outline" title="Sin recolectores">
@@ -43,19 +43,13 @@ import { IonIcon } from '@ionic/angular/ion-icon';
       box-shadow: none;
       padding: var(--spacing-lg) var(--spacing-md);
     }
+    /* El ícono va solo, sin círculo ni recuadro detrás: acompaña al título, no lo corona. */
     .empty__icon {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 64px;
-      height: 64px;
-      margin-bottom: var(--spacing-xs);
-      border-radius: 50%;
-      background: var(--color-primary-soft);
-      color: var(--color-primary);
+      color: var(--color-secondary);
     }
     .empty__icon ion-icon {
-      font-size: 32px;
+      font-size: 40px;
     }
     .empty__title {
       margin: 0;

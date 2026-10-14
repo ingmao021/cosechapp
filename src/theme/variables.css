@@ -639,3 +639,39 @@ ion-action-sheet .action-sheet-button {
     }
   }
 }
+
+/* ==========================================================================
+   SUPERFICIES DEL NAVEGADOR (Design System §2.8): selección, cursor y foco
+   también llevan la marca, no los valores por defecto del WebView.
+   ========================================================================== */
+::selection {
+  background: rgba(50, 89, 27, 0.22);
+  color: var(--color-text);
+}
+input,
+textarea {
+  caret-color: var(--color-primary);
+}
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   TIPOGRAFÍA: títulos equilibrados y párrafos sin palabras huérfanas
+   ========================================================================== */
+h1,
+h2,
+h3,
+ion-title {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
+/* Título de pantalla en páginas internas (con "volver"): un paso más chico que en las
+   pestañas raíz, para que nombres como "Catálogo de trabajadores" no se corten. */
+ion-toolbar:has(ion-back-button) ion-title.text-level-1 {
+  font-size: 1.375rem;
+}
