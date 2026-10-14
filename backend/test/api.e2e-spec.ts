@@ -97,6 +97,16 @@ describeIfDb('API contract (e2e)', () => {
         .expect(204);
       await http.post('/auth/login').send({ nationalId: user.nationalId, password: 'Nueva123' }).expect(200);
     });
+
+    it('login: 5 failures in a row → 429 with Retry-After, even with the right password', async () => {
+      const user = await registerUser();
+      const login = (password: string) => http.post('/auth/login').send({ nationalId: user.nationalId, password });
+      for (let i = 0; i < 4; i++) await login('Otra12345').expect(401);
+      const locked = await login('Otra12345').expect(429);
+      expect(locked.body).toMatchObject({ error: 'TooManyLoginAttemptsError', retryAfterMinutes: 15 });
+      expect(locked.headers['retry-after']).toBe('900');
+      await login('Prueba123').expect(429);
+    });
   });
 
   it('coffee price: POST needs the admin key (403), GET 200 or 204', async () => {

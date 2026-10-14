@@ -1,8 +1,7 @@
-import { Component, effect, inject, computed } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { IonBadge } from '@ionic/angular/ion-badge';
 import { IonSpinner } from '@ionic/angular/ion-spinner';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/ion-content';
 import { IonHeader } from '@ionic/angular/ion-header';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
@@ -139,7 +138,6 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
 })
 export class NotificationsPage {
   protected readonly priceAndNewsFacade = inject(PriceAndNewsFacade);
-  private readonly router = inject(Router);
 
   constructor() {
     addIcons({ pricetagOutline, chevronForwardOutline, checkmarkCircleOutline, notificationsOffOutline });

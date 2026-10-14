@@ -1,5 +1,4 @@
 import { Controller, Post, Get, Param, Body, Query, UseGuards, Request, Res, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 
 import { SaleAndCostsService } from './sale-and-costs.service';
@@ -17,18 +16,12 @@ interface AuthRequest {
  * Montos en positivo en la API (lo que el caficultor recibió o gastó). El dominio
  * guarda pagos y costos en negativo; la conversión se hace aquí.
  */
-@ApiTags('sale-and-costs')
 @Controller('sale-and-costs')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class SaleAndCostsController {
   constructor(private readonly saleAndCostsService: SaleAndCostsService) {}
 
   @Post('sale')
-  @ApiOperation({ summary: 'Record the sale for a closed harvest' })
-  @ApiResponse({ status: 201 })
-  @ApiResponse({ status: 409, description: 'Sale already recorded' })
-  @ApiResponse({ status: 422, description: 'Harvest is not closed' })
   async recordSale(@Request() req: AuthRequest, @Body() dto: RecordSaleDto) {
     const result = await this.saleAndCostsService.recordSale(req.user, {
       harvestId: dto.harvestId,
@@ -40,8 +33,6 @@ export class SaleAndCostsController {
   }
 
   @Post('production-cost')
-  @ApiOperation({ summary: 'Add a production cost to a closed harvest with a sale' })
-  @ApiResponse({ status: 201 })
   async addProductionCost(@Request() req: AuthRequest, @Body() dto: AddProductionCostDto) {
     const result = await this.saleAndCostsService.addProductionCost(req.user, {
       harvestId: dto.harvestId,
@@ -53,8 +44,6 @@ export class SaleAndCostsController {
   }
 
   @Get('profit/:harvestId')
-  @ApiOperation({ summary: 'Get profit calculation for a harvest' })
-  @ApiParam({ name: 'harvestId', description: 'Harvest ID' })
   async getHarvestProfit(@Request() req: AuthRequest, @Param('harvestId') harvestId: string) {
     const profit = await this.saleAndCostsService.getHarvestProfit(req.user, harvestId);
     return {
@@ -65,7 +54,6 @@ export class SaleAndCostsController {
   }
 
   @Get('project-dry-kg')
-  @ApiOperation({ summary: 'Project dry kilograms from cherry kilograms' })
   projectDryKilograms(@Query() query: ProjectDryKilogramsQueryDto) {
     return {
       cherryKilograms: query.cherryKilograms,
@@ -74,9 +62,6 @@ export class SaleAndCostsController {
   }
 
   @Get('sale/:harvestId')
-  @ApiOperation({ summary: 'Get sale for a harvest' })
-  @ApiParam({ name: 'harvestId', description: 'Harvest ID' })
-  @ApiResponse({ status: 204, description: 'No sale recorded yet' })
   async getSale(
     @Request() req: AuthRequest,
     @Param('harvestId') harvestId: string,
@@ -91,8 +76,6 @@ export class SaleAndCostsController {
   }
 
   @Get('production-costs/:harvestId')
-  @ApiOperation({ summary: 'Get production costs for a harvest' })
-  @ApiParam({ name: 'harvestId', description: 'Harvest ID' })
   async getProductionCosts(@Request() req: AuthRequest, @Param('harvestId') harvestId: string) {
     const costs = await this.saleAndCostsService.getProductionCostsByHarvestId(req.user, harvestId);
     return costs.map(toCostResponse);

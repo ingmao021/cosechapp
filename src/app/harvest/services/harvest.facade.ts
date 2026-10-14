@@ -2,7 +2,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { HarvestService, HarvestResponse, HarvestSummaryResponse, PickerStatsResponse, CrewResponse, CloseHarvestResponse } from './harvest.service';
+import { HarvestService, HarvestResponse, PickerStatsResponse, CrewResponse, CloseHarvestResponse } from './harvest.service';
 import { apiErrorMessage } from '../../shared/utils';
 import { OfflineStore } from '../../sync/services/offline-store';
 
@@ -33,7 +33,6 @@ export class HarvestFacade {
   private readonly _activeHarvest = signal<HarvestResponse | null>(null);
   private readonly _activeHarvestPickers = signal<PickerStatsResponse[]>([]);
   private readonly _activeHarvestCrews = signal<CrewResponse[]>([]);
-  private readonly _allHarvests = signal<HarvestSummaryResponse[]>([]);
   private readonly _isLoading = signal(false);
   private readonly _error = signal<string | null>(null);
   private readonly _dataSavedAt = signal<string | null>(null);
@@ -41,7 +40,6 @@ export class HarvestFacade {
   readonly activeHarvest = this._activeHarvest.asReadonly();
   readonly activeHarvestPickers = this._activeHarvestPickers.asReadonly();
   readonly activeHarvestCrews = this._activeHarvestCrews.asReadonly();
-  readonly allHarvests = this._allHarvests.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly error = this._error.asReadonly();
   /** Fecha (ISO) de la copia local en pantalla; null si los datos vienen del servidor. */
@@ -78,18 +76,6 @@ export class HarvestFacade {
       if (!isOffline(err) || !this.restoreSnapshot()) {
         this._error.set(apiErrorMessage(err, 'No se pudo cargar la cosecha activa.'));
       }
-    } finally {
-      this._isLoading.set(false);
-    }
-  }
-
-  async loadAllHarvests(): Promise<void> {
-    this._isLoading.set(true);
-    this._error.set(null);
-    try {
-      this._allHarvests.set(await firstValueFrom(this.harvestService.getAllHarvests()));
-    } catch (err: unknown) {
-      this._error.set(apiErrorMessage(err, 'No se pudo cargar el historial de cosechas.'));
     } finally {
       this._isLoading.set(false);
     }
@@ -247,7 +233,6 @@ export class HarvestFacade {
     this._activeHarvest.set(null);
     this._activeHarvestPickers.set([]);
     this._activeHarvestCrews.set([]);
-    this._allHarvests.set([]);
     this._dataSavedAt.set(null);
     this._error.set(null);
   }

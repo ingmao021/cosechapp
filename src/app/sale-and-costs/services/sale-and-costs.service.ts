@@ -56,11 +56,6 @@ export interface ProfitResponse {
   actualDryKilograms: number | null;
 }
 
-export interface DryKgProjectionResponse {
-  cherryKilograms: number;
-  projectedDryKilograms: number;
-}
-
 /**
  * Servicio HTTP para venta y costos.
  * Wrapper tipado sobre los endpoints del SaleAndCostsController del backend.
@@ -90,15 +85,6 @@ export class SaleAndCostsService {
    */
   getHarvestProfit(harvestId: string): Observable<ProfitResponse> {
     return this.http.get<ProfitResponse>(`${this.baseUrl}/profit/${harvestId}`);
-  }
-
-  /**
-   * Proyecta kilos secos a partir de kilos cereza (factor 1/5).
-   */
-  projectDryKilograms(cherryKilograms: number): Observable<DryKgProjectionResponse> {
-    return this.http.get<DryKgProjectionResponse>(`${this.baseUrl}/project-dry-kg`, {
-      params: { cherryKilograms: cherryKilograms.toString() }
-    });
   }
 
   /**

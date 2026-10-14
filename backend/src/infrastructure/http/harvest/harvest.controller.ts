@@ -13,7 +13,6 @@ import {
   Res,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 
 import { AuthUser, HarvestService } from './harvest.service';
@@ -40,25 +39,18 @@ interface AuthRequest {
   user: AuthUser;
 }
 
-@ApiTags('harvests')
 @Controller('harvests')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class HarvestController {
   constructor(private readonly harvestService: HarvestService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Open a new harvest' })
-  @ApiResponse({ status: 201 })
-  @ApiResponse({ status: 409, description: 'There is already an active harvest' })
   async openHarvest(@Request() req: AuthRequest, @Body() dto: OpenHarvestDto) {
     const harvest = await this.harvestService.openHarvest(req.user, dto);
     return toHarvestResponse(harvest);
   }
 
   @Patch(':id/close')
-  @ApiOperation({ summary: 'Close the harvest paying every picker their pending balance (minus meals per day)' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
   async closeHarvest(@Request() req: AuthRequest, @Param('id') id: string, @Body() dto: CloseHarvestDto) {
     const result = await this.harvestService.closeHarvest(req.user, id, dto.includesMeals ? (dto.mealPerDay ?? null) : null);
     return {
@@ -68,25 +60,16 @@ export class HarvestController {
   }
 
   @Get(':id/close-preview')
-  @ApiOperation({ summary: 'What each picker would be paid when closing (nothing is saved)' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
   async closePreview(@Request() req: AuthRequest, @Param('id') id: string, @Query() query: ClosePreviewQueryDto) {
     return this.harvestService.closePreview(req.user, id, query.includesMeals ? (query.mealPerDay ?? null) : null);
   }
 
   @Get(':id/pickers/:pickerId/statement')
-  @ApiOperation({ summary: 'Picker statement for the history: kilograms per day, payments and total' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiParam({ name: 'pickerId', description: 'Harvest Picker ID' })
   async pickerStatement(@Request() req: AuthRequest, @Param('id') id: string, @Param('pickerId') pickerId: string) {
     return this.harvestService.pickerStatement(req.user, id, pickerId);
   }
 
   @Post(':id/pickers')
-  @ApiOperation({ summary: 'Assign a worker to the harvest (optionally to a crew)' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiResponse({ status: 201, description: 'Picker created' })
-  @ApiResponse({ status: 200, description: 'Worker already in the harvest; moved to the crew' })
   async assignWorker(
     @Request() req: AuthRequest,
     @Param('id') id: string,
@@ -104,9 +87,6 @@ export class HarvestController {
   }
 
   @Patch(':id/pickers/:pickerId')
-  @ApiOperation({ summary: 'Move a picker to another crew (or none) and/or change its harvest alias' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiParam({ name: 'pickerId', description: 'Harvest Picker ID' })
   async updatePicker(
     @Request() req: AuthRequest,
     @Param('id') id: string,
@@ -124,64 +104,43 @@ export class HarvestController {
 
   @Delete(':id/pickers/:pickerId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove a picker added by mistake (only without weighings or payments)' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiParam({ name: 'pickerId', description: 'Harvest Picker ID' })
-  @ApiResponse({ status: 409, description: 'Picker has weighings or payments: archive it instead' })
   async deletePicker(@Request() req: AuthRequest, @Param('id') id: string, @Param('pickerId') pickerId: string) {
     await this.harvestService.deletePicker(req.user, id, pickerId);
   }
 
   @Patch(':id/pickers/:pickerId/archive')
-  @ApiOperation({ summary: 'Archive a picker in the harvest' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiParam({ name: 'pickerId', description: 'Harvest Picker ID' })
   async archiveWorker(@Request() req: AuthRequest, @Param('id') id: string, @Param('pickerId') pickerId: string) {
     const harvestWorker = await this.harvestService.archiveWorker(req.user, { harvestWorkerId: pickerId, harvestId: id });
     return toHarvestWorkerResponse(harvestWorker);
   }
 
   @Get(':id/pickers')
-  @ApiOperation({ summary: 'Pickers of the harvest with name and totals' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
   async getPickers(@Request() req: AuthRequest, @Param('id') id: string) {
     return this.harvestService.pickerStats(req.user, id, false);
   }
 
   @Get(':id/pickers/active')
-  @ApiOperation({ summary: 'Active pickers of the harvest with name and totals' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
   async getActivePickers(@Request() req: AuthRequest, @Param('id') id: string) {
     return this.harvestService.pickerStats(req.user, id, true);
   }
 
   @Post(':id/crews')
-  @ApiOperation({ summary: 'Create a new crew in the harvest' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
   async createCrew(@Request() req: AuthRequest, @Param('id') id: string, @Body() dto: CreateCrewDto) {
     return toCrewResponse(await this.harvestService.createCrew(req.user, { harvestId: id, name: dto.name }));
   }
 
   @Get(':id/crews')
-  @ApiOperation({ summary: 'Get all crews in the harvest' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
   async getCrews(@Request() req: AuthRequest, @Param('id') id: string) {
     const crews = await this.harvestService.listCrews(req.user, id);
     return crews.map(toCrewResponse);
   }
 
   @Get(':id/crews/:crewId')
-  @ApiOperation({ summary: 'Get a crew by ID' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiParam({ name: 'crewId', description: 'Crew ID' })
   async getCrew(@Request() req: AuthRequest, @Param('id') id: string, @Param('crewId') crewId: string) {
     return toCrewResponse(await this.harvestService.getCrew(req.user, crewId, id));
   }
 
   @Patch(':id/crews/:crewId')
-  @ApiOperation({ summary: 'Update a crew' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiParam({ name: 'crewId', description: 'Crew ID' })
   async updateCrew(
     @Request() req: AuthRequest,
     @Param('id') id: string,
@@ -193,17 +152,11 @@ export class HarvestController {
 
   @Delete(':id/crews/:crewId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a crew' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiParam({ name: 'crewId', description: 'Crew ID' })
   async deleteCrew(@Request() req: AuthRequest, @Param('id') id: string, @Param('crewId') crewId: string) {
     await this.harvestService.deleteCrew(req.user, crewId, id);
   }
 
   @Get('active')
-  @ApiOperation({ summary: 'Get the active harvest for the current farm' })
-  @ApiResponse({ status: 200 })
-  @ApiResponse({ status: 204, description: 'No active harvest' })
   async getActiveHarvest(@Request() req: AuthRequest, @Res({ passthrough: true }) res: Response) {
     const harvest = await this.harvestService.findActive(req.user);
     if (!harvest) {
@@ -214,15 +167,12 @@ export class HarvestController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'All harvests of the farm; closed ones include their profit' })
   async getAllHarvests(@Request() req: AuthRequest) {
     const harvests = await this.harvestService.findAll(req.user);
     return harvests.map(({ harvest, actualProfit }) => ({ ...toHarvestResponse(harvest), actualProfit }));
   }
 
   @Get(':id/detail')
-  @ApiOperation({ summary: 'Full harvest detail for the history screen' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
   async getHarvestDetail(@Request() req: AuthRequest, @Param('id') id: string) {
     const detail = await this.harvestService.detail(req.user, id);
     return {
@@ -235,9 +185,6 @@ export class HarvestController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Fix the name or price per kilogram of the active harvest' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiResponse({ status: 409, description: 'Closed harvest, or price change after payments' })
   async updateHarvest(@Request() req: AuthRequest, @Param('id') id: string, @Body() dto: UpdateHarvestDto) {
     return toHarvestResponse(
       await this.harvestService.updateHarvest(req.user, id, { name: dto.name, pricePerKilogram: dto.pricePerKilogram }),
@@ -246,16 +193,11 @@ export class HarvestController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete the active harvest created by mistake (only without weighings or payments)' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
-  @ApiResponse({ status: 409, description: 'Harvest has weighings or payments: close it instead' })
   async deleteHarvest(@Request() req: AuthRequest, @Param('id') id: string) {
     await this.harvestService.deleteHarvest(req.user, id);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a harvest by ID' })
-  @ApiParam({ name: 'id', description: 'Harvest ID' })
   async getHarvest(@Request() req: AuthRequest, @Param('id') id: string) {
     return toHarvestResponse(await this.harvestService.findOne(req.user, id));
   }

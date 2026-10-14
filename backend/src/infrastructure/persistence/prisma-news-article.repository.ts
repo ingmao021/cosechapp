@@ -56,7 +56,6 @@ export class PrismaNewsArticleRepository implements NewsArticleRepository {
       prisma.summary,
       prisma.url,
       prisma.publishedAt,
-      prisma.month,
       prisma.createdAt,
     );
   }
@@ -70,7 +69,6 @@ export class PrismaNewsArticleRepository implements NewsArticleRepository {
       summary: domain.summary,
       url: domain.url,
       publishedAt: domain.publishedAt,
-      month: domain.month,
       createdAt: domain.createdAt,
     };
   }

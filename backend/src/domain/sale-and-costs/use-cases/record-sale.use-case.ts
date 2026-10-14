@@ -2,7 +2,6 @@ import { Sale } from '../sale.entity';
 import { SaleRepository } from '../sale.repository';
 import { HarvestRepository } from '@domain/harvest/harvest.repository';
 import { PaymentRepository } from '@domain/payment/payment.repository';
-import { WeighingRepository } from '@domain/weighing/weighing.repository';
 import { HarvestWorkerRepository } from '@domain/harvest/harvest-worker.repository';
 import { SaleAlreadyRecordedError, BusinessRuleViolationError, ResourceNotFoundError } from '@shared/errors/domain-errors';
 
@@ -23,7 +22,6 @@ export class RecordSaleUseCase {
     private readonly saleRepository: SaleRepository,
     private readonly harvestRepository: HarvestRepository,
     private readonly paymentRepository: PaymentRepository,
-    private readonly weighingRepository: WeighingRepository,
     private readonly harvestWorkerRepository: HarvestWorkerRepository,
   ) {}
 

@@ -31,13 +31,3 @@ export class PieceRateCalculator implements PaymentCalculatorStrategy {
     return -(grossPayment - mealDeduction);
   }
 }
-
-export class PaymentCalculatorFactory {
-  static create(type: string = 'piece-rate'): PaymentCalculatorStrategy {
-    switch (type) {
-      case 'piece-rate':
-      default:
-        return new PieceRateCalculator();
-    }
-  }
-}

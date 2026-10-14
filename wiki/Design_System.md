@@ -90,7 +90,10 @@ Tres pasos, en el orden que exige el negocio (la venta ocurre cuando la cosecha 
    - **"¿Les diste alimentación?"**: "Sin alimentación" o "Con alimentación". Con alimentación aparece "¿Cuánto cobras de comida por día?", con placeholder. Ese valor se le descuenta **a todos los trabajadores** por cada día que pesaron desde su último pago (en hora de Colombia), igual que en "Pagar ahora". No se puede cerrar sin elegir.
    - **Pago al cerrar** (vista previa): "Se le paga a N trabajadores: $X", con la comida descontada y "Ver por trabajador" (kilos, días de comida y neto). La comida nunca deja el neto en negativo: si cubre todo lo pendiente, el neto es $0.
    - Confirmación con el monto: "Se registra el pago de todos los trabajadores: $X… Ya no podrás registrar pesadas ni pagos". Al cerrar se guarda un pago de **liquidación** por recolector (activos y archivados) junto con el cierre, en una sola operación.
-2. **Venta**: kilos secos vendidos, precio por kilo seco y fecha (solo el placeholder, sin fecha escrita), con la proyección de kilos secos (cereza ÷ 5) como referencia y el total de la venta.
+2. **Venta**: kilos secos vendidos, precio por kilo seco y fecha, con la proyección de kilos secos (cereza ÷ 5) como referencia y el total de la venta.
+   - La **fecha se elige sin escribir**, con tres botones grandes: **Hoy**, **Ayer** y **Otro día**. "Otro día" abre un calendario en español, en una hoja inferior, con "Listo" y "Cancelar"; no deja elegir días futuros.
+   - Nada viene marcado. Al elegir, se confirma la fecha en palabras ("✓ Sábado, 11 de octubre de 2026"). "Registrar venta" se activa cuando hay fecha.
+   - Hoy y Ayer se calculan en hora de Colombia.
 3. **Costos**: lista de gastos (descripción + valor) y el resumen: venta − pagos = ganancia bruta − costos = **ganancia de la cosecha** (con esa etiqueta explícita para no confundirla con la rentabilidad de la finca).
 - Si el usuario sale a mitad, retoma desde el detalle del historial ("Registrar venta y costos").
 
@@ -368,6 +371,7 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | 404 | No existe **o es de otro usuario** (no se revela que exista) |
 | 409 | Conflicto con el estado actual: cosecha activa, cédula repetida, venta ya registrada, trabajador con historial, `id` de pesada reutilizado con otros datos, eliminar una cosecha o un recolector con pesadas/pagos, cambiar el precio de una cosecha con pagos |
 | 422 | Regla de negocio: nada pendiente por pagar, alimentación mayor que el saldo, cosecha cerrada, contraseña actual incorrecta |
+| 429 | Login: 5 intentos fallidos seguidos con la misma cédula la bloquean 15 minutos (`TooManyLoginAttemptsError`, cabecera `Retry-After` y `retryAfterMinutes` en el cuerpo). Un ingreso correcto reinicia la cuenta |
 | 500 / 503 | Falla del servidor / base de datos caída (`GET /health`) |
 
 **Cosecha y recolectores** (`/harvests`, JWT): correcciones agregadas el 2026-10-11

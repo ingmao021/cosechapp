@@ -1,5 +1,4 @@
 import { Controller, Post, Get, Param, Body, Patch, UseGuards, Request, Res, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Response } from 'express';
 
 import { PriceAndNewsService } from './price-and-news.service';
@@ -15,7 +14,6 @@ interface AuthRequest {
   user: AuthUser;
 }
 
-@ApiTags('price-and-news')
 @Controller('price-and-news')
 export class PriceAndNewsController {
   constructor(private readonly priceAndNewsService: PriceAndNewsService) {}
@@ -23,10 +21,6 @@ export class PriceAndNewsController {
   /** Lo usa un proceso del sistema (no la app): exige x-admin-key, no JWT. */
   @Post('coffee-price')
   @UseGuards(AdminKeyGuard)
-  @ApiHeader({ name: 'x-admin-key', required: true })
-  @ApiOperation({ summary: 'Publish the FNC coffee price (system job)' })
-  @ApiResponse({ status: 201 })
-  @ApiResponse({ status: 403, description: 'Missing or wrong admin key' })
   async updateCoffeePrice(@Body() dto: UpdateCoffeePriceDto) {
     const result = await this.priceAndNewsService.updateCoffeePrice(
       dto.value,
@@ -41,9 +35,6 @@ export class PriceAndNewsController {
 
   @Get('coffee-price')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get latest coffee price' })
-  @ApiResponse({ status: 204, description: 'No price published yet' })
   async getLatestCoffeePrice(@Res({ passthrough: true }) res: Response) {
     const coffeePrice = await this.priceAndNewsService.getLatestCoffeePrice();
     if (!coffeePrice) {
@@ -55,8 +46,6 @@ export class PriceAndNewsController {
 
   @Get('coffee-price/history')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get coffee price history' })
   async getCoffeePriceHistory() {
     const prices = await this.priceAndNewsService.getCoffeePriceHistory();
     return prices.map(toCoffeePriceResponse);
@@ -65,19 +54,12 @@ export class PriceAndNewsController {
   /** Lo llama el job diario (GitHub Actions): precio FNC (web), noticias (RSS) y análisis (Gemini gratis). */
   @Post('ai/refresh')
   @UseGuards(AdminKeyGuard)
-  @ApiHeader({ name: 'x-admin-key', required: true })
-  @ApiOperation({ summary: 'Refresh FNC price, news and the AI price analysis from free sources (system job)' })
-  @ApiResponse({ status: 201, description: 'Summary of what was published' })
-  @ApiResponse({ status: 403, description: 'Missing or wrong admin key' })
   refreshCoffeeIntel() {
     return this.priceAndNewsService.refreshCoffeeIntel();
   }
 
   @Get('coffee-price/analysis')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'AI analysis of the current FNC price' })
-  @ApiResponse({ status: 204, description: 'No analysis for the current price yet' })
   async getPriceAnalysis(@Res({ passthrough: true }) res: Response) {
     this.priceAndNewsService.refreshIfStale();
     const insight = await this.priceAndNewsService.getPriceAnalysis();
@@ -91,8 +73,6 @@ export class PriceAndNewsController {
   /** Noticias del café (RSS de Google Noticias, elegidas con IA), de la más nueva a la más vieja. */
   @Get('news')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Coffee news from Google News, picked for coffee growers' })
   async getNews() {
     this.priceAndNewsService.refreshIfStale();
     return (await this.priceAndNewsService.getNews()).map(toNewsResponse);
@@ -100,8 +80,6 @@ export class PriceAndNewsController {
 
   @Get('notifications')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get notifications for current user' })
   async getNotifications(@Request() req: AuthRequest) {
     const notifications = await this.priceAndNewsService.getNotificationsByCoffeeGrower(req.user.userId);
     return notifications.map(({ notification, priceValue }) => toNotificationResponse(notification, priceValue));
@@ -109,8 +87,6 @@ export class PriceAndNewsController {
 
   @Get('notifications/unread')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get unread notifications for current user' })
   async getUnreadNotifications(@Request() req: AuthRequest) {
     const notifications = await this.priceAndNewsService.getUnreadNotificationsByCoffeeGrower(req.user.userId);
     return notifications.map(({ notification, priceValue }) => toNotificationResponse(notification, priceValue));
@@ -118,9 +94,6 @@ export class PriceAndNewsController {
 
   @Patch('notifications/:id/read')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Mark notification as read' })
-  @ApiParam({ name: 'id', description: 'Notification ID' })
   async markAsRead(@Request() req: AuthRequest, @Param('id') id: string) {
     return toNotificationResponse(await this.priceAndNewsService.markNotificationAsRead(req.user.userId, id), null);
   }

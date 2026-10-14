@@ -20,16 +20,18 @@ import {
   PickerNotFoundError,
   ResourceNotFoundError,
   SaleAlreadyRecordedError,
+  TooManyLoginAttemptsError,
   WorkerNotFoundError,
 } from '@shared/errors/domain-errors';
 
 /**
  * Código HTTP de cada error de dominio (ver "Contrato de API" en wiki/Design_System.md):
- * 401 credenciales, 404 no existe o es de otro usuario, 409 conflicto con el estado
+ * 401 credenciales, 429 demasiados ingresos fallidos, 404 no existe o es de otro usuario, 409 conflicto con el estado
  * actual, 422 regla de negocio, 400 cualquier otro dato inválido.
  */
 export function domainErrorStatus(error: DomainError): HttpStatus {
   if (error instanceof InvalidCredentialsError) return HttpStatus.UNAUTHORIZED;
+  if (error instanceof TooManyLoginAttemptsError) return HttpStatus.TOO_MANY_REQUESTS;
   if (
     error instanceof EntityNotFoundError ||
     error instanceof PickerNotFoundError ||
@@ -65,6 +67,16 @@ export class DomainErrorFilter implements ExceptionFilter {
   catch(error: DomainError, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
     const statusCode = domainErrorStatus(error);
+    if (error instanceof TooManyLoginAttemptsError) {
+      response.setHeader('Retry-After', String(error.retryAfterMinutes * 60));
+      response.status(statusCode).json({
+        statusCode,
+        error: error.name,
+        message: error.message,
+        retryAfterMinutes: error.retryAfterMinutes,
+      });
+      return;
+    }
     response.status(statusCode).json({ statusCode, error: error.name, message: error.message });
   }
 }

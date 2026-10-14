@@ -36,7 +36,6 @@ export class SyncFacade {
   readonly pendingCount = this._pendingCount.asReadonly();
   /** Pesadas que el servidor rechazó: se muestran al usuario hasta que las descarte. */
   readonly rejected = this._rejected.asReadonly();
-  readonly isSyncing = this._isSyncing.asReadonly();
   readonly lastSync = this._lastSync.asReadonly();
 
   private initialized = false;

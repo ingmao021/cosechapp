@@ -11,8 +11,6 @@ import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonCardContent } from '@ionic/angular/ion-card-content';
-import { IonCardTitle } from '@ionic/angular/ion-card-title';
-import { IonCardSubtitle } from '@ionic/angular/ion-card-subtitle';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonLabel } from '@ionic/angular/ion-label';
 import { IonAvatar } from '@ionic/angular/ion-avatar';

@@ -5,6 +5,7 @@ import { CoffeeGrowerRepository } from '@domain/auth/coffee-grower.repository';
 import { RegisterUseCase } from '@domain/auth/use-cases/register.use-case';
 import { LoginUseCase } from '@domain/auth/use-cases/login.use-case';
 import { ChangePasswordUseCase } from '@domain/auth/use-cases/change-password.use-case';
+import { LoginAttemptLimiter } from '@domain/auth/login-attempt-limiter';
 import { BcryptService } from './bcrypt.service';
 
 @Injectable()
@@ -16,7 +17,7 @@ export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly bcryptService: BcryptService,
-    @Inject('COFFEE_GROWER_REPOSITORY') private readonly coffeeGrowerRepository: CoffeeGrowerRepository,
+    @Inject('COFFEE_GROWER_REPOSITORY') coffeeGrowerRepository: CoffeeGrowerRepository,
   ) {
     this.registerUseCase = new RegisterUseCase(
       coffeeGrowerRepository,
@@ -28,6 +29,7 @@ export class AuthService {
       coffeeGrowerRepository,
       (password, hash) => this.bcryptService.compare(password, hash),
       (coffeeGrower) => this.generateToken(coffeeGrower),
+      new LoginAttemptLimiter(),
     );
 
     this.changePasswordUseCase = new ChangePasswordUseCase(
@@ -53,9 +55,5 @@ export class AuthService {
     return this.jwtService.sign(
       { sub: coffeeGrower.id, nationalId: coffeeGrower.nationalId },
     );
-  }
-
-  verifyToken(token: string) {
-    return this.jwtService.verify(token);
   }
 }

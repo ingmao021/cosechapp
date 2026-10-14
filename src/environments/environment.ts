@@ -8,9 +8,6 @@ export const environment = {
   production: false,
   // Backend local (NestJS en puerto 3000). Desde el emulador Android, la PC es 10.0.2.2.
   apiUrl: Capacitor.isNativePlatform() ? 'http://10.0.2.2:3000' : 'http://localhost:3000',
-  // Activar solo cuando exista android/app/google-services.json (Firebase). Sin él,
-  // PushNotifications.register() cierra la app nativa (FirebaseApp no inicializado).
-  pushNotificationsEnabled: false,
 };
 
 /*

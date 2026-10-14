@@ -217,18 +217,15 @@ model NewsArticle {
   summary     String
   url         String
   publishedAt DateTime @map("published_at")
-  month       String?  // "AAAA-MM", solo en los tips
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@index([kind, publishedAt])
-  @@index([kind, month])
   @@index([url])
   @@map("news_articles")
 }
 
 enum NewsKind {
   NEWS
-  TIP
 }
 
 // Análisis corto del precio FNC vigente, generado con IA
