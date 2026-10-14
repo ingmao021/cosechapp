@@ -4,35 +4,63 @@
   --background: var(--color-background);
 }
 
+/* Continuidad con el arranque: las mismas ramas de café del splash, solo en la parte
+   de arriba y desvaneciéndose hacia el fondo, para que el login no aparezca de golpe. */
+.auth__hero {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 52%;
+  background: url('/assets/brand/splash-bg.webp') center top / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent);
+  mask-image: linear-gradient(to bottom, #000 35%, transparent);
+  pointer-events: none;
+}
+
+/* Anclado arriba (no centrado): la marca abre la pantalla y el formulario queda a
+   mano del pulgar; con el teclado abierto, el contenido se desplaza sin saltar. */
 .auth__body {
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: var(--spacing-lg);
   width: 100%;
   max-width: 420px;
   min-height: 100%;
   margin: 0 auto;
-  padding: var(--spacing-xl) var(--screen-margin);
+  padding: clamp(40px, 9vh, 96px) var(--screen-margin) var(--spacing-xl);
 }
 
+/* Marca: el costal del arranque y el nombre compuesto en Zilla Slab. Reemplaza el
+   logo de contorno, que a este tamaño casi no se leía. */
 .auth__brand {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm);
   text-align: center;
 }
 
-.auth__logo {
-  width: min(280px, 85%);
+.auth__sack {
+  width: 104px;
   height: auto;
+  margin-bottom: var(--spacing-sm);
+}
+
+.auth__wordmark {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 2.25rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--color-primary);
 }
 
 .auth__tagline {
-  margin: 0;
+  max-width: 30ch;
+  margin: var(--spacing-xs) 0 0;
   font-family: var(--font-family-body);
   font-size: var(--font-size-sm);
+  line-height: 1.45;
   color: var(--color-text-muted);
 }
 
@@ -49,7 +77,7 @@
 .auth__title {
   margin: 0;
   font-family: var(--font-family-display);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
   line-height: 1.2;
@@ -66,6 +94,7 @@
 }
 
 .auth__switch {
+  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,6 +121,9 @@
 }
 .auth__panel {
   animation: auth-in 280ms var(--ease-out) 60ms backwards;
+}
+.auth__hero {
+  animation: auth-fade 400ms ease-out backwards;
 }
 .auth__switch {
   animation: auth-fade var(--dur-base) ease-out 120ms backwards;
