@@ -49,13 +49,14 @@ import { IonIcon } from '@ionic/angular/ion-icon';
       color: var(--color-secondary);
     }
     .empty__icon ion-icon {
-      font-size: 40px;
+      font-size: 44px;
     }
     .empty__title {
-      margin: 0;
-      font-family: var(--font-family-display);
+      margin: var(--spacing-xs) 0 0;
+      font-family: var(--font-family-body);
       font-size: var(--font-size-lg);
-      font-weight: var(--font-weight-bold);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: -0.01em;
       color: var(--color-text);
       line-height: 1.25;
       overflow-wrap: anywhere;
@@ -64,7 +65,7 @@ import { IonIcon } from '@ionic/angular/ion-icon';
       margin: 0;
       max-width: 32ch;
       font-family: var(--font-family-body);
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-md);
       color: var(--color-text-muted);
       line-height: 1.45;
       overflow-wrap: anywhere;

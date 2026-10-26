@@ -4,6 +4,7 @@ import { addIcons } from 'ionicons';
 import { addOutline, ellipsisVertical } from 'ionicons/icons';
 import { KilosPipe } from '../pipes/kilos.pipe';
 import { CurrencyPipe } from '../pipes/currency.pipe';
+import { initialsOf } from '../utils';
 
 /** Lo que la tarjeta necesita de un recolector (subconjunto de PickerStatsResponse). */
 export interface PickerCardData {
@@ -73,14 +74,16 @@ export interface PickerCardData {
     .picker-card {
       display: flex;
       align-items: center;
-      gap: var(--spacing-md);
-      padding: var(--picker-card-padding);
+      gap: var(--row-gap);
+      padding: 12px var(--spacing-md);
       min-height: var(--picker-card-min-height);
       border-radius: var(--radius-lg);
       background: var(--color-surface);
       box-shadow: var(--shadow-card);
       margin-bottom: var(--card-gap-vertical);
-      transition: transform var(--dur-press) var(--ease-out);
+      transition:
+        transform var(--dur-release) var(--ease-out),
+        box-shadow var(--dur-release) var(--ease-out);
     }
     .picker-card.clickable {
       cursor: pointer;
@@ -92,6 +95,8 @@ export interface PickerCardData {
        "Pesar" o en ⋮, solo se hunde ese botón (:has evita el doble hundimiento). */
     .picker-card.clickable:active:not(:has(button:active)) {
       transform: scale(0.98);
+      box-shadow: var(--shadow-pressed);
+      transition-duration: var(--dur-press);
     }
     .picker-avatar {
       width: 40px;
@@ -101,10 +106,10 @@ export interface PickerCardData {
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      background: var(--color-primary-soft);
-      color: var(--color-primary);
+      background: var(--color-chip);
+      color: var(--color-primary-ink);
       font-family: var(--font-family-body);
-      font-weight: var(--font-weight-bold);
+      font-weight: var(--font-weight-semibold);
       font-size: var(--font-size-sm);
     }
     .picker-info {
@@ -122,8 +127,8 @@ export interface PickerCardData {
       white-space: nowrap;
     }
     .picker-name {
-      font-size: var(--font-size-md);
-      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
       color: var(--color-text);
     }
     .picker-real-name,
@@ -145,13 +150,17 @@ export interface PickerCardData {
       background: var(--color-primary);
       color: var(--color-text-on-primary);
       font-family: var(--font-family-body);
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-semibold);
       cursor: pointer;
-      transition: transform var(--dur-press) var(--ease-out);
+      transition:
+        transform var(--dur-release) var(--ease-out),
+        background-color var(--dur-release) var(--ease-out);
     }
     .weigh-btn:active {
       transform: scale(0.95);
+      background: var(--ion-color-primary-shade);
+      transition-duration: var(--dur-press);
     }
     .weigh-btn ion-icon {
       font-size: 20px;
@@ -194,11 +203,7 @@ export class HarvestPickerCardComponent {
   menuClick = output<PickerCardData>();
 
   /** Iniciales de las dos primeras palabras del nombre (el apellido ya no se pide). */
-  readonly initials = computed(() => {
-    const { firstName, lastName } = this.picker();
-    const words = `${firstName} ${lastName}`.trim().split(/\s+/);
-    return words.slice(0, 2).map((word) => word.charAt(0)).join('').toUpperCase();
-  });
+  readonly initials = computed(() => initialsOf(this.picker().firstName, this.picker().lastName));
 
   constructor() {
     addIcons({ addOutline, ellipsisVertical });

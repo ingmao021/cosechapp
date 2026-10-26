@@ -61,6 +61,18 @@ export const apiErrorMessage = (
   return fallback;
 };
 
+/** Iniciales de las dos primeras palabras ("Juan Pérez" → "JP"), para los chips de personas y cuadrillas. */
+export const initialsOf = (...parts: (string | null | undefined)[]): string =>
+  parts
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word.charAt(0))
+    .join('')
+    .toUpperCase();
+
 /**
  * Vibración corta de confirmación para acciones de alto valor y poco frecuentes (guardar
  * una pesada, cerrar la cosecha). En web no hay motor háptico: se ignora sin error.

@@ -12,27 +12,35 @@ import {
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { IonInput } from '@ionic/angular/ion-input';
 import { IonInputPasswordToggle } from '@ionic/angular/ion-input-password-toggle';
+import { IonIcon } from '@ionic/angular/ion-icon';
 
 /**
  * Componente atómico: Input de texto/numérico
- * Espec Design System: 48dp alto mínimo, 16dp padding horizontal, radius 8dp.
- * Etiqueta siempre visible encima del campo (stacked): más clara que una etiqueta flotante
- * para usuarios con baja alfabetización digital, y no se monta sobre el placeholder.
- * Uso: <app-input label="Cédula" type="text" [(ngModel)]="value" required minlength="5" maxlength="20" />
+ * Espec Design System: 52dp alto mínimo, 16dp padding horizontal, radius 14dp.
+ * Etiqueta siempre visible encima de la caja (fuera de ella, estilo sistema): más clara
+ * que una etiqueta flotante para usuarios con baja alfabetización digital, y no se monta
+ * sobre el placeholder. Al enfocar, la etiqueta, el ícono y el borde pasan a verde.
+ * Uso: <app-input label="Cédula" iconStart="id-card-outline" [(ngModel)]="value" required />
+ * El ícono lo registra la página que lo usa (addIcons), como con cualquier ion-icon.
  */
 @Component({
   selector: 'app-input',
   standalone: true,
-  imports: [FormsModule, IonInput, IonInputPasswordToggle],
+  imports: [FormsModule, IonInput, IonInputPasswordToggle, IonIcon],
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => AppInputComponent), multi: true },
   ],
   template: `
+    @if (label()) {
+      <!-- Visual: el nombre accesible lo lleva el campo (aria-label). Tocarla enfoca el campo. -->
+      <span class="field-label" [class.is-focused]="focused()" [class.is-invalid]="showError()" aria-hidden="true" (click)="field.setFocus()">{{ label() }}</span>
+    }
     <ion-input
+      #field
       class="field"
+      [class.has-icon]="iconStart()"
       fill="outline"
-      labelPlacement="stacked"
-      [label]="label()"
+      [attr.aria-label]="label() || null"
       [type]="type()"
       [placeholder]="placeholder()"
       [value]="currentValue()"
@@ -54,14 +62,35 @@ import { IonInputPasswordToggle } from '@ionic/angular/ion-input-password-toggle
       (ionBlur)="onBlur()"
       (ionFocus)="onFocus()"
     >
+      @if (iconStart()) {
+        <ion-icon slot="start" class="field-icon" [class.is-focused]="focused()" [name]="iconStart()" aria-hidden="true"></ion-icon>
+      }
       @if (type() === 'password' && !readonly()) {
-        <ion-input-password-toggle slot="end" showLabel="Mostrar contraseña" hideLabel="Ocultar contraseña"></ion-input-password-toggle>
+        <ion-input-password-toggle slot="end" color="medium" showLabel="Mostrar contraseña" hideLabel="Ocultar contraseña"></ion-input-password-toggle>
       }
     </ion-input>
   `,
   styles: [`
     :host {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    /* Etiqueta encima de la caja, sangrada 4dp para alinearse con la curva del borde. */
+    .field-label {
+      padding-left: var(--spacing-xs);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+      line-height: 1.3;
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+    .field-label.is-focused {
+      color: var(--color-primary-ink);
+    }
+    .field-label.is-invalid {
+      color: var(--color-accent-alert);
     }
     .field {
       --background: var(--color-surface);
@@ -72,16 +101,23 @@ import { IonInputPasswordToggle } from '@ionic/angular/ion-input-password-toggle
       --border-radius: var(--input-radius);
       --padding-start: var(--input-padding-h);
       --padding-end: var(--input-padding-h);
-      --highlight-color-focused: var(--color-primary);
-      --highlight-color-valid: var(--color-primary);
+      --highlight-color-focused: var(--color-primary-ink);
+      --highlight-color-valid: var(--color-primary-ink);
       --highlight-color-invalid: var(--color-accent-alert);
       min-height: var(--input-min-height);
       font-family: var(--font-family-body);
       font-size: var(--font-size-md);
     }
-    .field::part(label) {
-      color: var(--color-text);
-      font-weight: var(--font-weight-bold);
+    /* Ícono inicial: gris en reposo, verde al enfocar; 12dp de aire hasta el texto. */
+    .field-icon {
+      flex-shrink: 0;
+      margin-inline-end: var(--row-gap);
+      font-size: 22px;
+      color: var(--color-text-muted);
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+    .field-icon.is-focused {
+      color: var(--color-primary-ink);
     }
   `],
 })
@@ -105,6 +141,8 @@ export class AppInputComponent implements ControlValueAccessor {
   errorMessage = input<string>('');
   /** Texto de ayuda bajo el campo (se reemplaza por errorMessage cuando hay error). */
   helperText = input<string>('');
+  /** Ícono al inicio del campo (ej. 'id-card-outline'). */
+  iconStart = input<string | null>(null);
 
   // Outputs
   valueChange = output<string>();
