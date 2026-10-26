@@ -5,23 +5,27 @@ import { IonContent } from '@ionic/angular/ion-content';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { addIcons } from 'ionicons';
-import { alertCircleOutline, personAddOutline } from 'ionicons/icons';
+import { alertCircleOutline, arrowForward, idCardOutline, lockClosedOutline } from 'ionicons/icons';
 import { AppInputComponent, AppButtonPrimaryComponent } from '../../shared';
 import { AuthFacade } from '../services/auth.facade';
+import { AuthTopBarComponent } from './auth-top-bar.component';
 
 /**
  * Registro — Design System §1.1: mismos campos que Login más confirmación de contraseña.
  * La foto de perfil se agrega después, desde Perfil (§1.12).
+ * Arriba: "volver" regresa a Login y el rayo dice si hay señal.
  */
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, IonContent, IonButton, IonIcon, AppInputComponent, AppButtonPrimaryComponent],
+  imports: [FormsModule, IonContent, IonButton, IonIcon, AppInputComponent, AppButtonPrimaryComponent, AuthTopBarComponent],
   styleUrl: './auth-layout.css',
   template: `
     <ion-content class="auth">
       <div class="auth__hero" aria-hidden="true"></div>
       <main class="auth__body">
+        <app-auth-top-bar backLabel="Volver a ingresar" (back)="goToLogin()"></app-auth-top-bar>
+
         <header class="auth__brand">
           <img class="auth__sack" src="assets/brand/splash-sack.webp" alt="" aria-hidden="true" />
           <p class="auth__wordmark">CosechApp</p>
@@ -34,6 +38,7 @@ import { AuthFacade } from '../services/auth.facade';
           <form class="auth__form" (ngSubmit)="onRegister()" #registerForm="ngForm" novalidate>
             <app-input
               label="Cédula"
+              iconStart="id-card-outline"
               name="nationalId"
               [(ngModel)]="nationalId"
               required
@@ -46,6 +51,7 @@ import { AuthFacade } from '../services/auth.facade';
 
             <app-input
               label="Contraseña"
+              iconStart="lock-closed-outline"
               type="password"
               name="password"
               [(ngModel)]="password"
@@ -59,6 +65,7 @@ import { AuthFacade } from '../services/auth.facade';
 
             <app-input
               label="Confirmar contraseña"
+              iconStart="lock-closed-outline"
               type="password"
               name="confirmPassword"
               [(ngModel)]="confirmPassword"
@@ -80,7 +87,7 @@ import { AuthFacade } from '../services/auth.facade';
               [loading]="isLoading()"
               [disabled]="registerForm.invalid || passwordMismatch()"
               loadingText="Creando cuenta..."
-              iconStart="person-add-outline"
+              iconEnd="arrow-forward"
             >
               Crear cuenta
             </app-button-primary>
@@ -110,7 +117,7 @@ export class RegisterPage {
   );
 
   constructor() {
-    addIcons({ alertCircleOutline, personAddOutline });
+    addIcons({ alertCircleOutline, arrowForward, idCardOutline, lockClosedOutline });
   }
 
   async onRegister(): Promise<void> {

@@ -3,8 +3,9 @@ import { LoginPage } from './login.page';
 import { AuthFacade } from '../services/auth.facade';
 import { Router } from '@angular/router';
 import { By } from '@angular/platform-browser';
-import { signal, WritableSignal } from '@angular/core';
+import { computed, signal, WritableSignal } from '@angular/core';
 import type { Mock } from 'vitest';
+import { NetworkService } from '../../network/services/network.service';
 
 describe('LoginPage', () => {
   let component: LoginPage;
@@ -15,6 +16,7 @@ describe('LoginPage', () => {
     error: WritableSignal<string | null>;
   };
   let routerMock: { navigate: Mock<Router['navigate']> };
+  let isOnline: WritableSignal<boolean>;
 
   // Simula la escritura del usuario: el componente es OnPush (por defecto en Angular 22),
   // así que asignar los campos directamente no refrescaría la vista.
@@ -40,11 +42,13 @@ describe('LoginPage', () => {
     };
     routerMock = { navigate: vi.fn<Router['navigate']>() };
 
+    isOnline = signal(true);
     await TestBed.configureTestingModule({
       imports: [LoginPage],
       providers: [
         { provide: AuthFacade, useValue: authFacadeMock },
         { provide: Router, useValue: routerMock },
+        { provide: NetworkService, useValue: { isOnline, isOffline: computed(() => !isOnline()) } },
       ],
     }).compileComponents();
 
@@ -132,6 +136,22 @@ describe('LoginPage', () => {
     const registerLink = fixture.debugElement.query(By.css('.auth__switch ion-button'));
     registerLink.triggerEventHandler('click', {});
     expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/register']);
+  });
+
+  it('should show the connection state as a lightning bolt, crossed out when offline', () => {
+    const badge = () => fixture.debugElement.query(By.css('.connection'));
+    expect(badge().attributes['aria-label']).toBe('Con conexión');
+    expect(badge().query(By.css('ion-icon')).nativeElement.name).toBe('flash');
+
+    isOnline.set(false);
+    fixture.detectChanges();
+    expect(badge().attributes['aria-label']).toBe('Sin conexión');
+    expect(badge().query(By.css('ion-icon')).nativeElement.name).toBe('flash-off');
+  });
+
+  it('should name the back button for what it does: leaving the app', () => {
+    const back = fixture.debugElement.query(By.css('app-auth-top-bar .circle-btn'));
+    expect(back.attributes['aria-label']).toBe('Salir de la app');
   });
 
   it('should show loading state on button during login', async () => {
