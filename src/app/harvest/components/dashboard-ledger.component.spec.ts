@@ -6,11 +6,17 @@ import { DashboardFacade } from '../services/dashboard.facade';
 
 describe('DashboardLedgerComponent', () => {
   let fixture: ComponentFixture<DashboardLedgerComponent>;
+  let value: WritableSignal<number | null>;
   let harvestProfit: WritableSignal<number | null>;
 
   const profit = () => fixture.debugElement.query(By.css('.profit'));
+  const lines = () =>
+    fixture.debugElement
+      .queryAll(By.css('.line'))
+      .map((line) => `${line.query(By.css('.line__op')).nativeElement.textContent.trim()} ${line.query(By.css('.line__name')).nativeElement.textContent.trim()}`.trim());
 
   beforeEach(async () => {
+    value = signal<number | null>(3135600);
     harvestProfit = signal<number | null>(0);
     await TestBed.configureTestingModule({
       imports: [DashboardLedgerComponent],
@@ -18,9 +24,12 @@ describe('DashboardLedgerComponent', () => {
         {
           provide: DashboardFacade,
           useValue: {
-            totalKilograms: signal(0),
-            totalPaid: signal(0),
-            pendingTotal: signal(0),
+            estimatedValue: value,
+            projectedDryKilograms: signal(156.78),
+            pricePerDryKilogram: signal(20000),
+            pickerPayments: signal(908680),
+            totalPaid: signal(226480),
+            pendingTotal: signal(682200),
             productionCosts: signal(0),
             estimatedGrossProfit: harvestProfit,
             estimatedHarvestProfit: harvestProfit,
@@ -30,6 +39,18 @@ describe('DashboardLedgerComponent', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(DashboardLedgerComponent);
     fixture.detectChanges();
+  });
+
+  it('reads like a notebook sum: value − payments = gross − costs = harvest profit', () => {
+    expect(lines()).toEqual([
+      'Valor de lo recogido',
+      '− Pagos a recolectores',
+      '= Ganancia bruta',
+      '− Costos de producción',
+      '= Ganancia de la cosecha',
+    ]);
+    expect(fixture.nativeElement.textContent).toContain('Pagado $ 226.480');
+    expect(fixture.nativeElement.textContent).toContain('Se registran al cerrar');
   });
 
   it('shows a zero harvest profit in a neutral color, not as a gain', () => {
@@ -48,7 +69,8 @@ describe('DashboardLedgerComponent', () => {
     expect(profit().classes['gain']).toBeFalsy();
   });
 
-  it('never invents a profit without an FNC price', () => {
+  it('never invents a value or a profit without an FNC price', () => {
+    value.set(null);
     harvestProfit.set(null);
     fixture.detectChanges();
     expect(profit()).toBeNull();

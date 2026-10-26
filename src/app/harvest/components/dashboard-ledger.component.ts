@@ -4,130 +4,167 @@ import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 
 /**
- * Organismo de Inicio: acumulado de la cosecha activa. Renglones nombre → cifra (montos sin
- * " COP", como en las listas, para que nombre y cifra quepan en un renglón) y, aparte,
- * las dos ganancias del PRD (bruta y de la cosecha), marcadas como estimadas: con la
- * cosecha abierta todavía no hay venta. Sin precio FNC no se inventa una cifra.
+ * Organismo de Inicio: la cuenta de la cosecha, como se haría en el cuaderno. Valor de lo
+ * recogido − pagos a recolectores = ganancia bruta − costos = ganancia de la cosecha
+ * (PRD 7.8 y 7.9). Con la cosecha abierta todavía no hay venta: el valor se estima con el
+ * precio FNC de hoy, y sin precio no se inventa una cifra. Montos sin " COP", como en las
+ * listas, para que nombre y cifra quepan en un renglón.
  */
 @Component({
   selector: 'app-dashboard-ledger',
   standalone: true,
   imports: [CurrencyPipe, KilosPipe],
   template: `
-    <dl class="ledger">
-      <div class="row">
-        <dt>Kilos recogidos</dt>
-        <dd class="num">{{ dashboard.totalKilograms() | kilos }}</dd>
-      </div>
-      <div class="row">
-        <dt>Pagado a recolectores</dt>
-        <dd class="num">{{ dashboard.totalPaid() | currency: true : false }}</dd>
-      </div>
-      <div class="row">
-        <dt>Por pagar</dt>
-        <dd class="num">{{ dashboard.pendingTotal() | currency: true : false }}</dd>
-      </div>
-      <div class="row">
-        <dt>Costos de producción</dt>
-        @if (dashboard.productionCosts() > 0) {
-          <dd class="num">{{ dashboard.productionCosts() | currency: true : false }}</dd>
+    <div class="account">
+      <div class="line">
+        <span class="line__op"></span>
+        <span class="line__name">Valor de lo recogido</span>
+        @if (dashboard.estimatedValue() !== null) {
+          <span class="line__value num">{{ dashboard.estimatedValue() | currency: true : false }}</span>
+          <span class="line__detail">
+            {{ dashboard.projectedDryKilograms() | kilos }} secos (cereza ÷ 5) ×
+            <span class="nowrap">{{ dashboard.pricePerDryKilogram() | currency: true : false }}</span> por kg seco (FNC)
+          </span>
         } @else {
-          <dd class="pending">Se registran al cerrar</dd>
+          <span class="line__value line__value--muted">Sin precio FNC</span>
         }
       </div>
-      <div class="row row--divider">
-        <dt>Ganancia bruta <span class="tag">estimada</span></dt>
+
+      <div class="line">
+        <span class="line__op">−</span>
+        <span class="line__name">Pagos a recolectores</span>
+        <span class="line__value num">{{ dashboard.pickerPayments() | currency: true : false }}</span>
+        <span class="line__detail">
+          Pagado <span class="nowrap">{{ dashboard.totalPaid() | currency: true : false }}</span>
+          + por pagar <span class="nowrap">{{ dashboard.pendingTotal() | currency: true : false }}</span>
+        </span>
+      </div>
+
+      <div class="line line--subtotal">
+        <span class="line__op">=</span>
+        <span class="line__name">Ganancia bruta</span>
         @if (dashboard.estimatedGrossProfit() !== null) {
-          <dd class="num" [class.loss]="dashboard.estimatedGrossProfit()! < 0">{{ dashboard.estimatedGrossProfit() | currency: true : false }}</dd>
+          <span class="line__value num" [class.loss]="dashboard.estimatedGrossProfit()! < 0">
+            {{ dashboard.estimatedGrossProfit() | currency: true : false }}
+          </span>
         } @else {
-          <dd class="pending">Sin precio FNC</dd>
+          <span class="line__value line__value--muted">—</span>
         }
       </div>
-      <div class="row row--total">
-        <dt>Ganancia de la cosecha <span class="tag">estimada</span></dt>
+
+      <div class="line">
+        <span class="line__op">−</span>
+        <span class="line__name">Costos de producción</span>
+        @if (dashboard.productionCosts() > 0) {
+          <span class="line__value num">{{ dashboard.productionCosts() | currency: true : false }}</span>
+        } @else {
+          <span class="line__value line__value--muted">—</span>
+          <span class="line__detail">Se registran al cerrar la cosecha</span>
+        }
+      </div>
+
+      <div class="line line--total">
+        <span class="line__op">=</span>
+        <span class="line__name">Ganancia de la cosecha</span>
         @if (dashboard.estimatedHarvestProfit() !== null) {
-          <dd
-            class="num profit"
+          <span
+            class="line__value num profit"
             [class.gain]="dashboard.estimatedHarvestProfit()! > 0"
             [class.loss]="dashboard.estimatedHarvestProfit()! < 0"
-          >{{ dashboard.estimatedHarvestProfit() | currency: true : false }}</dd>
+          >
+            {{ dashboard.estimatedHarvestProfit() | currency: true : false }}
+          </span>
         } @else {
-          <dd class="pending">Sin precio FNC</dd>
+          <span class="line__value line__value--muted">—</span>
         }
       </div>
-    </dl>
-    <p class="hint">
-      Bruta: valor estimado − pagos a recolectores (pagado y por pagar). De la cosecha: bruta − costos.
-      La real se calcula al registrar la venta.
-    </p>
+    </div>
+    <p class="foot">Estimado con el precio FNC de hoy. La ganancia real se calcula al registrar la venta.</p>
   `,
   styles: [`
     :host {
       display: block;
       font-family: var(--font-family-body);
     }
-    .ledger {
-      margin: 0;
-    }
-    .row {
+    /* Renglones de una cuenta: el signo en su propia columna, el nombre y la cifra a la
+       derecha con dígitos de ancho fijo, para que las cantidades se lean alineadas. Si con
+       letra grande no caben juntos, la cifra baja a su propia línea (nunca se parte una palabra). */
+    .line {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
-      justify-content: space-between;
-      gap: 2px var(--spacing-md);
-      padding: 6px 0;
+      column-gap: var(--spacing-sm);
+      padding: 8px 0;
     }
-    dt {
+    .line__op {
+      flex: 0 0 16px;
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+    }
+    .line__name {
+      flex: 1 1 8rem;
+      min-width: 0;
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
     }
-    dd {
-      margin: 0 0 0 auto;
+    .line__value {
+      margin-left: auto;
       font-size: var(--font-size-md);
       font-weight: var(--font-weight-semibold);
       color: var(--color-text);
       text-align: right;
+      white-space: nowrap;
     }
-    dd.pending {
+    .line__value--muted {
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-regular);
       color: var(--color-text-muted);
     }
-    .tag {
-      display: inline-block;
-      margin-left: 2px;
-      padding: 1px 8px;
-      border-radius: var(--radius-full);
-      background: var(--color-surface-muted);
-      font-size: var(--font-size-xs);
-      font-weight: var(--font-weight-medium);
-      vertical-align: 1px;
+    .line__detail {
+      flex-basis: 100%;
+      margin-top: 2px;
+      padding-left: calc(16px + var(--spacing-sm));
+      font-size: var(--font-size-footnote);
+      line-height: 1.35;
+      color: var(--color-text-muted);
     }
-    .row--divider {
-      margin-top: 6px;
-      padding-top: 12px;
+    .nowrap {
+      white-space: nowrap;
+    }
+    /* Cada "=" cierra un tramo de la cuenta con una raya, como al sumar en el cuaderno. */
+    .line--subtotal,
+    .line--total {
       border-top: 1px solid var(--color-separator);
     }
-    .row--total dt {
-      font-size: var(--font-size-md);
+    .line--subtotal .line__name,
+    .line--total .line__name {
       font-weight: var(--font-weight-semibold);
       color: var(--color-text);
+    }
+    .line--total {
+      margin-top: 4px;
+      padding-top: 12px;
+      border-top-width: 2px;
+      border-top-color: rgba(29, 33, 27, 0.14);
+    }
+    .line--total .line__name {
+      font-size: var(--font-size-md);
     }
     /* Sin ganancia ni pérdida: color neutro, el verde se reserva para ganar (como en el historial). */
     .profit {
       font-family: var(--font-family-display);
       font-size: var(--font-size-title);
       font-weight: var(--font-weight-bold);
-      color: var(--color-text);
     }
     .profit.gain {
       color: var(--color-primary-ink);
     }
     /* Pérdida estimada en rojo tierra (el signo "−" ya lo dice; el color acompaña). */
-    dd.loss {
+    .line__value.loss {
       color: var(--color-accent-alert);
     }
-    .hint {
+    .foot {
       margin: var(--spacing-sm) 0 0;
       font-size: var(--font-size-footnote);
       line-height: 1.4;

@@ -107,6 +107,15 @@ export class DashboardFacade {
     });
   });
 
+  /** Kilos de los 7 días del gráfico (para su frase resumen). */
+  readonly weekKilograms = computed(() => sum(this.dailySeries(), (day) => day.kilograms));
+
+  /** El día con más kilos de la semana; null si la semana está en cero. */
+  readonly bestDay = computed(() => {
+    const days = this.dailySeries().filter((day) => day.kilograms > 0);
+    return days.length ? days.reduce((best, day) => (day.kilograms > best.kilograms ? day : best)) : null;
+  });
+
   /** Recolectores con saldo, el mayor primero. */
   readonly pendingPickers = computed(() =>
     this.pickers()
@@ -122,10 +131,16 @@ export class DashboardFacade {
 
   readonly projectedDryKilograms = computed(() => this.totalKilograms() / DRY_FACTOR);
 
+  /** Precio FNC por kilo seco (se publica por carga); null si no hay precio. */
+  readonly pricePerDryKilogram = computed(() => {
+    const price = this.priceAndNewsFacade.coffeePrice();
+    return price ? price.value / FNC_LOAD_KG : null;
+  });
+
   /** Lo recogido a precio FNC de hoy; null si no hay precio publicado. */
   readonly estimatedValue = computed(() => {
-    const price = this.priceAndNewsFacade.coffeePrice();
-    return price ? this.projectedDryKilograms() * (price.value / FNC_LOAD_KG) : null;
+    const perKilogram = this.pricePerDryKilogram();
+    return perKilogram === null ? null : this.projectedDryKilograms() * perKilogram;
   });
 
   /**
@@ -134,8 +149,11 @@ export class DashboardFacade {
    */
   readonly estimatedGrossProfit = computed(() => {
     const value = this.estimatedValue();
-    return value === null ? null : value - (this.totalPaid() + this.pendingTotal());
+    return value === null ? null : value - this.pickerPayments();
   });
+
+  /** Pagos a recolectores de la cosecha: lo pagado más lo que falta por pagar. */
+  readonly pickerPayments = computed(() => this.totalPaid() + this.pendingTotal());
 
   /** Ganancia de la cosecha estimada: ganancia bruta − costos de producción. */
   readonly estimatedHarvestProfit = computed(() => {
