@@ -17,11 +17,12 @@ Arranque animado mientras se verifica la sesión:
 
 ### 1.1 Login / Registro
 **Login:**
-- Logo (`src/assets/brand/logo.png`, versión con fondo transparente de `LOGO.png`) y una frase corta de propósito.
-- Campo cédula (teclado numérico) y campo contraseña con botón mostrar/ocultar.
-- Botón "Ingresar" y enlace "Crear cuenta".
+- Arriba, dos botones circulares (`AuthTopBarComponent`): a la izquierda "volver", que **cierra la app** (Login es la primera pantalla); a la derecha el **estado de la conexión**: rayo blanco sobre verde oscuro = con señal, rayo tachado en rojo tierra sobre blanco = sin señal. El estado también cambia el nombre accesible ("Con conexión" / "Sin conexión") y al tocarlo un aviso explica qué implica.
+- Hero con las ramas de café del arranque sobre un velo verde claro, el saco, el wordmark en Zilla Slab y una frase corta de propósito.
+- Tarjeta blanca (radio 28dp) con el título "Ingresar", campo cédula (ícono de documento, teclado numérico) y campo contraseña (ícono de candado, botón mostrar/ocultar).
+- Botón "Ingresar →" y enlace "Crear cuenta".
 
-**Registro:** los mismos campos más "Confirmar contraseña", con la regla de la contraseña visible como texto de ayuda ("Mínimo 6 caracteres").
+**Registro:** los mismos campos más "Confirmar contraseña", con la regla de la contraseña visible como texto de ayuda ("Mínimo 6 caracteres"). Su botón "volver" regresa a Login (no cierra la app).
 
 **Reglas para ambas pantallas:**
 - **Sin foto de perfil.** Una foto "opcional" en el formulario de entrada distrae y no aporta nada para ingresar; la foto vive solo en Perfil (§1.12).
@@ -29,16 +30,27 @@ Arranque animado mientras se verifica la sesión:
 - Sin barra superior con título: el logo es el encabezado, y el título de la tarjeta ("Ingresar" / "Crear cuenta") aparece una sola vez.
 - Los errores se muestran dentro del formulario, en español y en lenguaje del usuario (ver §2.6), no como un aviso que desaparece.
 
-### 1.2 Inicio (cosecha activa)
-- Nombre de la cosecha activa (ej. "Primer pasón") y su precio por kilo, con la etiqueta explícita ("Pagas $ 1.200 COP por kilo").
-- Acceso directo a "Pesar" (lleva a Cuadrillas).
-- Menú ⋮ en la tarjeta de la cosecha (requiere conexión):
-  - **Editar cosecha:** nombre y precio por kilo. El precio solo cambia mientras no haya pagos, porque cambiaría lo ya pagado.
-  - **Eliminar cosecha:** para una cosecha creada por error. Solo se puede si aún no tiene pesadas ni pagos; si ya los tiene, el mensaje indica que se cierre con "Cerrar cosecha".
-- Precio actual publicado por la FNC, con fecha del último dato. **Solo si existe un dato real**; nunca un valor de ejemplo ni "$ 0".
-- Indicador de conexión: "En línea" o "Sin conexión · se guarda en el teléfono". Cuando la sincronización offline esté implementada, este indicador pasa a mostrar las pesadas/pagos pendientes de sincronizar. Nunca se muestra "Sincronizado" si no es verdad.
-- Botón "Cerrar cosecha" (lleva al flujo de venta y costos).
-- Si no hay cosecha activa: invitación a abrir una nueva, con campo de nombre libre.
+### 1.2 Inicio (dashboard de la cosecha activa)
+Inicio **solo informa**: no tiene formularios ni acciones sobre la cosecha (abrir, editar, eliminar y cerrar viven en Crear, §1.2.1). Los botones que tiene solo llevan a otra pantalla.
+- Arriba, una franja del día (tile tocable que lleva a Mercado): la fecha de hoy en hora de Colombia ("Sáb 24 oct") y el precio FNC, cada uno con su chip de ícono. Sin precio publicado dice "Sin publicar"; **nunca** un valor de ejemplo ni "$ 0".
+- Debajo, en tarjetas blancas con su nombre encima (`.section-title`), de arriba hacia abajo:
+  1. **Cosecha activa:** nombre, "Día N de la cosecha" (N = 1 el día que se abrió, en hora de Colombia), el chip de sincronización ("En línea", "Sin conexión · se guarda en el teléfono", "N pesadas por enviar"; nunca "Sincronizado" si no es verdad) y el botón **"Continuar"**, que lleva a Cuadrillas para seguir pesando.
+  2. **Kilos recogidos:** hoy y ayer en dos celdas suaves (cifras en Zilla Slab) y la diferencia en palabras ("12 kg más que ayer", "5 kg menos que ayer", "Igual que ayer"; el primer día, "Primer día de la cosecha"). El color solo acompaña al texto. Los kilos de hoy incluyen las pesadas guardadas sin señal.
+  3. **Pagos pendientes:** total por pagar y hasta 5 recolectores con saldo (el mayor primero), cada uno con su atajo **"Pagar ahora"**: abre su detalle con el flujo de pago ya en marcha (§1.5). Si hay más, "y N más". Requiere conexión. Sin saldos: "Nada pendiente: todos están al día".
+  4. **Acumulado de la cosecha:** kilos recogidos, pagado a recolectores, por pagar y costos de producción ("Se registran al cerrar" mientras no haya). Después, separadas, **Ganancia bruta** y **Ganancia de la cosecha**, con la etiqueta "estimada": con la cosecha abierta no hay venta, así que se estiman con el valor del punto 5. Bruta = valor estimado − pagos a recolectores (pagado + por pagar, porque al cerrar se liquida todo lo pendiente); de la cosecha = bruta − costos (PRD 7.8 y 7.9). Sin precio FNC dicen "Sin precio FNC", nunca una cifra inventada.
+  5. **Valor estimado de lo recogido:** kilos secos proyectados (cereza ÷ 5, PRD 7.7) × precio FNC ÷ 125 (el precio es por carga de 125 kg), con la cuenta escrita debajo.
+  6. **Kilos por día (últimos 7 días):** columnas finas (`app-daily-kilos-chart`). Hoy en el verde de marca y los demás días en un paso más claro del mismo verde; cifra solo sobre hoy y el día más alto (tocar una columna muestra la suya). Los días antes de abrir la cosecha no tienen columna, y los días sin pesadas una marca gris mínima. El lector de pantalla recibe todas las cifras.
+  7. **Actividad reciente:** las últimas 6 pesadas y pagos ("Pesada · hoy 10:32", "Pago · ayer", "Liquidación · lun 20 oct") con su cifra; las que siguen en el teléfono dicen "Por enviar". Tocar una fila abre al recolector.
+- Se refresca al volver a la pestaña y con deslizar hacia abajo. Sin señal muestra la última copia guardada.
+- Si no hay cosecha activa: "No hay cosecha activa" con un solo botón, "Ir a Crear".
+
+### 1.2.1 Crear (sección de la barra inferior, `/create`)
+- Página de nivel 1 con el título "Crear".
+- **Sin cosecha activa:** el formulario para abrirla (nombre libre y precio por kilo, §2.6 Formulario). Al abrirla se va a Inicio.
+- **Con cosecha activa:** su estado (nombre, día N, fecha de apertura, precio por kilo, kilos y recolectores), el aviso "Solo puede haber una cosecha abierta a la vez. Para abrir otra, cierra esta…" y las acciones de su ciclo de vida:
+  - **"Ir a la cosecha"** (lleva a Cuadrillas).
+  - Menú ⋮ (requiere conexión): **Editar cosecha** (nombre y precio por kilo; el precio solo cambia mientras no haya pagos, porque cambiaría lo ya pagado) y **Eliminar cosecha** (para una cosecha creada por error; solo si aún no tiene pesadas ni pagos; si ya los tiene, el mensaje indica que se cierre con "Cerrar cosecha").
+  - **"Cerrar cosecha"** (texto rojo, requiere conexión; lleva al flujo de §1.8). Sin kilos pesados, un diálogo lo explica (§2.6 Acción bloqueada).
 
 ### 1.3 Cuadrillas
 - Lista de cuadrillas de la cosecha activa (nombre + cantidad de recolectores).
@@ -161,7 +173,8 @@ Design System — CosechApp
 │   └── Tarjeta de cosecha (nombre + fecha + ganancia, para el historial)
 │
 ├── Organismos
-│   ├── Header de cosecha activa (nombre + precio/kilo + botón cerrar cosecha)
+│   ├── Estado de la cosecha activa (Crear: nombre + día + precio/kilo + ⋮ + cerrar cosecha)
+│   ├── Bloques del dashboard de Inicio (pagos pendientes, acumulado, kilos por día, actividad reciente)
 │   ├── Lista de cuadrillas
 │   ├── Lista de recolectores de una cuadrilla
 │   ├── Formulario de cierre de cosecha (venta + costos)
@@ -176,7 +189,8 @@ Design System — CosechApp
 │
 └── Páginas
     ├── Login / Registro
-    ├── Inicio (cosecha activa)
+    ├── Inicio (dashboard de la cosecha activa)
+    ├── Crear (abrir cosecha / cosecha abierta)
     ├── Cuadrillas
     ├── Detalle de cuadrilla
     ├── Detalle de recolector
@@ -198,10 +212,12 @@ Elegidos deliberadamente a partir del propio contexto de CosechApp: reemplaza un
 Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranque original (`CosechAPP_animado.svg`, ya retirada), reemplazando la paleta provisional del primer borrador:
 
 ```
---color-primary: #32591B       /* verde oscuro de marca — texto/botones principales */
+--color-primary: #79A636       /* verde hoja de marca — rellenos: botones, botón Crear, insignias */
+--color-primary-ink: #4F6E22   /* el primario oscurecido — texto e iconos verdes sobre fondos claros */
+--color-text-on-primary: #1F2E0E /* verde casi negro — texto e iconos sobre rellenos verdes */
 --color-primary-muted: #8e716d /* mauve/marrón de marca — línea del logo, acentos, bordes, iconos */
 --color-background: #F2EFF2    /* fondo claro de marca */
---color-secondary: #8C694C     /* marrón medio de marca — acentos secundarios, títulos grandes */
+--color-secondary: #88AD49     /* verde claro — acentos decorativos e iconos grandes */
 --color-surface: #FFFFFF
 --color-text: #2B2420          /* texto de cuerpo — no se usa --color-primary-muted aquí (ver nota de contraste) */
 --color-border: #D8D2C0
@@ -209,8 +225,9 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranqu
 ```
 
 > **Nota de contraste (obligatoria por el PRD, sección 10 — Accesibilidad):** se verificó el contraste de cada color de marca contra `--color-background` (#F2EFF2) siguiendo WCAG:
-> - `#32591B` → contraste **7.1:1** — cumple AAA. Válido para texto de cualquier tamaño y para botones primarios.
-> - `#8C694C` → contraste **4.3:1** — cumple AA solo para texto grande (≥18sp o ≥14sp en negrita) o para iconos/bordes; **no usar en texto de cuerpo pequeño**.
+> - `#79A636` → contraste **2.9:1** sobre blanco — **nunca como texto ni icono sobre fondo claro**. Es un color de relleno; el texto encima va en `#1F2E0E` (**5.0:1**, cumple AA). El blanco sobre este verde solo llega a 2.9:1, por eso no se usa.
+> - `#4F6E22` (`--color-primary-ink`) → contraste **5.9:1** sobre blanco — cumple AA. Es el verde para texto, enlaces, iconos y la pestaña activa.
+> - `#88AD49` → contraste **2.6:1** sobre blanco — solo decorativo (iconos grandes de estados vacíos, carga del splash); con texto encima, `#1F2E0E` (**5.6:1**).
 > - `#8e716d` → contraste **3.9:1** — no cumple AA ni siquiera para texto grande de forma consistente. Reservar para bordes, iconos decorativos y el trazo del logo, **nunca para texto**.
 > - Por eso `--color-text` usa un marrón oscuro propio (#2B2420) en vez de `#8e716d`: mantiene el aire cálido de la marca sin sacrificar legibilidad, algo crítico aquí porque la app se usa a plena luz del sol en el cafetal.
 
@@ -218,12 +235,23 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranqu
 
 | Color Ionic | Token de marca | Uso |
 |---|---|---|
-| `primary` / `success` | `#32591B` | Acciones principales, confirmaciones |
-| `secondary` | `#8C694C` | Acentos secundarios |
+| `primary` / `success` | `#79A636`, contraste `#1F2E0E` | Acciones principales, confirmaciones. Con `fill="clear"`/`"outline"` y en `ion-icon`, el verde pasa a `#4F6E22` (regla global en `variables.css`) |
+| `secondary` | `#88AD49`, contraste `#1F2E0E` | Acentos secundarios |
 | `danger` | `#7A2E22` (`--color-accent-alert`) | "Cerrar cosecha", errores |
 | `warning` | `#B7791F` | Avisos (sin conexión) |
 | `medium` | `#6B625D` | Íconos y texto secundario |
-| `light` | `#F2EFF2` | Fondos claros |
+| `light` | `#F3F4F1` | Fondos claros |
+
+**Rediseño "OS clean" (2026-10-24).** Fondo agrupado estilo sistema y texto casi negro con tinte verde, en lugar del malva y el marrón del borrador:
+
+| Token | Valor | Uso | Contraste |
+|---|---|---|---|
+| `--color-background` | `#F3F4F1` | Fondo de pantalla (gris niebla) | — |
+| `--color-text` | `#1D211B` | Texto | 16.4:1 sobre blanco |
+| `--color-text-muted` | `#6B6F68` | Secundario y metadatos | 5.1:1 sobre blanco, 4.6:1 sobre el fondo |
+| `--color-separator` | `rgba(29,33,27,.08)` | Líneas entre filas | — |
+| `--color-pressed` | `rgba(29,33,27,.05)` | Fila presionada | — |
+| `--color-chip` | `#EEF4E6` | Fondo de chips de ícono (ícono en `#4F6E22`, 5.2:1) | — |
 
 No se usan colores escritos a mano en las páginas (ej. el verde `#28a745` o el rojo `#dc3545` de Bootstrap): siempre un token.
 
@@ -242,18 +270,23 @@ Logo:              src/assets/brand/logo.png (LOGO.png con fondo transparente)
 
 **Tipografía**
 ```
---font-family-display: "Zilla Slab"   /* títulos — remite al cuaderno/libro de registro */
---font-family-body: "Inter"           /* cuerpo, números, UI — alta legibilidad en campo */
---font-size-xs: 12sp    /* metadatos, ej. fecha de una pesada */
---font-size-sm: 14sp
---font-size-md: 16sp    /* cuerpo base */
---font-size-lg: 20sp    /* subtítulos de sección */
---font-size-xl: 28sp    /* título de pantalla */
---font-weight-regular: 400
---font-weight-bold: 700
+--font-family-body: "Inter" (variable 100–900)  /* toda la interfaz: títulos, cuerpo, botones, campos */
+--font-family-display: "Zilla Slab"              /* solo el wordmark y las cifras grandes */
+--font-size-xs: 12sp        /* caption: chips, pestañas */
+--font-size-footnote: 13sp  /* metadatos */
+--font-size-sm: 14sp        /* secundario, etiquetas de campo */
+--font-size-md: 16sp        /* cuerpo */
+--font-size-headline: 17sp  /* título de fila o tarjeta */
+--font-size-lg: 20sp        /* sección */
+--font-size-title: 22sp     /* título de página interna */
+--font-size-xl: 28sp        /* título de pestaña */
+--font-size-figure: 36sp    /* cifra destacada (Zilla) */
+--font-weight-regular: 400 · medium: 500 · semibold: 600 · bold: 700
 ```
 
-Las fuentes van **empaquetadas en la app** (`src/assets/fonts/*.woff2`, subconjunto latin con tildes y ñ, licencia OFL) para que funcionen sin conexión. Zilla Slab es solo para títulos de pantalla y de tarjeta; botones, campos y todo el texto de UI van en Inter.
+Estilo sistema: **una sola familia para la interfaz** (Inter) y la jerarquía la dan el peso y el tamaño, nunca pesos finos. Los títulos grandes llevan tracking negativo (−0.02em a 28sp, −0.01em a 20–22sp), como la fuente del sistema. **Zilla Slab es la firma de la marca**: el wordmark "CosechApp" (login y barra de Inicio) y las cifras que responden la pregunta de la pantalla (kilos de hoy, precio FNC, saldo por pagar, ganancia), como en el cuaderno de registro de la finca. Nunca en títulos ni en texto corrido.
+
+Las fuentes van **empaquetadas en la app** (`src/assets/fonts/*.woff2`, licencia OFL) para que funcionen sin conexión: `InterVariable.woff2` (Inter v4.1 completa, con tamaño óptico automático) y Zilla Slab 400/700 (subconjunto latin con tildes y ñ).
 
 **Espaciado** (grid base de 4dp)
 ```
@@ -266,14 +299,17 @@ Las fuentes van **empaquetadas en la app** (`src/assets/fonts/*.woff2`, subconju
 
 **Otros tokens**
 ```
---radius-sm: 6dp
---radius-md: 12dp       /* bloques internos: avisos, cifras, opciones */
---radius-lg: 16dp       /* tarjetas, filas tocables, hojas inferiores, diálogos */
---radius-full: 999dp    /* botones de acción principal, ej. "Pagar ahora" */
---shadow-card: anillo 1dp rgba(43,36,32,0.06) + 0 1dp 2dp 0.06 + 0 2dp 8dp 0.05
---shadow-raised: anillo 1dp 0.05 + 0 4dp 12dp 0.08 + 0 12dp 32dp 0.08   /* tarjeta de cosecha, precio, hojas */
---color-primary-soft: rgba(50,89,27,0.10)   /* fondo de íconos, avatares y "sin leer" */
---color-surface-muted: rgba(43,36,32,0.04)  /* fila presionada */
+--radius-sm: 8dp        /* elementos pequeños */
+--radius-md: 14dp       /* campos, celdas del calendario, bloques internos */
+--radius-lg: 20dp       /* tarjetas y tiles (estilo sistema, muy redondeado) */
+--radius-xl: 28dp       /* hojas inferiores, diálogos, panel de login */
+--radius-full: 999dp    /* botones (píldora), chips, segmentados */
+--shadow-card: 0 1dp 2dp rgba(29,33,27,.04) + 0 8dp 24dp rgba(29,33,27,.06)   /* sin anillo: la tarjeta se separa del fondo por el blanco */
+--shadow-pressed: 0 1dp 2dp .04 + 0 2dp 8dp .04     /* tarjeta presionada: "toca" el fondo */
+--shadow-raised: 0 2dp 6dp .06 + 0 16dp 40dp .10    /* panel de login, hojas */
+--color-primary-soft: rgba(121,166,54,0.14)  /* tintes verdes suaves */
+--color-surface-muted: rgba(29,33,27,0.04)
+--icon-chip-size: 40dp · --row-gap: 12dp · --row-min-height: 64dp · --circle-btn-size: 48dp
 --touch-target-min: 48dp  /* mínimo de Material Design en Android — corregido desde el borrador inicial, que usaba 44px (estándar iOS, no aplica aquí) */
 ```
 
@@ -289,13 +325,16 @@ Medidas exactas listas para implementación, siguiendo la grilla base de 4dp:
 
 | Componente | Alto | Padding interno | Radio | Ícono |
 |---|---|---|---|---|
-| Botón primario | 48dp | 24dp horizontal | 24dp (pill) | 20dp si lleva ícono |
-| Botón de ícono ("+") | 48dp × 48dp | — | 24dp (circular) | 24dp |
-| Input de texto/numérico | 48dp mínimo, con borde (outline) y etiqueta siempre visible encima (no flotante) | 16dp horizontal | 8dp | — |
-| Tarjeta de recolector | 64dp mínimo | 16dp | 12dp | 24dp (avatar/ícono) |
-| Fila de la lista (cuadrillas, trabajadores) | 56dp | 16dp horizontal | — | 24dp |
+| Botón primario | 52dp | 24dp horizontal | píldora | 20dp si lleva ícono |
+| Botón circular (volver, campana, agregar, cerrar) | 48dp × 48dp, blanco con sombra suave | — | circular | 22dp |
+| Input de texto/numérico | 52dp mínimo, con borde y etiqueta siempre visible encima, fuera de la caja (no flotante) | 16dp horizontal | 14dp | 22dp si lleva ícono inicial |
+| Tarjeta de recolector | 64dp mínimo | 12dp vertical, 16dp horizontal | 20dp | chip de iniciales 40dp |
+| Fila de navegación (`app-nav-row`) | 64dp mínimo | 8dp vertical, 16dp horizontal | 20dp | chip 40dp (ícono 20dp) + 12dp hasta el texto |
+| Fila de registro (`.group__row`) | 56dp | 8dp vertical, 16dp horizontal | — (la tarjeta lleva el radio) | — |
+| Segmentado (`app-segmented`) | 44dp por opción + 4dp de riel | — | píldora | — |
+| Celda del calendario | cuadrada, hasta 48dp | — | 14dp | — |
 | Chip ("con alimentación") | 28dp | 12dp horizontal | 999dp (pill) | 16dp si lleva ícono |
-| Barra de navegación inferior | 56dp + inset de gestos del sistema | — | — | 24dp por pestaña |
+| Barra de navegación inferior (flotante) | 64dp, a 8dp de los bordes + inset de gestos del sistema; radio 24dp | 4dp horizontal | — | 24dp por pestaña; botón Crear 52dp, sobresale 16dp |
 | Header de cosecha activa | 96dp | 16dp | — | — |
 | Separación entre tarjetas en una lista | — | 8dp vertical | — | — |
 | Margen lateral de pantalla | — | 16dp | — | — |
@@ -316,10 +355,20 @@ No se define un breakpoint de tablet en esta versión, ya que el PRD define la a
 
 ### 2.5 Jerarquía visual dentro de cada pantalla
 
-- **Nivel 1 (título de pantalla):** `--font-size-xl` + `--font-family-display`. Ej. "Cuadrillas", "Cierre de cosecha".
-- **Nivel 2 (secciones dentro de la pantalla):** `--font-size-lg` + `--font-family-body` en negrita. Ej. "Ganancia de la cosecha", "Costos de producción".
-- **Nivel 3 (elementos individuales):** `--font-size-md`, peso regular. Ej. el nombre de cada recolector, cada línea de costo.
-- **Nivel 4 (metadatos):** `--font-size-sm` o `--font-size-xs`, color de texto atenuado. Ej. fecha/hora de una pesada, "última sincronización hace 2 horas".
+Clases globales en `variables.css` (las `.text-level-*` de siempre quedan como alias):
+
+| Nivel | Clase | Tamaño/interlínea | Peso | Ej. |
+|---|---|---|---|---|
+| 1 · título de pestaña | `.text-level-1` / `.t-large` | 28/34, tracking −0.02em | 700 | "Historial", "Perfil" |
+| 1 · título de página interna | (automático en barras con "volver") / `.t-title` | 22/28 | 700 | "Cerrar cosecha" |
+| 2 · sección | `.text-level-2` / `.t-section` | 20/25 | 600 | "Noticias del café" |
+| Encabezado de grupo | `.section-title` | 17/22 | 600 | "Pesadas de hoy" |
+| Título de fila o tarjeta | `.t-headline` | 17/22 | 600 | nombre del recolector |
+| 3 · cuerpo | `.text-level-3` / `.t-body` | 16/22 | 400 | párrafos, ayuda |
+| 4 · secundario | `.text-level-4` / `.t-subhead` | 14/19, atenuado | 500 | subtítulo de fila |
+| Metadatos | `.t-footnote` | 13/18, atenuado | 400 | fecha de una noticia |
+| Caption | `.t-caption` | 12/16, atenuado | 600 | etiquetas de pestaña |
+| Cifra | `.t-figure` | Zilla Slab 36, `tabular-nums` | 700 | kilos de hoy, ganancia |
 
 Los íconos acompañan siempre al texto (nunca solos) en las acciones principales, dada la prioridad de simplicidad visual para usuarios con baja alfabetización digital.
 
@@ -327,9 +376,9 @@ Los íconos acompañan siempre al texto (nunca solos) en las acciones principale
 
 Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en ninguna, se agrega el patrón aquí antes de construirla.
 
-**Encabezado**
-- **Nivel 1 (pestañas: Inicio, Precio y Noticias, Historial, Perfil):** barra superior con el título de la pantalla, sin botón de volver.
-- **Nivel 2 en adelante:** barra con botón "volver" (`ion-back-button` con ruta de respaldo) y el título.
+**Encabezado** (estilo sistema: la barra es del color del fondo, sin línea ni sombra)
+- **Nivel 1 (Inicio, Mercado, Crear, Historial, Perfil):** título grande a la izquierda (28sp), sin botón de volver. En Inicio el título es el wordmark en Zilla Slab.
+- **Nivel 2 en adelante:** botón circular "volver" (48dp, blanco con sombra suave) y el título en 22sp. Los botones de ícono del encabezado (campana, agregar) usan el mismo círculo.
 - **Un solo título por pantalla.** La tarjeta del contenido no repite el título de la barra (antes: "Abrir cosecha" arriba y "Nueva cosecha" en la tarjeta).
 
 **Formulario** (clases globales `.form-page`, `.form-page__intro`, `.form-page__fields`, `.form-error` en `variables.css`)
@@ -354,7 +403,18 @@ Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en
 
 **Acción bloqueada**: cuando algo todavía no se puede hacer, se dice por qué y cuál es el paso siguiente. Al tocar "Cerrar cosecha" sin kilos pesados aparece un diálogo ("Aún no hay kilos pesados", con "Ir a pesar"); si se llega a la pantalla de cierre por otro camino, el paso queda reemplazado por un aviso `.notice` (tinte cálido de advertencia, ícono, título, motivo y acción) y no se puede cerrar.
 
-**Carga y vacío**: la primera carga de una lista muestra un esqueleto con la forma de sus filas (`app-list-skeleton`), no un spinner centrado; al refrescar se queda lo que ya se ve. Una lista sin datos usa `app-empty-state`: ícono de línea en marrón (sin círculo ni recuadro detrás), título en Zilla Slab, una frase y, si existe, la acción que resuelve el vacío.
+**Carga y vacío**: la primera carga de una lista muestra un esqueleto con la forma de sus filas (`app-list-skeleton`), no un spinner centrado; al refrescar se queda lo que ya se ve. Una lista sin datos usa `app-empty-state`: ícono de línea en verde claro (sin círculo ni recuadro detrás), título en Inter 20/600, una frase y, si existe, la acción que resuelve el vacío.
+
+**Listas: navegación vs. registros** (componentes en `src/app/shared/components/`)
+- **Navegación** (cada fila lleva a otra pantalla: ajustes de Perfil, Historial, cuadrillas, trabajadores al agregar): `<button app-nav-row>`, un tile blanco por fila con 8dp entre tiles. Chip circular de 40dp (ícono en verde oscuro sobre `#EEF4E6`, o iniciales para personas y cuadrillas), título 17/600, subtítulo 14 atenuado, dato opcional al final (`nav-row-end`) y chevron. Una fila que ejecuta una acción en vez de navegar (agregar trabajador) va sin chevron (`[chevron]="false"`). Con letra grande en pantalla angosta, el título nunca se parte a mitad de palabra: si el dato final no cabe al lado, baja a una segunda línea alineado a la derecha (el chevron queda fijo y centrado). En listas, los montos van sin " COP" y con el signo pegado a la cifra (`−$ 16.000`), para que nunca se partan.
+- **Registros** (pesadas, pagos, costos): una tarjeta `.group` con filas `.group__row` y separadores que empiezan donde empieza el texto (inset), no en el borde. Con chips, `.group--chips` corre el separador hasta 68dp.
+- **Lista con deslizar** (catálogo de trabajadores): `ion-list lines="inset"` dentro de una tarjeta, con chip de iniciales.
+
+**Elegir entre pocas opciones**: `app-segmented`, un riel gris en píldora con una pastilla blanca que se desliza a la opción elegida (`role="radiogroup"`, flechas del teclado). Es controlado: la página decide el valor, así una opción puede abrir algo antes de quedar elegida ("Otro día" abre el calendario).
+
+**Elegir una fecha**: `app-month-calendar` en una hoja inferior. Semana desde el lunes, celdas redondeadas, el día elegido relleno en verde, hoy con anillo verde oscuro, días fuera de rango atenuados y desactivados, y un punto bajo los días marcados (ej. "abriste la cosecha"). Al tocar un día se elige y la hoja se cierra. Las fechas viajan como texto `AAAA-MM-DD` en hora de Colombia.
+
+**Chip de estado** (`.pill`): píldora informativa no tocable con ícono y texto (sincronización, sin conexión); en ámbar (`.pill--warn`) cuando hay algo pendiente.
 
 ### 2.7 Contrato de API
 
@@ -392,6 +452,11 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | `PATCH /:id/pickers/:pickerId` `{ crewId?: string \| null, harvestAlias?: string \| null }` | Mueve de cuadrilla (`null` = sin cuadrilla) o quita el alias de la cosecha |
 | `DELETE /:id/pickers/:pickerId` | 204. 409 `PickerHasRecordsError` si tiene pesadas o pagos (se archiva en su lugar) |
 
+**Inicio:** `GET /harvests/:id/dashboard` devuelve lo que el dashboard no saca de `GET /:id/pickers`:
+- `dailyKilograms`: 7 entradas `{ date: 'AAAA-MM-DD', kilograms }`, de hace 6 días a hoy (hora de Colombia), con 0 los días sin pesadas.
+- `recentActivity`: las últimas 10 pesadas y pagos, del más reciente al más antiguo: `{ type: 'weighing', id, pickerId, displayName, kilograms, dateTime }` o `{ type: 'payment', id, pickerId, displayName, amount, mealDeduction, isSettlement, dateTime }`.
+- `productionCosts`: total de costos en positivo (0 con la cosecha abierta).
+
 **Cierre y detalle del trabajador:**
 - `GET /harvests/:id/close-preview?includesMeals=&mealPerDay=` devuelve, por recolector con saldo, `{ harvestPickerId, displayName, totalKilograms, gross, alreadyPaid, pending, mealDays, mealDeduction, net }` y los totales `{ settledPickers, totalNet, totalMeals }`.
 - `PATCH /harvests/:id/close` recibe `{ includesMeals, mealPerDay? }` y devuelve la cosecha cerrada más `settlement`. Sin body liquida sin comida, para las apps anteriores. 409 `HarvestHasNoWeighingsError` si la cosecha no tiene ningún kilo pesado (contando recolectores archivados).
@@ -423,15 +488,24 @@ Basado en las skills de Emil Kowalski (`.claude/skills/emil-design-eng`, `mobile
 --ease-out: cubic-bezier(0.23, 1, 0.32, 1)     /* lo que entra o sale */
 --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1) /* lo que se mueve dentro de la pantalla */
 --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1)  /* hojas inferiores */
---dur-press: 140ms   /* feedback al presionar */
+--dur-press: 120ms   /* feedback al presionar (entra rápido) */
+--dur-release: 200ms /* vuelta al soltar (sale suave) */
 --dur-fast: 180ms    /* colores, foco, salidas */
---dur-base: 240ms    /* entradas de páginas, listas y avisos */
+--dur-base: 240ms    /* entradas de páginas, listas, avisos y la pastilla del segmentado */
 ```
 
 **Reglas**
 - Nunca `ease-in` ni `transition: all`. Toda animación de interfaz dura menos de 300 ms; la salida es más rápida que la entrada.
 - Solo se anima `transform` y `opacity` (y colores en cambios de estado).
-- **Al presionar**: los botones se hunden a `scale(0.97)`, las tarjetas y filas tocables (`.tappable`) a `0.98`, las filas de lista a `0.99`. El feedback aparece al tocar, no al soltar.
+- **Al presionar** (un solo lenguaje de respuesta: hundimiento + oscurecido; la onda "ripple" de Material está apagada en toda la app porque en un estilo de sistema se ve ajena). El feedback aparece al tocar (120 ms) y vuelve suave al soltar (200 ms):
+
+  | Elemento | Al tocar |
+  |---|---|
+  | Botón píldora | `scale(0.97)` y el relleno se oscurece un paso |
+  | Tile o tarjeta (`.tappable`, `app-nav-row`) | `scale(0.98)`, la sombra baja y el chip de ícono se oscurece; el chevron se corre 2dp |
+  | Fila de lista (`ion-item[button]`) | `scale(0.99)` y fondo `--color-pressed` |
+  | Botón circular | `scale(0.92)` |
+  | Celda del calendario / opción del segmentado | `scale(0.92)` / `scale(0.96)` |
 - **Páginas** (`core/animations/nav.animation.ts`): la nueva sube 12dp y aparece en 240 ms; al volver, la que se va baja y se desvanece en 180 ms.
 - **Listas** (`.stagger-in`): en la primera carga los primeros 6 ítems entran escalonados cada 40 ms. Nunca al refrescar, al volver a la pantalla ni en búsquedas.
 - **Pestañas**: el ícono activo pasa de contorno a relleno, con transición de color.
@@ -440,25 +514,26 @@ Basado en las skills de Emil Kowalski (`.claude/skills/emil-design-eng`, `mobile
 
 **Sensación nativa** (base global)
 - Sin resaltado gris al tocar, sin rebote de la página entera (`overscroll-behavior: none`) y sin selección de texto en controles con toque largo (el contenido sí se puede copiar).
+- **Sombras de elementos fijos con `box-shadow`, no con `filter: drop-shadow`** sobre contenedores grandes: en el WebView de Android, un filtro sobre la barra de pestañas, con los íconos cambiando de color al cambiar de pestaña, dejaba restos verdes sin repintar ("fantasmas" del ícono) encima de la barra. Un `drop-shadow` solo se usa en elementos pequeños que no cambian (el bulto del botón Crear).
 - `touch-action: manipulation` en controles: el toque responde sin la espera del doble toque.
-- Barra de estado blanca con íconos oscuros (plugin `StatusBar`), igual al header.
+- Barra de estado con íconos oscuros (plugin `StatusBar`); el contenido se dibuja detrás, así que toma el color de la pantalla (gris niebla bajo el encabezado) sin franja.
 - Teclado correcto por campo: `inputmode` (numérico o decimal), `enterkeyhint` (siguiente, listo, ir) y `autocapitalize` en nombres.
 - Cifras con `font-variant-numeric: tabular-nums` (clase `.num`) para que kilos y montos no se muevan al cambiar.
 - Selección de texto, cursor y anillo de foco con los colores de la marca, no los del WebView.
 
 **Reglas de composición** (skills `impeccable` y `redesign-existing-projects`, ver `PRODUCT.md`)
 - Sin etiquetas pequeñas en mayúsculas encima de un título: el título se sostiene solo.
-- Sin recuadros de color detrás de íconos sobre títulos o en listas: los íconos van solos, en un trazo. Los avatares llevan iniciales (contenido), no un ícono genérico.
+- Íconos en listas: dentro de un **chip circular suave** solo en filas de navegación y registros con ícono (estilo sistema, rediseño 2026-10-24); **nunca** detrás de un título ni como adorno de una sección. Personas y cuadrillas llevan iniciales en el chip (contenido), no un ícono genérico.
 - Sin tarjetas dentro de tarjetas: dentro de una tarjeta se agrupa con líneas finas y espacio.
 - Montos negativos con el signo antes del símbolo: `−$ 276.000 COP`. Ganancia cero en color de texto; el verde es para ganar y el rojo tierra para perder.
-- Títulos en oración ("Precio y noticias"). En páginas internas el título de la barra baja a 22sp para no cortarse.
+- Títulos en oración ("Noticias del café"). En páginas internas el título de la barra baja a 22sp para no cortarse.
 - La tarjeta del precio FNC lleva el dibujo de ramas del arranque multiplicado sobre el verde: es la firma de la marca, no se repite en otras pantallas.
 
 ## 3. Navegación
 
 ### 3.1 Estructura de navegación
 
-Navegación principal por barra inferior de pestañas (patrón estándar en apps Android), con 4 accesos directos y flujos de profundización (drill-down) dentro de cada uno:
+Navegación principal por barra inferior de pestañas flotante (patrón estándar en apps Android), con 4 accesos directos, el botón de acción Crear al centro y flujos de profundización (drill-down) dentro de cada pestaña:
 
 ```
 Splash (logo nativo mientras se verifica la sesión)
@@ -471,22 +546,26 @@ Splash (logo nativo mientras se verifica la sesión)
        │ (autenticación)
        ▼
 ┌─────────────────────────────────────────────┐
-│  Barra inferior: Inicio | Precio&Noticias |  │
+│  Barra inferior: Inicio | Mercado | (+) |    │
 │                  Historial | Perfil          │
 └─────────────────────────────────────────────┘
+Inicio (dashboard de la cosecha activa)
+├── Continuar → Cuadrillas
+├── Pagar ahora (atajo) → Detalle de recolector con el pago en marcha
+└── Actividad reciente → Detalle de recolector
 
-Inicio (cosecha activa)
-│
-├── Cuadrillas
-│   └── Detalle de cuadrilla
-│       └── Detalle de recolector
-│           ├── Registro de pesada
-│           └── Pagar ahora (confirmación de monto)
-│
-└── Cerrar cosecha
-    └── Registro de venta y costos → Resumen de ganancia de la cosecha
+(+) Crear
+├── Sin cosecha: Abrir cosecha (formulario)
+└── Con cosecha: estado + Editar / Eliminar (⋮)
+    ├── Ir a la cosecha → Cuadrillas
+    │   └── Detalle de cuadrilla
+    │       └── Detalle de recolector
+    │           ├── Registro de pesada
+    │           └── Pagar ahora (confirmación de monto)
+    └── Cerrar cosecha
+        └── Registro de venta y costos → Resumen de ganancia de la cosecha
 
-Precio y noticias
+Mercado (precio y noticias)
 └── Notificaciones (también accesible desde el ícono de campana en cualquier pantalla)
 
 Historial de cosechas
@@ -500,18 +579,19 @@ Perfil
 ```
 
 ### 3.2 Página principal
-**Inicio**, que muestra la cosecha activa y es el punto de entrada al flujo más usado (pesar y pagar recolectores), consistente con que el uso principal ocurre en el cafetal.
+**Inicio**, el dashboard de la cosecha activa: lo primero que se ve es cómo va (kilos, pagos pendientes, ganancia estimada), y "Continuar" lleva en un toque al flujo más usado (pesar y pagar recolectores), consistente con que el uso principal ocurre en el cafetal.
 
 ### 3.3 Elementos de navegación
-- Barra inferior de pestañas (4 ítems: Inicio, Precio y noticias, Historial, Perfil).
+- Barra inferior de pestañas flotante (4 pestañas: Inicio, Mercado, Historial, Perfil), con etiquetas de una sola palabra para que quepan en 360dp. La pestaña activa pasa a ícono relleno y etiqueta en negrita `--color-primary-ink`.
+- **Crear** (botón circular verde al centro, que sobresale de la barra) es una sección con ruta propia (`/create`, §1.2.1): sin cosecha muestra el formulario para abrirla; con una abierta, su estado y por qué no se puede abrir otra. El círculo siempre es verde; estar en Crear se anuncia con `aria-current="page"`.
 - Dentro de cada pestaña, navegación por profundización (tocar una tarjeta lleva al detalle) con botón de "volver" estándar.
-- "Cuadrillas" y "Cerrar cosecha" no son pestañas propias: son acciones dentro de Inicio, porque dependen de que haya una cosecha activa.
+- "Cuadrillas" y "Cerrar cosecha" no son pestañas propias, porque dependen de que haya una cosecha activa: a Cuadrillas se llega con "Continuar" (Inicio) o "Ir a la cosecha" (Crear); "Cerrar cosecha" está en Crear.
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).
 
 ### 3.4 Niveles de navegación
 1. **Nivel -1 — Splash:** logo nativo (ícono sobre blanco) mientras se verifica la sesión contra el backend (ver §1.0).
 2. **Nivel 0 — Autenticación:** Login/Registro (fuera de la barra de pestañas), solo si no hay sesión válida.
-3. **Nivel 1 — Pestañas principales:** Inicio, Precio y Noticias, Historial, Perfil.
+3. **Nivel 1 — Secciones principales:** Inicio, Mercado, Crear, Historial, Perfil.
 4. **Nivel 2 — Listas:** Cuadrillas, Catálogo de trabajadores, lista de cosechas cerradas.
 5. **Nivel 3 — Detalle:** Detalle de cuadrilla, Detalle de cosecha cerrada.
 6. **Nivel 4 — Acción puntual:** Detalle de recolector, Registro de pesada, Pagar ahora, Cierre de cosecha (venta y costos).

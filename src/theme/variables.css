@@ -24,18 +24,12 @@
   font-display: swap;
 }
 
+/* Inter variable: todos los pesos (400 cuerpo, 500 secundario, 600 títulos de fila, 700
+   títulos de pantalla) en un archivo, con tamaño óptico automático. */
 @font-face {
   font-family: 'Inter';
-  src: url('../assets/fonts/Inter-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Inter';
-  src: url('../assets/fonts/Inter-Bold.woff2') format('woff2');
-  font-weight: 700;
+  src: url('../assets/fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
@@ -45,37 +39,44 @@
    ========================================================================== */
 :root {
   /* Colores de marca */
-  --color-primary: #32591B;        /* verde oscuro — texto/botones principales (contraste 7.1:1 AAA) */
+  --color-primary: #79A636;        /* verde hoja — rellenos: botones, FAB, insignias (NO texto sobre claro: 2.9:1) */
+  --color-primary-ink: #4F6E22;    /* verde primario oscurecido — texto e iconos verdes sobre claro (5.9:1 AA) */
   --color-primary-muted: #8e716d;  /* mauve/marrón — bordes, iconos, trazo logo (NO texto) */
-  --color-background: #F2EFF2;     /* fondo claro de marca */
-  --color-secondary: #8C694C;      /* marrón medio — acentos secundarios, títulos grandes (contraste 4.3:1 AA solo texto grande) */
+  --color-background: #F3F4F1;     /* gris niebla con un toque verde — fondo agrupado estilo sistema */
+  --color-secondary: #88AD49;      /* verde claro — acentos decorativos e iconos grandes (NO texto) */
   --color-surface: #FFFFFF;        /* blanco puro para tarjetas/superficies */
-  --color-text: #2B2420;           /* texto de cuerpo — marrón oscuro propio para legibilidad */
-  --color-border: #D8D2C0;         /* bordes sutiles */
+  --color-text: #1D211B;           /* texto — casi negro con tinte verde (16.4:1 sobre blanco) */
+  --color-border: #DADDD6;         /* bordes de campos */
+  --color-separator: rgba(29, 33, 27, 0.08); /* líneas entre filas */
+  --color-pressed: rgba(29, 33, 27, 0.05);   /* resaltado al tocar una fila */
+  --color-chip: #EEF4E6;           /* fondo de chips de ícono; el ícono va en primary-ink (5.2:1) */
+  --color-chip-pressed: #E1EBD3;   /* el chip, un paso más hondo al tocar su fila */
   --color-accent-alert: #7A2E22;   /* rojo tierra — alertas puntuales (botón cerrar cosecha, errores) */
 
   /* Paleta de Ionic mapeada a la marca: sin esto, color="primary" etc. usan el azul
      por defecto de Ionic (Ionic aplica el color por clase, no por atributo). */
-  --ion-color-primary: #32591B;
-  --ion-color-primary-rgb: 50, 89, 27;
-  --ion-color-primary-contrast: #FFFFFF;
-  --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #2C4E18;
-  --ion-color-primary-tint: #476A32;
+  /* Sobre los verdes claros el texto va en verde casi negro: el blanco solo llega a
+     2.9:1, #1F2E0E da 5.0:1 sobre el primario y 5.6:1 sobre el secundario. */
+  --ion-color-primary: #79A636;
+  --ion-color-primary-rgb: 121, 166, 54;
+  --ion-color-primary-contrast: #1F2E0E;
+  --ion-color-primary-contrast-rgb: 31, 46, 14;
+  --ion-color-primary-shade: #6A9230;
+  --ion-color-primary-tint: #86AF4A;
 
-  --ion-color-secondary: #8C694C;
-  --ion-color-secondary-rgb: 140, 105, 76;
-  --ion-color-secondary-contrast: #FFFFFF;
-  --ion-color-secondary-contrast-rgb: 255, 255, 255;
-  --ion-color-secondary-shade: #7B5C43;
-  --ion-color-secondary-tint: #98785E;
+  --ion-color-secondary: #88AD49;
+  --ion-color-secondary-rgb: 136, 173, 73;
+  --ion-color-secondary-contrast: #1F2E0E;
+  --ion-color-secondary-contrast-rgb: 31, 46, 14;
+  --ion-color-secondary-shade: #789840;
+  --ion-color-secondary-tint: #94B55B;
 
-  --ion-color-success: #32591B;
-  --ion-color-success-rgb: 50, 89, 27;
-  --ion-color-success-contrast: #FFFFFF;
-  --ion-color-success-contrast-rgb: 255, 255, 255;
-  --ion-color-success-shade: #2C4E18;
-  --ion-color-success-tint: #476A32;
+  --ion-color-success: #79A636;
+  --ion-color-success-rgb: 121, 166, 54;
+  --ion-color-success-contrast: #1F2E0E;
+  --ion-color-success-contrast-rgb: 31, 46, 14;
+  --ion-color-success-shade: #6A9230;
+  --ion-color-success-tint: #86AF4A;
 
   --ion-color-warning: #B7791F;
   --ion-color-warning-rgb: 183, 121, 31;
@@ -91,49 +92,58 @@
   --ion-color-danger-shade: #6B281E;
   --ion-color-danger-tint: #874338;
 
-  --ion-color-medium: #6B625D;
-  --ion-color-medium-rgb: 107, 98, 93;
+  --ion-color-medium: #6B6F68;
+  --ion-color-medium-rgb: 107, 111, 104;
   --ion-color-medium-contrast: #FFFFFF;
   --ion-color-medium-contrast-rgb: 255, 255, 255;
-  --ion-color-medium-shade: #5E5652;
-  --ion-color-medium-tint: #7A726D;
+  --ion-color-medium-shade: #5E625C;
+  --ion-color-medium-tint: #7A7D77;
 
-  --ion-color-light: #F2EFF2;
-  --ion-color-light-rgb: 242, 239, 242;
-  --ion-color-light-contrast: #2B2420;
-  --ion-color-light-contrast-rgb: 43, 36, 32;
-  --ion-color-light-shade: #D5D2D5;
-  --ion-color-light-tint: #F3F1F3;
+  --ion-color-light: #F3F4F1;
+  --ion-color-light-rgb: 243, 244, 241;
+  --ion-color-light-contrast: #1D211B;
+  --ion-color-light-contrast-rgb: 29, 33, 27;
+  --ion-color-light-shade: #D6D7D4;
+  --ion-color-light-tint: #F4F5F2;
 
-  --ion-background-color: #F2EFF2;
-  --ion-background-color-rgb: 242, 239, 242;
-  --ion-text-color: #2B2420;
-  --ion-text-color-rgb: 43, 36, 32;
-  --ion-font-family: 'Inter', sans-serif;
+  --ion-background-color: #F3F4F1;
+  --ion-background-color-rgb: 243, 244, 241;
+  --ion-text-color: #1D211B;
+  --ion-text-color-rgb: 29, 33, 27;
+  --ion-font-family: 'Inter', system-ui, sans-serif;
   --ion-toolbar-background: #FFFFFF;
   --ion-tab-bar-background: #FFFFFF;
   --ion-item-background: #FFFFFF;
   --ion-card-background: #FFFFFF;
 
   /* Estados derivados */
-  --color-text-muted: rgba(43, 36, 32, 0.6);   /* metadata, Nivel 4 */
-  --color-text-on-primary: #FFFFFF;             /* texto sobre botón primario */
+  --color-text-muted: #6B6F68;                  /* secundario y metadatos (5.1:1 sobre blanco, 4.6:1 sobre el fondo) */
+  --color-text-on-primary: #1F2E0E;             /* texto sobre botón primario (5.0:1) */
   --color-text-on-alert: #FFFFFF;               /* texto sobre botón alerta */
-  --color-focus-ring: rgba(50, 89, 27, 0.4);    /* anillo foco accesible */
+  --color-focus-ring: rgba(79, 110, 34, 0.5);   /* anillo foco accesible */
 
   /* ==========================================================================
      TIPOGRAFÍA
      ========================================================================== */
-  --font-family-display: 'Zilla Slab', serif;   /* títulos — remite a cuaderno de registro */
-  --font-family-body: 'Inter', sans-serif;      /* cuerpo, números, UI — alta legibilidad */
+  /* Toda la interfaz va en Inter. Zilla Slab solo para la marca y las cifras grandes
+     (kilos, pesos, precio): la firma de "cuaderno de registro" de la finca. */
+  --font-family-display: 'Zilla Slab', serif;
+  --font-family-body: 'Inter', system-ui, sans-serif;
 
-  --font-size-xs: 0.75rem;    /* metadatos (fecha pesada, última sync) */
-  --font-size-sm: 0.875rem;    /* texto pequeño */
-  --font-size-md: 1rem;    /* cuerpo base */
-  --font-size-lg: 1.25rem;    /* subtítulos de sección (Nivel 2) */
-  --font-size-xl: 1.75rem;    /* título de pantalla (Nivel 1) */
+  /* Escala estilo sistema (en rem: escala con el tamaño de letra del teléfono). */
+  --font-size-xs: 0.75rem;        /* 12 — caption: chips, pestañas */
+  --font-size-footnote: 0.8125rem;/* 13 — metadatos */
+  --font-size-sm: 0.875rem;       /* 14 — subhead: secundario, etiquetas de campo */
+  --font-size-md: 1rem;           /* 16 — cuerpo */
+  --font-size-headline: 1.0625rem;/* 17 — título de fila o tarjeta */
+  --font-size-lg: 1.25rem;        /* 20 — sección (Nivel 2) */
+  --font-size-title: 1.375rem;    /* 22 — título de página interna */
+  --font-size-xl: 1.75rem;        /* 28 — título de pestaña (Nivel 1) */
+  --font-size-figure: 2.25rem;    /* 36 — cifra destacada (Zilla) */
 
   --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
   /* ==========================================================================
@@ -148,28 +158,30 @@
   /* ==========================================================================
      RADIOS
      ========================================================================== */
-  --radius-sm: 6px;          /* inputs */
-  --radius-md: 12px;         /* tarjetas recolector, cuadrilla */
-  --radius-lg: 16px;         /* tarjetas destacadas, hojas inferiores */
-  --radius-full: 999px;      /* botones acción principal (pill), chips */
+  --radius-sm: 8px;          /* elementos pequeños (avisos de error) */
+  --radius-md: 14px;         /* campos, celdas del calendario, opciones */
+  --radius-lg: 20px;         /* tarjetas y tiles (estilo sistema, muy redondeado) */
+  --radius-xl: 28px;         /* hojas inferiores, panel de login */
+  --radius-full: 999px;      /* botones (píldora), chips, segmentados */
 
   /* ==========================================================================
      SOMBRAS
      ========================================================================== */
-  /* En capas y semitransparentes: un anillo de 1px define el borde sin la dureza de un
-     borde sólido, y dos sombras suaves dan la profundidad. */
+  /* Estilo sistema: sin borde, una sombra de contacto mínima y un halo amplio y muy
+     tenue. La tarjeta se separa del fondo gris por el blanco, no por la línea. */
   --shadow-card:
-    0 0 0 1px rgba(43, 36, 32, 0.06),
-    0 1px 2px rgba(43, 36, 32, 0.06),
-    0 2px 8px rgba(43, 36, 32, 0.05);
+    0 1px 2px rgba(29, 33, 27, 0.04),
+    0 8px 24px rgba(29, 33, 27, 0.06);
+  --shadow-pressed:
+    0 1px 2px rgba(29, 33, 27, 0.04),
+    0 2px 8px rgba(29, 33, 27, 0.04);
   --shadow-raised:
-    0 0 0 1px rgba(43, 36, 32, 0.05),
-    0 4px 12px rgba(43, 36, 32, 0.08),
-    0 12px 32px rgba(43, 36, 32, 0.08);
+    0 2px 6px rgba(29, 33, 27, 0.06),
+    0 16px 40px rgba(29, 33, 27, 0.10);
 
   /* Superficie presionada / estados vacíos (un paso sobre el fondo, sin color nuevo). */
-  --color-surface-muted: rgba(43, 36, 32, 0.04);
-  --color-primary-soft: rgba(50, 89, 27, 0.1);
+  --color-surface-muted: rgba(29, 33, 27, 0.04);
+  --color-primary-soft: rgba(121, 166, 54, 0.14);
 
   /* ==========================================================================
      MOVIMIENTO (Design System §2.8)
@@ -179,7 +191,8 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
-  --dur-press: 140ms;   /* feedback al presionar */
+  --dur-press: 120ms;   /* feedback al presionar (entra rápido) */
+  --dur-release: 200ms; /* vuelta al soltar (sale suave) */
   --dur-fast: 180ms;    /* colores, foco, salidas */
   --dur-base: 240ms;    /* entradas de páginas, listas y avisos */
 
@@ -192,10 +205,10 @@
      MEDIDAS PIXEL-PERFECT POR COMPONENTE (Sección 2.3 Design System)
      ========================================================================== */
 
-  /* Botón primario: 48dp alto, 24dp padding horizontal, radius 24dp (pill), icono 20dp */
-  --btn-primary-height: 48px;
+  /* Botón primario: 52dp alto, 24dp padding horizontal, píldora, icono 20dp */
+  --btn-primary-height: 52px;
   --btn-primary-padding-h: 24px;
-  --btn-primary-radius: 24px;
+  --btn-primary-radius: var(--radius-full);
   --btn-primary-icon-size: 20px;
 
   /* Botón de ícono (+): 48×48dp, radius 24dp (circular), icono 24dp */
@@ -203,10 +216,17 @@
   --btn-icon-radius: 24px;
   --btn-icon-icon-size: 24px;
 
-  /* Input texto/numérico: 48dp min alto, 16dp padding horizontal, radius 8dp */
-  --input-min-height: 48px;
+  /* Input texto/numérico: 52dp min alto, 16dp padding horizontal, radius 14dp */
+  --input-min-height: 52px;
   --input-padding-h: 16px;
-  --input-radius: 8px;
+  --input-radius: 14px;
+
+  /* Filas y chips de ícono: chip 40dp + 12dp de aire → el texto (y el separador inset)
+     empieza a 68dp del borde de la pantalla con el margen de 16dp. */
+  --icon-chip-size: 40px;
+  --row-gap: 12px;
+  --row-min-height: 64px;
+  --circle-btn-size: 48px;   /* = touch-target-min */
 
   /* Tarjeta recolector: 64dp min alto, 16dp padding, radius 12dp, avatar/icono 24dp */
   --picker-card-min-height: 64px;
@@ -225,9 +245,11 @@
   --chip-radius: 999px;
   --chip-icon-size: 16px;
 
-  /* Barra navegación inferior: 56dp + inset gestos sistema, iconos 24dp */
-  --bottom-nav-height: 56px;
+  /* Barra navegación inferior flotante: 64dp, separada 8dp del borde + inset gestos
+     sistema, iconos 24dp. El botón Crear sobresale ~24dp por encima. */
+  --bottom-nav-height: 64px;
   --bottom-nav-icon-size: 24px;
+  --bottom-nav-offset: calc(var(--bottom-nav-height) + var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
 
   /* Header cosecha activa: 96dp alto, 16dp padding */
   --harvest-header-height: 96px;
@@ -262,26 +284,52 @@
    CLASES DE UTILIDAD PARA JERARQUÍA VISUAL (Sección 2.5)
    ========================================================================== */
 
-/* Nivel 1 - Título de pantalla */
-.text-level-1 {
-  font-family: var(--font-family-display);
+/* Escala estilo sistema: la jerarquía la dan el peso y el tamaño, no otra familia.
+   Los títulos grandes se aprietan un poco (tracking negativo), como la fuente del sistema. */
+
+/* Nivel 1 - Título de pantalla (pestañas: 28/34; páginas internas bajan a 22, ver abajo) */
+.text-level-1,
+.t-large {
+  font-family: var(--font-family-body);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
   line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.t-title {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: 1.27;
+  letter-spacing: -0.01em;
 }
 
 /* Nivel 2 - Secciones dentro de pantalla */
-.text-level-2 {
+.text-level-2,
+.t-section {
   font-family: var(--font-family-body);
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+/* Título de fila o de tarjeta */
+.t-headline {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-headline);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   line-height: 1.3;
 }
 
-/* Nivel 3 - Elementos individuales */
-.text-level-3 {
+/* Nivel 3 - Cuerpo */
+.text-level-3,
+.t-body {
   font-family: var(--font-family-body);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-regular);
@@ -289,21 +337,51 @@
   line-height: 1.4;
 }
 
-/* Nivel 4 - Metadatos */
-.text-level-4 {
+/* Nivel 4 - Secundario */
+.text-level-4,
+.t-subhead {
   font-family: var(--font-family-body);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-regular);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-muted);
-  line-height: 1.4;
+  line-height: 1.38;
 }
 
-.text-level-4-xs {
+.t-footnote {
   font-family: var(--font-family-body);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-footnote);
   font-weight: var(--font-weight-regular);
   color: var(--color-text-muted);
-  line-height: 1.4;
+  line-height: 1.38;
+}
+
+.text-level-4-xs,
+.t-caption {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  line-height: 1.33;
+}
+
+/* Cifra destacada: la firma de la app. Slab de cuaderno de registro, dígitos de ancho fijo. */
+.t-figure {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-figure);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Encabezado de grupo: 8dp sobre la tarjeta, alineado con su borde, en oración. */
+.section-title {
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-headline);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  line-height: 1.3;
 }
 
 /* ==========================================================================
@@ -342,40 +420,118 @@ ion-content {
   --color: var(--color-text);
 }
 
+/* Encabezado estilo sistema: del mismo color que el fondo, sin línea ni sombra. El
+   título grande ya separa; la barra no necesita ser una franja blanca aparte. */
 ion-header {
-  --background: var(--color-surface);
-  --border-color: var(--color-border);
+  --background: var(--color-background);
+  --border-color: transparent;
 }
 
 ion-toolbar {
-  --background: var(--color-surface);
+  --background: var(--color-background);
   --color: var(--color-text);
+  --border-width: 0;
+  --min-height: 64px;
+  --padding-start: var(--spacing-sm);
+  --padding-end: var(--spacing-sm);
+}
+
+/* Un solo lenguaje de respuesta al tocar: hundimiento + oscurecido, sin la onda de
+   Material, que en un estilo "sistema" se ve ajena. */
+ion-button,
+ion-back-button,
+ion-item,
+ion-item-option,
+ion-tab-button,
+ion-segment-button {
+  --ripple-color: transparent;
 }
 
 ion-button {
   --border-radius: var(--btn-primary-radius);
   --padding-start: var(--btn-primary-padding-h);
   --padding-end: var(--btn-primary-padding-h);
+  --box-shadow: none;
   height: var(--btn-primary-height);
   min-height: var(--btn-primary-height);
   /* Texto en oración, igual que enlaces y títulos (el modo md de Ionic lo pone en MAYÚSCULAS). */
   text-transform: none;
   letter-spacing: normal;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Al tocar, el relleno se oscurece un paso (velo del verde casi negro), además del
+   hundimiento de escala definido más abajo. */
+ion-button.button-solid {
+  --background-activated: #1F2E0E;
+  --background-activated-opacity: 0.12;
+  --background-focused-opacity: 0.12;
+}
+ion-button.button-clear,
+ion-button.button-outline {
+  --background-activated: currentColor;
+  --background-activated-opacity: 0.08;
+}
+/* Enlaces de texto (clear pequeño): 8dp de aire, para que con margen −8dp el texto
+   quede alineado con el párrafo de arriba. */
+ion-button.button-clear.button-small {
+  --padding-start: var(--spacing-sm);
+  --padding-end: var(--spacing-sm);
+  --border-radius: var(--radius-sm);
+  height: var(--touch-target-min);
+  min-height: var(--touch-target-min);
 }
 
 ion-button[color="primary"] {
   --background: var(--color-primary);
-  --background-activated: var(--color-primary);
   --background-hover: var(--color-primary);
   --color: var(--color-text-on-primary);
 }
 
 ion-button[color="danger"] {
   --background: var(--color-accent-alert);
-  --background-activated: var(--color-accent-alert);
   --background-hover: var(--color-accent-alert);
   --color: var(--color-text-on-alert);
+}
+
+/* Botones de ícono en la barra (volver, campana, agregar): círculo blanco de 44dp con
+   sombra suave, como en el login. */
+ion-back-button,
+ion-toolbar ion-buttons ion-button.button-has-icon-only {
+  --background: var(--color-surface);
+  --border-radius: 50%;
+  --color: var(--color-text);
+  --padding-start: 0;
+  --padding-end: 0;
+  --icon-font-size: 22px;
+  width: var(--circle-btn-size);
+  height: var(--circle-btn-size);
+  min-height: var(--circle-btn-size);
+  margin: 0 var(--spacing-xs);
+  border-radius: 50%;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur-release) var(--ease-out);
+}
+ion-toolbar ion-buttons ion-button.button-has-icon-only {
+  --background-activated: var(--color-text);
+  --background-activated-opacity: 0.06;
+}
+ion-back-button:active,
+ion-toolbar ion-buttons ion-button.button-has-icon-only:active {
+  transform: scale(0.92);
+  transition-duration: var(--dur-press);
+}
+
+/* Buscador estilo sistema: campo gris redondeado, sin sombra ni borde. */
+ion-searchbar {
+  --background: rgba(29, 33, 27, 0.06);
+  --border-radius: var(--input-radius);
+  --box-shadow: none;
+  --placeholder-color: var(--color-text-muted);
+  --placeholder-opacity: 1;
+  --icon-color: var(--color-text-muted);
+  padding: 0;
+  font-family: var(--font-family-body);
 }
 
 ion-input {
@@ -391,9 +547,12 @@ ion-input {
 ion-item {
   --padding-start: var(--list-row-padding-h);
   --padding-end: var(--list-row-padding-h);
-  min-height: var(--list-row-height);
   --background: var(--color-surface);
+  --background-activated: var(--color-text);
+  --background-activated-opacity: 0.05;
+  --border-color: var(--color-separator);
   --color: var(--color-text);
+  min-height: var(--list-row-height);
 }
 
 /* ion-card (md) no expone --border-radius ni --box-shadow: se fijan aquí, con más
@@ -408,9 +567,9 @@ ion-card.md {
   box-shadow: var(--card-shadow, var(--shadow-card));
 }
 
-/* Header: una línea fina en lugar de la sombra pesada de Material. */
+/* Header: sin la sombra de Material; se funde con el fondo. */
 ion-header.header-md {
-  box-shadow: 0 1px 0 rgba(43, 36, 32, 0.08);
+  box-shadow: none;
 }
 
 ion-chip {
@@ -420,20 +579,17 @@ ion-chip {
   height: var(--chip-height);
   min-height: var(--chip-height);
   --background: var(--color-primary-muted);
-  --color: var(--color-text-on-primary);
+  --color: #FFFFFF;
 }
 
-ion-tab-bar {
-  --background: var(--color-surface);
-  --border-color: var(--color-border);
-  height: var(--bottom-nav-height);
-  min-height: var(--bottom-nav-height);
-}
-
-ion-tab-button {
-  --color: var(--color-text-muted);
-  --color-selected: var(--color-primary);
-  transition: color var(--dur-fast) ease;
+/* Verde como texto o icono (botones sin relleno, iconos con color="primary"): el tono
+   oscurecido, porque el primario sobre claro no llega a 4.5:1. Los rellenos siguen
+   con el primario. Ionic fija `.ion-color-primary` con !important: hace falta el
+   mismo !important y más especificidad para ganarle. */
+ion-button.ion-color-primary.button-clear,
+ion-button.ion-color-primary.button-outline,
+ion-icon.ion-color-primary {
+  --ion-color-base: var(--color-primary-ink) !important;
 }
 
 ion-icon {
@@ -467,9 +623,9 @@ a,
 .form-page__intro {
   margin: 0;
   font-family: var(--font-family-body);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   color: var(--color-text-muted);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .form-page__fields {
@@ -485,7 +641,7 @@ a,
   gap: var(--spacing-sm);
   margin: 0;
   padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: rgba(122, 46, 34, 0.08);
   color: var(--color-accent-alert);
   font-family: var(--font-family-body);
@@ -503,11 +659,11 @@ a,
 ion-alert.md .alert-button {
   text-transform: none;
   letter-spacing: normal;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-full);
 }
 ion-alert.md .alert-button:not(.alert-button-role-cancel) {
-  color: var(--color-primary);
+  color: var(--color-primary-ink);
 }
 ion-alert.md .alert-button-role-cancel {
   color: var(--color-text-muted);
@@ -537,22 +693,156 @@ ion-item[button],
   -webkit-touch-callout: none;
 }
 
-/* Feedback al presionar: el control se hunde apenas al tocarlo, no al soltarlo. */
+/* Feedback al presionar: el control se hunde apenas al tocarlo (120ms) y vuelve suave
+   al soltarlo (200ms). Entra rápido, sale lento: se siente físico, no mecánico. */
 ion-button,
 ion-item[button],
 .tappable {
-  transition: transform var(--dur-press) var(--ease-out);
+  transition:
+    transform var(--dur-release) var(--ease-out),
+    box-shadow var(--dur-release) var(--ease-out),
+    background-color var(--dur-release) var(--ease-out);
+}
+ion-button:active,
+ion-item[button]:active,
+.tappable:active {
+  transition-duration: var(--dur-press);
 }
 ion-button:active {
   transform: scale(0.97);
 }
-/* Tarjetas y filas tocables son anchas: el mismo hundimiento se nota más, así que es
-   más sutil (0.98 en tarjetas, 0.99 en filas de lista). */
+/* Tarjetas y tiles son anchos: el mismo hundimiento se nota más, así que es más sutil,
+   y la sombra baja como si la tarjeta tocara el fondo. */
 .tappable:active {
   transform: scale(0.98);
+  box-shadow: var(--shadow-pressed);
 }
 ion-item[button]:active {
   transform: scale(0.99);
+}
+
+/* ==========================================================================
+   PIEZAS ESTILO SISTEMA (Design System §2.6)
+   ========================================================================== */
+
+/* Tile: tarjeta blanca tocable, para listas de navegación (uno por fila, 8dp entre sí). */
+.tile {
+  display: flex;
+  align-items: center;
+  gap: var(--row-gap);
+  width: 100%;
+  min-height: var(--row-min-height);
+  margin: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+}
+
+/* Chip de ícono: círculo suave con el ícono en verde oscuro. Solo en filas y tiles de
+   navegación; nunca detrás de un título. */
+.icon-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-chip-size);
+  height: var(--icon-chip-size);
+  border-radius: 50%;
+  background: var(--color-chip);
+  color: var(--color-primary-ink);
+  transition: background-color var(--dur-release) var(--ease-out);
+}
+.icon-chip ion-icon {
+  font-size: 20px;
+}
+.tappable:active .icon-chip {
+  background: var(--color-chip-pressed);
+  transition-duration: var(--dur-press);
+}
+
+/* Grupo: registros (pesadas, pagos, costos) dentro de una tarjeta, con separadores
+   que empiezan donde empieza el texto, no en el borde. */
+.group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.group__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--row-gap);
+  min-height: var(--list-row-height);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+.group__row + .group__row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--group-inset, var(--spacing-md));
+  height: 1px;
+  background: var(--color-separator);
+}
+/* Si las filas llevan chip, el separador arranca después del chip (16 + 40 + 12). */
+.group--chips {
+  --group-inset: calc(var(--spacing-md) + var(--icon-chip-size) + var(--row-gap));
+}
+
+/* Botón circular suelto (fuera de la barra), mismo aspecto que volver/campana. */
+.circle-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--circle-btn-size);
+  height: var(--circle-btn-size);
+  min-width: var(--circle-btn-size);
+  min-height: var(--circle-btn-size);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  transition: transform var(--dur-release) var(--ease-out);
+}
+.circle-btn ion-icon {
+  font-size: 22px;
+}
+.circle-btn:active {
+  transform: scale(0.92);
+  transition-duration: var(--dur-press);
+}
+
+/* Chip de estado (no tocable): píldora suave con ícono y texto. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 var(--spacing-md) 0 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-footnote);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+}
+.pill ion-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--color-primary-ink);
 }
 
 /* Cifras: dígitos de ancho fijo para que kilos y montos no "bailen" al cambiar. */
@@ -583,7 +873,7 @@ ion-item[button]:active {
    ========================================================================== */
 ion-modal.sheet-modal,
 ion-modal[initial-breakpoint] {
-  --border-radius: var(--radius-lg);
+  --border-radius: var(--radius-xl);
   --box-shadow: var(--shadow-raised);
   --backdrop-opacity: 0.32;
 }
@@ -596,29 +886,30 @@ ion-modal::part(handle) {
 /* Con la barra de pestañas en pantalla, el aviso sube por encima de ella: si no,
    queda tapado justo donde el pulgar toca. */
 body:has(ion-tab-bar) ion-toast {
-  --toast-lift: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  --toast-lift: calc(var(--bottom-nav-offset) + var(--spacing-lg));
   transform: translateY(calc(-1 * var(--toast-lift)));
 }
 ion-toast {
-  --border-radius: var(--radius-md);
+  --border-radius: var(--radius-lg);
   --box-shadow: var(--shadow-raised);
   --background: var(--color-text);
   --color: #ffffff;
   --button-color: #ffffff;
   font-family: var(--font-family-body);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 /* ion-alert (md) no expone variables de radio ni sombra: se fijan en el contenedor. */
 ion-alert.md .alert-wrapper {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-raised);
   background: var(--color-surface);
 }
 ion-alert.md .alert-title {
-  font-family: var(--font-family-display);
+  font-family: var(--font-family-body);
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
   color: var(--color-text);
 }
 ion-alert.md .alert-message {
@@ -638,11 +929,11 @@ ion-action-sheet .action-sheet-container {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 ion-action-sheet .action-sheet-group {
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 ion-action-sheet .action-sheet-title {
   font-family: var(--font-family-body);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
 }
 ion-action-sheet .action-sheet-button {
@@ -656,7 +947,10 @@ ion-action-sheet .action-sheet-button {
 @media (prefers-reduced-motion: reduce) {
   ion-button:active,
   ion-item[button]:active,
-  .tappable:active {
+  .tappable:active,
+  .circle-btn:active,
+  ion-back-button:active,
+  ion-toolbar ion-buttons ion-button.button-has-icon-only:active {
     transform: none;
   }
   @keyframes list-item-in {
@@ -671,12 +965,12 @@ ion-action-sheet .action-sheet-button {
    también llevan la marca, no los valores por defecto del WebView.
    ========================================================================== */
 ::selection {
-  background: rgba(50, 89, 27, 0.22);
+  background: rgba(121, 166, 54, 0.28);
   color: var(--color-text);
 }
 input,
 textarea {
-  caret-color: var(--color-primary);
+  caret-color: var(--color-primary-ink);
 }
 :focus-visible {
   outline: 2px solid var(--color-focus-ring);
@@ -697,9 +991,17 @@ p {
 }
 
 /* Título de pantalla en páginas internas (con "volver"): un paso más chico que en las
-   pestañas raíz, para que nombres como "Catálogo de trabajadores" no se corten. */
-ion-toolbar:has(ion-back-button) ion-title.text-level-1 {
-  font-size: 1.375rem;
+   pestañas raíz (22 en vez de 28), para que nombres como "Catálogo de trabajadores"
+   no se corten. Algunas páginas usan un ion-button como "volver": cuenta igual. */
+ion-toolbar:has(ion-back-button) ion-title.text-level-1,
+ion-toolbar:has(ion-buttons[slot="start"]) ion-title.text-level-1 {
+  font-size: var(--font-size-title);
+  letter-spacing: -0.01em;
+}
+/* Títulos de pestaña alineados con el borde de las tarjetas (16dp), sin el
+   sangrado extra de Material. */
+ion-toolbar ion-title {
+  padding-inline: var(--spacing-sm);
 }
 
 /* ==========================================================================
@@ -729,9 +1031,9 @@ ion-toolbar:has(ion-back-button) ion-title.text-level-1 {
 }
 .notice h2 {
   margin: 0;
-  font-family: var(--font-family-display);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-headline);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
 }
 .notice p {

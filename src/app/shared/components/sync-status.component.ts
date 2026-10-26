@@ -68,7 +68,7 @@ import { HarvestFacade } from '../../harvest/services/harvest.facade';
       margin: 0;
       padding: var(--spacing-sm) var(--spacing-md);
       border-radius: var(--radius-md);
-      background: rgba(50, 89, 27, 0.08);
+      background: var(--color-primary-soft);
       color: var(--color-text);
       font-family: var(--font-family-body);
       font-size: var(--font-size-sm);
@@ -87,7 +87,7 @@ import { HarvestFacade } from '../../harvest/services/harvest.facade';
     .sync-note ion-icon {
       flex-shrink: 0;
       font-size: 20px;
-      color: var(--color-primary);
+      color: var(--color-primary-ink);
     }
     .sync-note--offline {
       background: rgba(183, 121, 31, 0.12);

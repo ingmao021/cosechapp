@@ -368,6 +368,19 @@ describeIfDb('API contract (e2e)', () => {
         .expect(422);
     });
 
+    it('dashboard: 7 days of kilos ending today, latest weighings and payments with names', async () => {
+      const res = await http.get(`/harvests/${harvestId}/dashboard`).set('Authorization', owner.token).expect(200);
+      expect(res.body.dailyKilograms).toHaveLength(7);
+      expect(res.body.dailyKilograms[6]).toEqual({ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), kilograms: 30 });
+      expect(res.body.dailyKilograms.slice(0, 6).every((day: { kilograms: number }) => day.kilograms === 0)).toBe(true);
+      expect(res.body.productionCosts).toBe(0);
+
+      const activity = res.body.recentActivity as Array<Record<string, unknown>>;
+      expect(activity).toHaveLength(3); // 2 pesadas + 1 pago
+      expect(activity[0]).toMatchObject({ type: 'payment', pickerId, displayName: 'Juancho', amount: 31000, mealDeduction: 5000, isSettlement: false });
+      expect(activity.filter((item) => item.type === 'weighing').map((item) => item.kilograms)).toEqual([4.5, 25.5]);
+    });
+
     it('edit harvest: rename 200, price change after payments 409; delete with records 409', async () => {
       const renamed = await http.patch(`/harvests/${harvestId}`).set('Authorization', owner.token).send({ name: 'Primer pasón 2026' }).expect(200);
       expect(renamed.body).toMatchObject({ name: 'Primer pasón 2026', pricePerKilogram: 1200 });
@@ -381,6 +394,7 @@ describeIfDb('API contract (e2e)', () => {
     it("another user gets 404 on everything of this harvest", async () => {
       await http.get(`/harvests/${harvestId}`).set('Authorization', intruder.token).expect(404);
       await http.get(`/harvests/${harvestId}/pickers`).set('Authorization', intruder.token).expect(404);
+      await http.get(`/harvests/${harvestId}/dashboard`).set('Authorization', intruder.token).expect(404);
       await http.patch(`/harvests/${harvestId}/close`).set('Authorization', intruder.token).expect(404);
       await http
         .post('/weighings')

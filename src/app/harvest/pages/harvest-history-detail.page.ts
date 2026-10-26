@@ -228,7 +228,7 @@ import { HistoryFacade } from '../services/history.facade';
       flex-direction: column;
       gap: 2px;
       padding: 0 0 var(--spacing-md);
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
+      border-bottom: 1px solid var(--color-separator);
     }
     .detail-dates {
       margin: 0 0 var(--spacing-md);
@@ -251,12 +251,49 @@ import { HistoryFacade } from '../services/history.facade';
       color: var(--color-accent-alert);
     }
     .profit-value {
-      color: var(--color-primary);
+      color: var(--color-primary-ink);
     }
+    /* Un solo relleno de 16dp: el ion-card global ya trae padding y el header/content de
+       Ionic suman el suyo, lo que sangraba el contenido el doble. */
     .section-card {
       --card-shadow: var(--shadow-card);
       margin: 0 0 var(--spacing-md);
+      padding: 0;
       font-variant-numeric: tabular-nums;
+    }
+    .section-card ion-card-header {
+      padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
+    }
+    .section-card ion-card-content {
+      padding: 0 var(--spacing-md) var(--spacing-md);
+    }
+    .section-card ion-list {
+      padding: 0;
+    }
+    .section-card ion-item {
+      --padding-start: 0;
+      --inner-padding-end: 0;
+    }
+    .section-card ion-item:last-child {
+      --border-width: 0;
+      --inner-border-width: 0;
+    }
+    /* Título de tarjeta como encabezado de grupo del sistema: 17 semibold, no 20 bold. */
+    .section-card ion-card-title {
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: 0;
+    }
+    /* Las cifras que responden la pregunta ("¿cuánto gané?", "¿cuánto pagué?") van en
+       slab, como el resto de cifras clave de la app. */
+    .workers-total strong,
+    .summary-row.final > :last-child {
+      font-family: var(--font-family-display);
+      font-weight: var(--font-weight-bold);
+    }
+    .workers-total strong {
+      font-size: var(--font-size-xl);
     }
     .sale-row,
     .summary-row,
@@ -274,7 +311,7 @@ import { HistoryFacade } from '../services/history.facade';
       display: flex;
       justify-content: space-between;
       padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
+      border-bottom: 1px solid var(--color-separator);
     }
     .sale-row.total {
       border-bottom: none;
@@ -286,7 +323,7 @@ import { HistoryFacade } from '../services/history.facade';
       justify-content: space-between;
       margin-top: var(--spacing-sm);
       padding-top: var(--spacing-sm);
-      border-top: 1px solid rgba(43, 36, 32, 0.08);
+      border-top: 1px solid var(--color-separator);
     }
     .profit-summary {
       display: flex;
@@ -297,7 +334,7 @@ import { HistoryFacade } from '../services/history.facade';
       display: flex;
       justify-content: space-between;
       padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
+      border-bottom: 1px solid var(--color-separator);
     }
     /* El resultado final va en un bloque propio, no tras una raya: se lee como la respuesta. */
     .summary-row.final {

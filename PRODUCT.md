@@ -31,7 +31,8 @@ Una sola app que combina pesadas ilimitadas por día, alimentación como descuen
 ## Brand Commitments
 - Nombre: CosechApp. Voz en español colombiano, cercana y directa, en oración (sin mayúsculas sostenidas).
 - Logo (`src/assets/brand/logo.png`) y el arranque con fondo de café y costal (`splash-bg.webp`, `splash-sack.webp`) se conservan.
-- Verde de marca `#32591B` como color principal.
+- Verde de marca `#79A636` (primario, rellenos) y `#88AD49` (secundario); el verde como texto va oscurecido a `#4F6E22` y el texto sobre verde en `#1F2E0E`, para cumplir contraste.
+- Estilo "OS clean": fondo gris niebla, tarjetas blancas muy redondeadas, interfaz en Inter y cifras clave en Zilla Slab (la firma de "cuaderno de registro").
 - Tema claro único: se usa a pleno sol. Sin modo oscuro.
 
 ## Evidence on Hand

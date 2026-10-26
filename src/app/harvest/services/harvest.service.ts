@@ -160,6 +160,32 @@ export interface HarvestDetailResponse {
   actualProfit: number;
 }
 
+/** Un movimiento de la cosecha para "Actividad reciente" en Inicio. Montos en positivo. */
+export type HarvestActivityResponse =
+  | { type: 'weighing'; id: string; pickerId: string; displayName: string; kilograms: number; dateTime: string }
+  | {
+      type: 'payment';
+      id: string;
+      pickerId: string;
+      displayName: string;
+      /** Efectivo recibido. */
+      amount: number;
+      mealDeduction: number;
+      /** true: liquidación al cerrar; false: pago a quien se fue antes. */
+      isSettlement: boolean;
+      dateTime: string;
+    };
+
+/** GET /harvests/:id/dashboard: lo que Inicio no saca de los recolectores. */
+export interface HarvestDashboardResponse {
+  /** Hoy y los 6 días anteriores ("AAAA-MM-DD", hora de Colombia), del más antiguo a hoy; 0 sin pesadas. */
+  dailyKilograms: Array<{ date: string; kilograms: number }>;
+  /** Últimas pesadas y pagos, del más reciente al más antiguo. */
+  recentActivity: HarvestActivityResponse[];
+  /** Costos de producción, en positivo (con la cosecha abierta todavía no hay). */
+  productionCosts: number;
+}
+
 /**
  * Servicio HTTP de cosechas: wrapper tipado sobre HarvestController.
  * Sin estado ni lógica de negocio.
@@ -215,6 +241,10 @@ export class HarvestService {
 
   getHarvestDetail(harvestId: string): Observable<HarvestDetailResponse> {
     return this.http.get<HarvestDetailResponse>(`${this.baseUrl}/${harvestId}/detail`);
+  }
+
+  getDashboard(harvestId: string): Observable<HarvestDashboardResponse> {
+    return this.http.get<HarvestDashboardResponse>(`${this.baseUrl}/${harvestId}/dashboard`);
   }
 
   assignWorker(harvestId: string, dto: AssignWorkerDto): Observable<HarvestWorkerResponse> {

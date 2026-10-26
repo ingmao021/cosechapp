@@ -3,8 +3,9 @@ import { RegisterPage } from './register.page';
 import { AuthFacade } from '../services/auth.facade';
 import { Router } from '@angular/router';
 import { By } from '@angular/platform-browser';
-import { signal, WritableSignal } from '@angular/core';
+import { computed, signal, WritableSignal } from '@angular/core';
 import type { Mock } from 'vitest';
+import { NetworkService } from '../../network/services/network.service';
 
 describe('RegisterPage', () => {
   let component: RegisterPage;
@@ -46,6 +47,7 @@ describe('RegisterPage', () => {
       providers: [
         { provide: AuthFacade, useValue: authFacadeMock },
         { provide: Router, useValue: routerMock },
+        { provide: NetworkService, useValue: { isOnline: signal(true), isOffline: computed(() => false) } },
       ],
     }).compileComponents();
 
@@ -144,6 +146,13 @@ describe('RegisterPage', () => {
   it('should navigate to login page on "Ingresar" click', () => {
     const loginLink = fixture.debugElement.query(By.css('.auth__switch ion-button'));
     loginLink.triggerEventHandler('click', {});
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/login'], { replaceUrl: true });
+  });
+
+  it('should go back to login from the back button', () => {
+    const back = fixture.debugElement.query(By.css('app-auth-top-bar .circle-btn'));
+    expect(back.attributes['aria-label']).toBe('Volver a ingresar');
+    back.triggerEventHandler('click', {});
     expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/login'], { replaceUrl: true });
   });
 

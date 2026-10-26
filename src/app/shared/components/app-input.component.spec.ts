@@ -21,11 +21,24 @@ describe('AppInputComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should render label', () => {
+  it('should render the label above the field and name the field with it', () => {
     fixture.componentRef.setInput('label', 'Cédula');
     fixture.detectChanges();
+    const label = fixture.debugElement.query(By.css('.field-label'));
+    expect(label.nativeElement.textContent.trim()).toBe('Cédula');
     const ionInput = fixture.debugElement.query(By.css('ion-input'));
-    expect(ionInput.nativeElement.label).toBe('Cédula');
+    expect(ionInput.attributes['aria-label']).toBe('Cédula');
+  });
+
+  it('should show a start icon only when one is given', () => {
+    expect(fixture.debugElement.query(By.css('.field-icon'))).toBeNull();
+
+    fixture.componentRef.setInput('iconStart', 'id-card-outline');
+    fixture.detectChanges();
+
+    const icon = fixture.debugElement.query(By.css('ion-icon.field-icon'));
+    expect(icon).toBeTruthy();
+    expect(icon.attributes['slot']).toBe('start');
   });
 
   it('should emit valueChange on input', () => {

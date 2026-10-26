@@ -114,6 +114,12 @@ import { apiErrorMessage } from '../../shared/utils';
     }
     .card h2 {
       margin: 0 0 var(--spacing-sm);
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
+    }
+    .days thead th {
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
     }
     .total-card {
       display: flex;
@@ -123,7 +129,7 @@ import { apiErrorMessage } from '../../shared/utils';
     .total {
       font-family: var(--font-family-display);
       font-size: var(--font-size-xl);
-      color: var(--color-primary);
+      color: var(--color-primary-ink);
       overflow-wrap: anywhere;
     }
     .days {
@@ -135,7 +141,7 @@ import { apiErrorMessage } from '../../shared/utils';
     .days td {
       padding: var(--spacing-xs) 0;
       text-align: right;
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
+      border-bottom: 1px solid var(--color-separator);
     }
     .days th:first-child,
     .days td:first-child {
@@ -156,7 +162,7 @@ import { apiErrorMessage } from '../../shared/utils';
       justify-content: space-between;
       gap: var(--spacing-sm);
       padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
+      border-bottom: 1px solid var(--color-separator);
     }
     .payments li div {
       display: flex;

@@ -123,13 +123,13 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
           </div>
 
           <section>
-            <h2 class="text-level-2">Pesadas de hoy</h2>
+            <h2 class="section-title">Pesadas de hoy</h2>
             @if (weighingFacade.todayWeighings().length === 0) {
               <p class="empty">Todavía no hay pesadas hoy.</p>
             } @else {
-              <ul class="rows">
+              <ul class="group">
                 @for (weighing of weighingFacade.todayWeighings(); track weighing.id) {
-                  <li class="row">
+                  <li class="group__row row">
                     <span class="row__main">{{ weighing.kilograms | kilos }}</span>
                     <span class="row__meta">
                       @if (weighing.pending) {
@@ -144,13 +144,13 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
           </section>
 
           <section>
-            <h2 class="text-level-2">Pagos</h2>
+            <h2 class="section-title">Pagos</h2>
             @if (paymentFacade.payments().length === 0) {
               <p class="empty">Aún no se le ha pagado en esta cosecha.</p>
             } @else {
-              <ul class="rows">
+              <ul class="group">
                 @for (payment of paymentFacade.payments(); track payment.id) {
-                  <li class="row">
+                  <li class="group__row row">
                     <span class="row__main">{{ payment.amount | currency }}</span>
                     <span class="row__meta">
                       @if (payment.includesMeals) {
@@ -196,7 +196,7 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       min-width: 0;
     }
     .total + .total {
-      border-left: 1px solid rgba(43, 36, 32, 0.08);
+      border-left: 1px solid var(--color-separator);
     }
     .total__value {
       font-family: var(--font-family-display);
@@ -224,7 +224,7 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       font-family: var(--font-family-display);
       font-size: var(--font-size-xl);
       font-weight: var(--font-weight-bold);
-      color: var(--color-primary);
+      color: var(--color-primary-ink);
       font-variant-numeric: tabular-nums;
       overflow-wrap: anywhere;
     }
@@ -237,32 +237,16 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       margin: 0;
       text-align: center;
     }
-    h2 {
-      margin: var(--spacing-sm) 0;
+    .section-title {
+      margin: var(--spacing-sm) 0 var(--spacing-sm) var(--spacing-xs);
     }
-    .rows {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      background: var(--color-surface);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-card);
-    }
+    /* Registros: filas del grupo global (separador desde donde empieza el texto). */
     .row {
-      display: flex;
       justify-content: space-between;
-      align-items: center;
-      min-height: var(--list-row-height);
-      padding: 0 var(--list-row-padding-h);
-      gap: var(--spacing-sm);
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
       font-family: var(--font-family-body);
     }
-    .row:last-child {
-      border-bottom: none;
-    }
     .row__main {
-      font-weight: var(--font-weight-bold);
+      font-weight: var(--font-weight-semibold);
       font-variant-numeric: tabular-nums;
     }
     .row__meta {
@@ -291,12 +275,19 @@ export class PickerDetailPage {
   private readonly toastController = inject(ToastController);
 
   private readonly pickerId = this.route.snapshot.paramMap.get('pickerId') ?? '';
+  /** Atajo desde Inicio (?pagar=1): abrir "Pagar ahora" al llegar, una sola vez. */
+  private payOnEnter = this.route.snapshot.queryParamMap.get('pagar') === '1';
+  private pickersLoaded: Promise<void> = Promise.resolve();
 
   readonly picker = computed(() =>
     this.harvestFacade.activeHarvestPickers().find((picker) => picker.id === this.pickerId) ?? null,
   );
 
+  /** Abierto desde Inicio (?desde=inicio): volver regresa a Inicio, no a la cuadrilla. */
+  private readonly fromHome = this.route.snapshot.queryParamMap.get('desde') === 'inicio';
+
   readonly backUrl = computed(() => {
+    if (this.fromHome) return '/home';
     const crewId = this.picker()?.crewId;
     return crewId ? `/harvest/crews/${crewId}` : '/harvest/crews';
   });
@@ -316,9 +307,17 @@ export class PickerDetailPage {
   /** Al volver a la pantalla (ej. después de registrar una pesada) refresca los datos. */
   ionViewWillEnter(): void {
     const harvest = this.harvestFacade.activeHarvest();
-    if (harvest) void this.harvestFacade.loadPickers(harvest.id);
+    if (harvest) this.pickersLoaded = this.harvestFacade.loadPickers(harvest.id);
     void this.weighingFacade.loadWeighingsForPicker(this.pickerId);
     void this.paymentFacade.loadPaymentsForPicker(this.pickerId);
+  }
+
+  /** El diálogo de pago se abre con la pantalla ya en su sitio, no durante la transición. */
+  async ionViewDidEnter(): Promise<void> {
+    if (!this.payOnEnter) return;
+    this.payOnEnter = false;
+    await this.pickersLoaded;
+    if (this.canPay()) await this.payNow();
   }
 
   addWeighing(): void {

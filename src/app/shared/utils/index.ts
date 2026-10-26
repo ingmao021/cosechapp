@@ -15,6 +15,24 @@ export const formatCurrency = (value: number): string => {
   return `${rounded < 0 ? '−' : ''}$ ${formatted} COP`;
 };
 
+const COLOMBIA_OFFSET_MS = -5 * 60 * 60 * 1000; // UTC−5, sin horario de verano
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Día en Colombia de un instante, como "AAAA-MM-DD", aunque el teléfono tenga otra zona
+ * horaria. Es el mismo formato que usa el backend para agrupar por día.
+ */
+export const colombiaDateKey = (value: Date | string): string =>
+  new Date(new Date(value).getTime() + COLOMBIA_OFFSET_MS).toISOString().slice(0, 10);
+
+/** Suma (o resta) días a un "AAAA-MM-DD". */
+export const addDaysToDateKey = (key: string, days: number): string =>
+  new Date(Date.parse(key) + days * DAY_MS).toISOString().slice(0, 10);
+
+/** Días entre dos "AAAA-MM-DD" (positivo si `to` es posterior). */
+export const daysBetweenDateKeys = (from: string, to: string): number =>
+  Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS);
+
 /** Mensajes en español para los errores de dominio que devuelve el backend (campo `error`). */
 const DOMAIN_ERROR_MESSAGES: Record<string, string> = {
   InvalidCredentialsError: 'Cédula o contraseña incorrectas.',
@@ -60,6 +78,18 @@ export const apiErrorMessage = (
   if (status !== undefined && byStatus[status]) return byStatus[status];
   return fallback;
 };
+
+/** Iniciales de las dos primeras palabras ("Juan Pérez" → "JP"), para los chips de personas y cuadrillas. */
+export const initialsOf = (...parts: (string | null | undefined)[]): string =>
+  parts
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word.charAt(0))
+    .join('')
+    .toUpperCase();
 
 /**
  * Vibración corta de confirmación para acciones de alto valor y poco frecuentes (guardar
