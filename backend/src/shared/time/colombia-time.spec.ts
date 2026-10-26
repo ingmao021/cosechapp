@@ -1,4 +1,4 @@
-import { startOfDayInColombia, startOfWeekInColombia } from './colombia-time';
+import { colombiaDateKey, startOfDayInColombia, startOfWeekInColombia } from './colombia-time';
 
 describe('colombia-time', () => {
   it('starts the Colombian day at 05:00 UTC', () => {
@@ -15,4 +15,9 @@ describe('colombia-time', () => {
     expect(startOfWeekInColombia(new Date('2026-10-04T20:00:00Z')).toISOString()).toBe('2026-09-28T05:00:00.000Z');
   });
 
+  it('names the Colombian day of an instant', () => {
+    // 30 sep 2026, 03:00 UTC = 29 sep 22:00 en Colombia
+    expect(colombiaDateKey(new Date('2026-09-30T03:00:00Z'))).toBe('2026-09-29');
+    expect(colombiaDateKey(new Date('2026-09-30T05:00:00Z'))).toBe('2026-09-30');
+  });
 });
