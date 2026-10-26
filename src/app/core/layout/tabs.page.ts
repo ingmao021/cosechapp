@@ -5,16 +5,15 @@ import { IonTabBar } from '@ionic/angular/ion-tab-bar';
 import { IonTabButton } from '@ionic/angular/ion-tab-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonLabel } from '@ionic/angular/ion-label';
-import { AlertController } from '@ionic/angular/alert-controller';
 import { addIcons } from 'ionicons';
 import { add, home, homeOutline, pricetag, pricetagOutline, time, timeOutline, person, personOutline } from 'ionicons/icons';
-import { HarvestFacade } from '@harvest/services/harvest.facade';
 
 /**
  * Layout principal con barra de navegación inferior flotante (Design System §3.1):
  * Inicio · Mercado · [Crear] · Historial · Perfil.
- * Crear no es una pestaña: es la acción principal (abrir cosecha) y nunca queda
- * seleccionada; al volver, sigue activa la pestaña de donde se salió.
+ * Crear es una sección más (/create: abrir cosecha o ver la abierta), con el botón
+ * circular que sobresale de la barra. Su círculo siempre es verde; estar en ella se
+ * anuncia con aria-current.
  */
 @Component({
   selector: 'app-tabs',
@@ -33,7 +32,13 @@ import { HarvestFacade } from '@harvest/services/harvest.facade';
           <ion-label>Mercado</ion-label>
         </ion-tab-button>
 
-        <button type="button" class="tabs-create" aria-label="Crear: abrir cosecha" (click)="create()">
+        <button
+          type="button"
+          class="tabs-create"
+          aria-label="Crear"
+          [attr.aria-current]="selected() === 'create' ? 'page' : null"
+          (click)="create()"
+        >
           <!-- El "bulto" del borde superior: hombros cóncavos que funden la barra con el botón. -->
           <svg class="tabs-create__bump" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true">
             <path d="M0 26 C 30 26 34 0 60 0 C 86 0 90 26 120 26 Z" />
@@ -186,8 +191,6 @@ import { HarvestFacade } from '@harvest/services/harvest.facade';
 })
 export class TabsPage {
   private readonly router = inject(Router);
-  private readonly harvestFacade = inject(HarvestFacade);
-  private readonly alertController = inject(AlertController);
 
   /** Pestaña activa: su ícono pasa a relleno, como en las apps nativas. */
   protected readonly selected = signal('home');
@@ -196,20 +199,8 @@ export class TabsPage {
     addIcons({ add, home, homeOutline, pricetag, pricetagOutline, time, timeOutline, person, personOutline });
   }
 
-  /** Solo puede haber una cosecha abierta: si ya hay una, se explica en vez de abrir un formulario que fallará. */
-  async create(): Promise<void> {
-    if (!this.harvestFacade.hasActiveHarvest()) {
-      await this.router.navigate(['/harvest/open']);
-      return;
-    }
-    const alert = await this.alertController.create({
-      header: 'Ya tienes una cosecha abierta',
-      message: `"${this.harvestFacade.activeHarvestName()}" sigue abierta. Ciérrala desde Inicio para abrir una nueva.`,
-      buttons: [
-        { text: 'Entendido', role: 'cancel' },
-        { text: 'Ir a Inicio', role: 'confirm', handler: () => void this.router.navigate(['/home']) },
-      ],
-    });
-    await alert.present();
+  /** La sección Crear decide qué mostrar: el formulario o la cosecha que ya está abierta. */
+  create(): void {
+    void this.router.navigate(['/create']);
   }
 }

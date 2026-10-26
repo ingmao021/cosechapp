@@ -38,6 +38,11 @@ export const routes: Routes = [
         loadComponent: () => import('./harvest/pages/home.page').then(m => m.HomePage),
       },
       {
+        // Crear: abrir cosecha o, si ya hay una, ver su estado y cerrarla.
+        path: 'create',
+        loadComponent: () => import('./harvest/pages/create.page').then(m => m.CreatePage),
+      },
+      {
         path: 'price-news',
         loadComponent: () => import('./price-and-news/pages/price-news.page').then(m => m.PriceNewsPage),
       },

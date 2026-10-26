@@ -2,8 +2,10 @@ import { Routes } from '@angular/router';
 
 export const harvestRoutes: Routes = [
   {
+    // Abrir cosecha ahora vive en la sección Crear.
     path: 'open',
-    loadComponent: () => import('./pages/open-harvest.page').then(m => m.OpenHarvestPage),
+    redirectTo: '/create',
+    pathMatch: 'full',
   },
   {
     path: 'crews',
