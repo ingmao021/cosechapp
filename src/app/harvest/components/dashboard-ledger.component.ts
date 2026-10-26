@@ -46,7 +46,11 @@ import { KilosPipe } from '@shared/pipes/kilos.pipe';
       <div class="row row--total">
         <dt>Ganancia de la cosecha <span class="tag">estimada</span></dt>
         @if (dashboard.estimatedHarvestProfit() !== null) {
-          <dd class="num profit" [class.loss]="dashboard.estimatedHarvestProfit()! < 0">{{ dashboard.estimatedHarvestProfit() | currency: true : false }}</dd>
+          <dd
+            class="num profit"
+            [class.gain]="dashboard.estimatedHarvestProfit()! > 0"
+            [class.loss]="dashboard.estimatedHarvestProfit()! < 0"
+          >{{ dashboard.estimatedHarvestProfit() | currency: true : false }}</dd>
         } @else {
           <dd class="pending">Sin precio FNC</dd>
         }
@@ -109,10 +113,14 @@ import { KilosPipe } from '@shared/pipes/kilos.pipe';
       font-weight: var(--font-weight-semibold);
       color: var(--color-text);
     }
+    /* Sin ganancia ni pérdida: color neutro, el verde se reserva para ganar (como en el historial). */
     .profit {
       font-family: var(--font-family-display);
       font-size: var(--font-size-title);
       font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+    }
+    .profit.gain {
       color: var(--color-primary-ink);
     }
     /* Pérdida estimada en rojo tierra (el signo "−" ya lo dice; el color acompaña). */
