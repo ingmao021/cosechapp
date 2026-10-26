@@ -241,7 +241,7 @@ npm run lint
   <img src="src/assets/brand/splash-sack.webp" alt="Costal de café de la pantalla de arranque" width="160" />
 </p>
 
-La app abre con una pantalla de arranque animada (ramas de café y el costal de la marca) y lleva al login, que conserva esa misma imagen en la parte superior. Las pantallas principales son: inicio de la cosecha activa, registro de pesadas, trabajadores, pagos, cierre de cosecha, historial y precio y noticias del café.
+La app abre con una pantalla de arranque animada (ramas de café y el costal de la marca) y lleva al login, que conserva esa misma imagen en la parte superior. Las pantallas principales son: Inicio (resumen de la cosecha activa: kilos, pagos pendientes, ganancia estimada y actividad), Crear (abrir la cosecha o, si ya hay una, editarla y cerrarla), registro de pesadas, trabajadores, pagos, cierre de cosecha, historial y precio y noticias del café.
 
 > Para agregar capturas, guárdalas en `docs/screenshots/` y enlázalas aquí.
 

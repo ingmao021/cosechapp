@@ -275,12 +275,19 @@ export class PickerDetailPage {
   private readonly toastController = inject(ToastController);
 
   private readonly pickerId = this.route.snapshot.paramMap.get('pickerId') ?? '';
+  /** Atajo desde Inicio (?pagar=1): abrir "Pagar ahora" al llegar, una sola vez. */
+  private payOnEnter = this.route.snapshot.queryParamMap.get('pagar') === '1';
+  private pickersLoaded: Promise<void> = Promise.resolve();
 
   readonly picker = computed(() =>
     this.harvestFacade.activeHarvestPickers().find((picker) => picker.id === this.pickerId) ?? null,
   );
 
+  /** Abierto desde Inicio (?desde=inicio): volver regresa a Inicio, no a la cuadrilla. */
+  private readonly fromHome = this.route.snapshot.queryParamMap.get('desde') === 'inicio';
+
   readonly backUrl = computed(() => {
+    if (this.fromHome) return '/home';
     const crewId = this.picker()?.crewId;
     return crewId ? `/harvest/crews/${crewId}` : '/harvest/crews';
   });
@@ -300,9 +307,17 @@ export class PickerDetailPage {
   /** Al volver a la pantalla (ej. después de registrar una pesada) refresca los datos. */
   ionViewWillEnter(): void {
     const harvest = this.harvestFacade.activeHarvest();
-    if (harvest) void this.harvestFacade.loadPickers(harvest.id);
+    if (harvest) this.pickersLoaded = this.harvestFacade.loadPickers(harvest.id);
     void this.weighingFacade.loadWeighingsForPicker(this.pickerId);
     void this.paymentFacade.loadPaymentsForPicker(this.pickerId);
+  }
+
+  /** El diálogo de pago se abre con la pantalla ya en su sitio, no durante la transición. */
+  async ionViewDidEnter(): Promise<void> {
+    if (!this.payOnEnter) return;
+    this.payOnEnter = false;
+    await this.pickersLoaded;
+    if (this.canPay()) await this.payNow();
   }
 
   addWeighing(): void {

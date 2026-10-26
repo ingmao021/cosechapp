@@ -261,6 +261,6 @@ export class CrewsPage {
   }
 
   goToOpenHarvest(): void {
-    this.router.navigate(['/harvest/open']);
+    this.router.navigate(['/create']);
   }
 }

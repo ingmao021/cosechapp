@@ -184,6 +184,11 @@ export class HarvestController {
     };
   }
 
+  @Get(':id/dashboard')
+  async getHarvestDashboard(@Request() req: AuthRequest, @Param('id') id: string) {
+    return this.harvestService.dashboard(req.user, id);
+  }
+
   @Patch(':id')
   async updateHarvest(@Request() req: AuthRequest, @Param('id') id: string, @Body() dto: UpdateHarvestDto) {
     return toHarvestResponse(

@@ -95,7 +95,7 @@ const today = () => {
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button [defaultHref]="step() === 'close' ? '/home' : '/history'" text="" aria-label="Volver"></ion-back-button>
+          <ion-back-button [defaultHref]="step() === 'close' ? '/create' : '/history'" text="" aria-label="Volver"></ion-back-button>
         </ion-buttons>
         <ion-title class="text-level-1">Cerrar cosecha</ion-title>
       </ion-toolbar>

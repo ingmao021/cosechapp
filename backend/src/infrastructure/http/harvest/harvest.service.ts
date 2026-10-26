@@ -27,7 +27,7 @@ import { PaymentRepository } from '@domain/payment/payment.repository';
 import { SaleRepository } from '@domain/sale-and-costs/sale.repository';
 import { ProductionCostRepository } from '@domain/sale-and-costs/production-cost.repository';
 import { OwnershipService } from '@infrastructure/http/ownership.service';
-import { PickerStats, PrismaHarvestQueries } from '@infrastructure/persistence/prisma-harvest-queries';
+import { HarvestDashboard, PickerStats, PrismaHarvestQueries } from '@infrastructure/persistence/prisma-harvest-queries';
 
 /** Usuario autenticado, tal como lo deja JwtStrategy en req.user. */
 export interface AuthUser {
@@ -208,6 +208,12 @@ export class HarvestService {
   async pickerStats(user: AuthUser, harvestId: string, onlyActive: boolean): Promise<PickerStats[]> {
     const harvest = await this.ownership.harvestFor(harvestId, user.farmId);
     return this.queries.pickerStats(harvest.id, harvest.pricePerKilogram, onlyActive);
+  }
+
+  /** Para Inicio: kilos de los últimos 7 días, últimas pesadas y pagos, y costos. */
+  async dashboard(user: AuthUser, harvestId: string): Promise<HarvestDashboard> {
+    const harvest = await this.ownership.harvestFor(harvestId, user.farmId);
+    return this.queries.dashboard(harvest.id);
   }
 
   /** Todo lo de una cosecha para el historial: recolectores, venta, costos y ganancias. */

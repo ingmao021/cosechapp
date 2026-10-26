@@ -18,3 +18,8 @@ export function startOfWeekInColombia(now: Date = new Date()): Date {
   const daysSinceMonday = (localWeekday + 6) % 7;
   return new Date(dayStart.getTime() - daysSinceMonday * 24 * 60 * 60 * 1000);
 }
+
+/** Día en Colombia de un instante, como "AAAA-MM-DD" (para agrupar por día). */
+export function colombiaDateKey(date: Date): string {
+  return new Date(date.getTime() + COLOMBIA_OFFSET_MS).toISOString().slice(0, 10);
+}

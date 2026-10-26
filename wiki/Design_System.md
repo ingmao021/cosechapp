@@ -30,17 +30,27 @@ Arranque animado mientras se verifica la sesión:
 - Sin barra superior con título: el logo es el encabezado, y el título de la tarjeta ("Ingresar" / "Crear cuenta") aparece una sola vez.
 - Los errores se muestran dentro del formulario, en español y en lenguaje del usuario (ver §2.6), no como un aviso que desaparece.
 
-### 1.2 Inicio (cosecha activa)
-- Nombre de la cosecha activa (ej. "Primer pasón") y su precio por kilo, con la etiqueta explícita ("Pagas $ 1.200 COP por kilo").
-- Acceso directo a "Pesar" (lleva a Cuadrillas).
-- Menú ⋮ en la tarjeta de la cosecha (requiere conexión):
-  - **Editar cosecha:** nombre y precio por kilo. El precio solo cambia mientras no haya pagos, porque cambiaría lo ya pagado.
-  - **Eliminar cosecha:** para una cosecha creada por error. Solo se puede si aún no tiene pesadas ni pagos; si ya los tiene, el mensaje indica que se cierre con "Cerrar cosecha".
+### 1.2 Inicio (dashboard de la cosecha activa)
+Inicio **solo informa**: no tiene formularios ni acciones sobre la cosecha (abrir, editar, eliminar y cerrar viven en Crear, §1.2.1). Los botones que tiene solo llevan a otra pantalla.
 - Arriba, una franja del día (tile tocable que lleva a Mercado): la fecha de hoy en hora de Colombia ("Sáb 24 oct") y el precio FNC, cada uno con su chip de ícono. Sin precio publicado dice "Sin publicar"; **nunca** un valor de ejemplo ni "$ 0".
-- Las cifras de la tarjeta (kilos de hoy, recolectores) van en Zilla Slab dentro de dos celdas suaves; los estados de sincronización como chips píldora (`.pill`).
-- Indicador de conexión: "En línea" o "Sin conexión · se guarda en el teléfono". Cuando la sincronización offline esté implementada, este indicador pasa a mostrar las pesadas/pagos pendientes de sincronizar. Nunca se muestra "Sincronizado" si no es verdad.
-- Botón "Cerrar cosecha" (lleva al flujo de venta y costos).
-- Si no hay cosecha activa: invitación a abrir una nueva, con campo de nombre libre.
+- Debajo, en tarjetas blancas con su nombre encima (`.section-title`), de arriba hacia abajo:
+  1. **Cosecha activa:** nombre, "Día N de la cosecha" (N = 1 el día que se abrió, en hora de Colombia), el chip de sincronización ("En línea", "Sin conexión · se guarda en el teléfono", "N pesadas por enviar"; nunca "Sincronizado" si no es verdad) y el botón **"Continuar"**, que lleva a Cuadrillas para seguir pesando.
+  2. **Kilos recogidos:** hoy y ayer en dos celdas suaves (cifras en Zilla Slab) y la diferencia en palabras ("12 kg más que ayer", "5 kg menos que ayer", "Igual que ayer"; el primer día, "Primer día de la cosecha"). El color solo acompaña al texto. Los kilos de hoy incluyen las pesadas guardadas sin señal.
+  3. **Pagos pendientes:** total por pagar y hasta 5 recolectores con saldo (el mayor primero), cada uno con su atajo **"Pagar ahora"**: abre su detalle con el flujo de pago ya en marcha (§1.5). Si hay más, "y N más". Requiere conexión. Sin saldos: "Nada pendiente: todos están al día".
+  4. **Acumulado de la cosecha:** kilos recogidos, pagado a recolectores, por pagar y costos de producción ("Se registran al cerrar" mientras no haya). Después, separadas, **Ganancia bruta** y **Ganancia de la cosecha**, con la etiqueta "estimada": con la cosecha abierta no hay venta, así que se estiman con el valor del punto 5. Bruta = valor estimado − pagos a recolectores (pagado + por pagar, porque al cerrar se liquida todo lo pendiente); de la cosecha = bruta − costos (PRD 7.8 y 7.9). Sin precio FNC dicen "Sin precio FNC", nunca una cifra inventada.
+  5. **Valor estimado de lo recogido:** kilos secos proyectados (cereza ÷ 5, PRD 7.7) × precio FNC ÷ 125 (el precio es por carga de 125 kg), con la cuenta escrita debajo.
+  6. **Kilos por día (últimos 7 días):** columnas finas (`app-daily-kilos-chart`). Hoy en el verde de marca y los demás días en un paso más claro del mismo verde; cifra solo sobre hoy y el día más alto (tocar una columna muestra la suya). Los días antes de abrir la cosecha no tienen columna, y los días sin pesadas una marca gris mínima. El lector de pantalla recibe todas las cifras.
+  7. **Actividad reciente:** las últimas 6 pesadas y pagos ("Pesada · hoy 10:32", "Pago · ayer", "Liquidación · lun 20 oct") con su cifra; las que siguen en el teléfono dicen "Por enviar". Tocar una fila abre al recolector.
+- Se refresca al volver a la pestaña y con deslizar hacia abajo. Sin señal muestra la última copia guardada.
+- Si no hay cosecha activa: "No hay cosecha activa" con un solo botón, "Ir a Crear".
+
+### 1.2.1 Crear (sección de la barra inferior, `/create`)
+- Página de nivel 1 con el título "Crear".
+- **Sin cosecha activa:** el formulario para abrirla (nombre libre y precio por kilo, §2.6 Formulario). Al abrirla se va a Inicio.
+- **Con cosecha activa:** su estado (nombre, día N, fecha de apertura, precio por kilo, kilos y recolectores), el aviso "Solo puede haber una cosecha abierta a la vez. Para abrir otra, cierra esta…" y las acciones de su ciclo de vida:
+  - **"Ir a la cosecha"** (lleva a Cuadrillas).
+  - Menú ⋮ (requiere conexión): **Editar cosecha** (nombre y precio por kilo; el precio solo cambia mientras no haya pagos, porque cambiaría lo ya pagado) y **Eliminar cosecha** (para una cosecha creada por error; solo si aún no tiene pesadas ni pagos; si ya los tiene, el mensaje indica que se cierre con "Cerrar cosecha").
+  - **"Cerrar cosecha"** (texto rojo, requiere conexión; lleva al flujo de §1.8). Sin kilos pesados, un diálogo lo explica (§2.6 Acción bloqueada).
 
 ### 1.3 Cuadrillas
 - Lista de cuadrillas de la cosecha activa (nombre + cantidad de recolectores).
@@ -163,7 +173,8 @@ Design System — CosechApp
 │   └── Tarjeta de cosecha (nombre + fecha + ganancia, para el historial)
 │
 ├── Organismos
-│   ├── Header de cosecha activa (nombre + precio/kilo + botón cerrar cosecha)
+│   ├── Estado de la cosecha activa (Crear: nombre + día + precio/kilo + ⋮ + cerrar cosecha)
+│   ├── Bloques del dashboard de Inicio (pagos pendientes, acumulado, kilos por día, actividad reciente)
 │   ├── Lista de cuadrillas
 │   ├── Lista de recolectores de una cuadrilla
 │   ├── Formulario de cierre de cosecha (venta + costos)
@@ -178,7 +189,8 @@ Design System — CosechApp
 │
 └── Páginas
     ├── Login / Registro
-    ├── Inicio (cosecha activa)
+    ├── Inicio (dashboard de la cosecha activa)
+    ├── Crear (abrir cosecha / cosecha abierta)
     ├── Cuadrillas
     ├── Detalle de cuadrilla
     ├── Detalle de recolector
@@ -365,7 +377,7 @@ Los íconos acompañan siempre al texto (nunca solos) en las acciones principale
 Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en ninguna, se agrega el patrón aquí antes de construirla.
 
 **Encabezado** (estilo sistema: la barra es del color del fondo, sin línea ni sombra)
-- **Nivel 1 (pestañas: Inicio, Mercado, Historial, Perfil):** título grande a la izquierda (28sp), sin botón de volver. En Inicio el título es el wordmark en Zilla Slab.
+- **Nivel 1 (Inicio, Mercado, Crear, Historial, Perfil):** título grande a la izquierda (28sp), sin botón de volver. En Inicio el título es el wordmark en Zilla Slab.
 - **Nivel 2 en adelante:** botón circular "volver" (48dp, blanco con sombra suave) y el título en 22sp. Los botones de ícono del encabezado (campana, agregar) usan el mismo círculo.
 - **Un solo título por pantalla.** La tarjeta del contenido no repite el título de la barra (antes: "Abrir cosecha" arriba y "Nueva cosecha" en la tarjeta).
 
@@ -439,6 +451,11 @@ Reglas que comparten la app y el backend (NestJS). Las verifica `backend/test/ap
 | `POST /:id/pickers` `{ workerId, crewId? }` | Sin `crewId`, la persona queda sin cuadrilla |
 | `PATCH /:id/pickers/:pickerId` `{ crewId?: string \| null, harvestAlias?: string \| null }` | Mueve de cuadrilla (`null` = sin cuadrilla) o quita el alias de la cosecha |
 | `DELETE /:id/pickers/:pickerId` | 204. 409 `PickerHasRecordsError` si tiene pesadas o pagos (se archiva en su lugar) |
+
+**Inicio:** `GET /harvests/:id/dashboard` devuelve lo que el dashboard no saca de `GET /:id/pickers`:
+- `dailyKilograms`: 7 entradas `{ date: 'AAAA-MM-DD', kilograms }`, de hace 6 días a hoy (hora de Colombia), con 0 los días sin pesadas.
+- `recentActivity`: las últimas 10 pesadas y pagos, del más reciente al más antiguo: `{ type: 'weighing', id, pickerId, displayName, kilograms, dateTime }` o `{ type: 'payment', id, pickerId, displayName, amount, mealDeduction, isSettlement, dateTime }`.
+- `productionCosts`: total de costos en positivo (0 con la cosecha abierta).
 
 **Cierre y detalle del trabajador:**
 - `GET /harvests/:id/close-preview?includesMeals=&mealPerDay=` devuelve, por recolector con saldo, `{ harvestPickerId, displayName, totalKilograms, gross, alreadyPaid, pending, mealDays, mealDeduction, net }` y los totales `{ settledPickers, totalNet, totalMeals }`.
@@ -532,18 +549,21 @@ Splash (logo nativo mientras se verifica la sesión)
 │  Barra inferior: Inicio | Mercado | (+) |    │
 │                  Historial | Perfil          │
 └─────────────────────────────────────────────┘
-        (+) Crear → Abrir cosecha
+Inicio (dashboard de la cosecha activa)
+├── Continuar → Cuadrillas
+├── Pagar ahora (atajo) → Detalle de recolector con el pago en marcha
+└── Actividad reciente → Detalle de recolector
 
-Inicio (cosecha activa)
-│
-├── Cuadrillas
-│   └── Detalle de cuadrilla
-│       └── Detalle de recolector
-│           ├── Registro de pesada
-│           └── Pagar ahora (confirmación de monto)
-│
-└── Cerrar cosecha
-    └── Registro de venta y costos → Resumen de ganancia de la cosecha
+(+) Crear
+├── Sin cosecha: Abrir cosecha (formulario)
+└── Con cosecha: estado + Editar / Eliminar (⋮)
+    ├── Ir a la cosecha → Cuadrillas
+    │   └── Detalle de cuadrilla
+    │       └── Detalle de recolector
+    │           ├── Registro de pesada
+    │           └── Pagar ahora (confirmación de monto)
+    └── Cerrar cosecha
+        └── Registro de venta y costos → Resumen de ganancia de la cosecha
 
 Mercado (precio y noticias)
 └── Notificaciones (también accesible desde el ícono de campana en cualquier pantalla)
@@ -559,19 +579,19 @@ Perfil
 ```
 
 ### 3.2 Página principal
-**Inicio**, que muestra la cosecha activa y es el punto de entrada al flujo más usado (pesar y pagar recolectores), consistente con que el uso principal ocurre en el cafetal.
+**Inicio**, el dashboard de la cosecha activa: lo primero que se ve es cómo va (kilos, pagos pendientes, ganancia estimada), y "Continuar" lleva en un toque al flujo más usado (pesar y pagar recolectores), consistente con que el uso principal ocurre en el cafetal.
 
 ### 3.3 Elementos de navegación
 - Barra inferior de pestañas flotante (4 pestañas: Inicio, Mercado, Historial, Perfil), con etiquetas de una sola palabra para que quepan en 360dp. La pestaña activa pasa a ícono relleno y etiqueta en negrita `--color-primary-ink`.
-- **Crear** (botón circular verde al centro) no es una pestaña: un tab bar navega, no ejecuta acciones. Abre "Abrir cosecha" y nunca queda seleccionado. Si ya hay una cosecha abierta, un diálogo lo explica (solo puede haber una) en lugar de abrir un formulario que fallaría.
+- **Crear** (botón circular verde al centro, que sobresale de la barra) es una sección con ruta propia (`/create`, §1.2.1): sin cosecha muestra el formulario para abrirla; con una abierta, su estado y por qué no se puede abrir otra. El círculo siempre es verde; estar en Crear se anuncia con `aria-current="page"`.
 - Dentro de cada pestaña, navegación por profundización (tocar una tarjeta lleva al detalle) con botón de "volver" estándar.
-- "Cuadrillas" y "Cerrar cosecha" no son pestañas propias: son acciones dentro de Inicio, porque dependen de que haya una cosecha activa.
+- "Cuadrillas" y "Cerrar cosecha" no son pestañas propias, porque dependen de que haya una cosecha activa: a Cuadrillas se llega con "Continuar" (Inicio) o "Ir a la cosecha" (Crear); "Cerrar cosecha" está en Crear.
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).
 
 ### 3.4 Niveles de navegación
 1. **Nivel -1 — Splash:** logo nativo (ícono sobre blanco) mientras se verifica la sesión contra el backend (ver §1.0).
 2. **Nivel 0 — Autenticación:** Login/Registro (fuera de la barra de pestañas), solo si no hay sesión válida.
-3. **Nivel 1 — Pestañas principales:** Inicio, Mercado, Historial, Perfil.
+3. **Nivel 1 — Secciones principales:** Inicio, Mercado, Crear, Historial, Perfil.
 4. **Nivel 2 — Listas:** Cuadrillas, Catálogo de trabajadores, lista de cosechas cerradas.
 5. **Nivel 3 — Detalle:** Detalle de cuadrilla, Detalle de cosecha cerrada.
 6. **Nivel 4 — Acción puntual:** Detalle de recolector, Registro de pesada, Pagar ahora, Cierre de cosecha (venta y costos).
