@@ -17,8 +17,8 @@ import { personAddOutline, checkmarkCircle, swapHorizontalOutline, addCircleOutl
 import { HarvestFacade } from '../services/harvest.facade';
 import { WorkerFacade } from '../../worker/services/worker.facade';
 import { WorkerResponse } from '../../worker/services/worker.service';
-import { apiErrorMessage } from '../../shared/utils';
-import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
+import { apiErrorMessage, initialsOf } from '../../shared/utils';
+import { EmptyStateComponent, ListSkeletonComponent, NavRowComponent } from '@shared/components';
 
 type WorkerState = 'available' | 'in-this-crew' | 'in-other-crew' | 'archived';
 
@@ -59,6 +59,7 @@ const normalize = (text: string) =>
     IonSpinner,
     EmptyStateComponent,
     ListSkeletonComponent,
+    NavRowComponent,
   ],
   template: `
     <ion-header>
@@ -108,19 +109,18 @@ const normalize = (text: string) =>
           <ul class="worker-list">
             @for (row of rows(); track row.worker.id) {
               <li>
+                <!-- Fila de acción (agrega, no navega): sin chevron. -->
                 <button
-                  type="button"
-                  class="worker-row tappable"
+                  app-nav-row
+                  class="worker-row"
+                  [chevron]="false"
+                  [initials]="initials(row.worker.firstName, row.worker.lastName)"
+                  [label]="row.worker.displayName"
+                  [subtitle]="row.worker.alias ? row.worker.firstName + ' ' + row.worker.lastName : ''"
                   [disabled]="row.state === 'in-this-crew' || row.state === 'archived' || busyId() !== null"
                   (click)="select(row)"
                 >
-                  <span class="worker-row__name">
-                    {{ row.worker.displayName }}
-                    @if (row.worker.alias) {
-                      <small>{{ row.worker.firstName }} {{ row.worker.lastName }}</small>
-                    }
-                  </span>
-                  <span class="worker-row__state">
+                  <span nav-row-end class="worker-row__state">
                     @switch (row.state) {
                       @case ('in-this-crew') {
                         <ion-icon name="checkmark-circle" color="primary" aria-hidden="true"></ion-icon> {{ solo ? 'Ya está sin cuadrilla' : 'En esta cuadrilla' }}
@@ -157,11 +157,6 @@ const normalize = (text: string) =>
       margin: 0 auto;
       padding: var(--spacing-lg) var(--screen-margin);
     }
-    ion-searchbar {
-      padding: 0;
-      --border-radius: var(--input-radius);
-      --background: var(--color-surface);
-    }
     .worker-list {
       list-style: none;
       margin: 0;
@@ -170,40 +165,12 @@ const normalize = (text: string) =>
       flex-direction: column;
       gap: var(--card-gap-vertical);
     }
-    .worker-row {
-      width: 100%;
-      min-height: var(--list-row-height);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--spacing-md);
-      padding: var(--spacing-sm) var(--list-row-padding-h);
-      border: none;
-      border-radius: var(--radius-lg);
-      background: var(--color-surface);
-      box-shadow: var(--shadow-card);
-      font-family: var(--font-family-body);
-      text-align: left;
-      color: var(--color-text);
-      cursor: pointer;
-    }
+    /* Ya está o no se puede agregar: la fila se apaga y no se hunde. */
     .worker-row:disabled {
       cursor: default;
-      opacity: 0.7;
+      opacity: 0.6;
       transform: none;
-    }
-    .worker-row__name {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      font-size: var(--font-size-md);
-      font-weight: var(--font-weight-bold);
-      overflow-wrap: anywhere;
-    }
-    .worker-row__name small {
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-regular);
-      color: var(--color-text-muted);
+      box-shadow: var(--shadow-pressed);
     }
     .worker-row__state {
       display: inline-flex;
@@ -235,6 +202,7 @@ export class AddPickerPage {
 
   readonly query = signal('');
   readonly busyId = signal<string | null>(null);
+  readonly initials = initialsOf;
 
   readonly crewName = computed(() =>
     this.crewId ? (this.harvestFacade.crewById(this.crewId)?.name ?? 'la cuadrilla') : 'sin cuadrilla',

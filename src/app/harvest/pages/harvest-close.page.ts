@@ -11,19 +11,29 @@ import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonModal } from '@ionic/angular/ion-modal';
-import { IonDatetime } from '@ionic/angular/ion-datetime';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { addIcons } from 'ionicons';
 import {
   scaleOutline,
   alertCircleOutline,
   addOutline,
+  checkmarkCircle,
   checkmarkCircleOutline,
+  close,
   lockClosedOutline,
   cashOutline,
   warningOutline,
 } from 'ionicons/icons';
-import { AppInputComponent, AppButtonPrimaryComponent, EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
+import {
+  AppInputComponent,
+  AppButtonPrimaryComponent,
+  EmptyStateComponent,
+  ListSkeletonComponent,
+  MonthCalendarComponent,
+  SegmentedComponent,
+  type CalendarMarker,
+  type SegmentedOption,
+} from '@shared/components';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
@@ -41,6 +51,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const COLOMBIA_OFFSET_MS = -5 * 60 * 60 * 1000;
 /** Día en Colombia ("AAAA-MM-DD"), sin importar la zona horaria del teléfono; daysAgo 1 = ayer. */
 const colombiaDay = (daysAgo = 0) => new Date(Date.now() + COLOMBIA_OFFSET_MS - daysAgo * DAY_MS).toISOString().slice(0, 10);
+/** Día en Colombia de un instante guardado por el backend (ej. la apertura de la cosecha). */
+const colombiaDayOf = (instant: string) => new Date(new Date(instant).getTime() + COLOMBIA_OFFSET_MS).toISOString().slice(0, 10);
 
 const today = () => {
   const now = new Date();
@@ -71,9 +83,10 @@ const today = () => {
     IonButton,
     IonIcon,
     IonModal,
-    IonDatetime,
     AppInputComponent,
     AppButtonPrimaryComponent,
+    SegmentedComponent,
+    MonthCalendarComponent,
     CurrencyPipe,
     KilosPipe,
     DateFormatPipe,
@@ -151,12 +164,12 @@ const today = () => {
               <section class="card">
                 <h3 class="text-level-3 card__title">¿Les diste alimentación?</h3>
                 <p class="form-page__intro">Si la hubo, se le descuenta a todos los trabajadores por cada día que pesaron.</p>
-                <div class="choice" role="radiogroup" aria-label="Alimentación">
-                  <button type="button" role="radio" class="choice__option" [class.selected]="mealsChoice() === 'no'"
-                    [attr.aria-checked]="mealsChoice() === 'no'" (click)="chooseMeals('no')">Sin alimentación</button>
-                  <button type="button" role="radio" class="choice__option" [class.selected]="mealsChoice() === 'yes'"
-                    [attr.aria-checked]="mealsChoice() === 'yes'" (click)="chooseMeals('yes')">Con alimentación</button>
-                </div>
+                <app-segmented
+                  ariaLabel="Alimentación"
+                  [options]="mealsOptions"
+                  [value]="mealsChoice()"
+                  (selected)="chooseMeals($event === 'yes' ? 'yes' : 'no')"
+                ></app-segmented>
                 @if (mealsChoice() === 'yes') {
                   <app-input
                     label="¿Cuánto cobras de comida por día?"
@@ -249,34 +262,38 @@ const today = () => {
                 <!-- Fecha con un toque: sin escribir y sin venir ya marcada -->
                 <div class="sale-date">
                   <span class="sale-date__label" id="sale-date-label">Fecha de la venta</span>
-                  <div class="choice choice--three" role="radiogroup" aria-labelledby="sale-date-label">
-                    <button type="button" role="radio" class="choice__option" [class.selected]="saleDateChoice() === 'today'"
-                      [attr.aria-checked]="saleDateChoice() === 'today'" (click)="pickSaleDay('today')">Hoy</button>
-                    <button type="button" role="radio" class="choice__option" [class.selected]="saleDateChoice() === 'yesterday'"
-                      [attr.aria-checked]="saleDateChoice() === 'yesterday'" (click)="pickSaleDay('yesterday')">Ayer</button>
-                    <button type="button" role="radio" class="choice__option" [class.selected]="saleDateChoice() === 'other'"
-                      [attr.aria-checked]="saleDateChoice() === 'other'" (click)="calendarOpen.set(true)">Otro día</button>
-                  </div>
+                  <!-- "Otro día" abre el calendario; queda elegido solo cuando se toca un día. -->
+                  <app-segmented
+                    labelledBy="sale-date-label"
+                    [options]="saleDayOptions"
+                    [value]="saleDateChoice()"
+                    (selected)="onSaleDayOption($event)"
+                  ></app-segmented>
                   @if (saleDateLabel()) {
-                    <p class="sale-date__chosen" aria-live="polite">✓ {{ saleDateLabel() }}</p>
+                    <p class="sale-date__chosen" aria-live="polite">
+                      <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+                      {{ saleDateLabel() }}
+                    </p>
                   }
                 </div>
-                <ion-modal class="sheet-modal" [isOpen]="calendarOpen()" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]" [handle]="true" (didDismiss)="calendarOpen.set(false)">
+                <ion-modal class="sheet-modal" [isOpen]="calendarOpen()" [initialBreakpoint]="0.8" [breakpoints]="[0, 0.8]" [handle]="true" (didDismiss)="calendarOpen.set(false)">
                   <ng-template>
                     <div class="calendar">
-                      <h3 class="text-level-2">¿Qué día vendiste?</h3>
-                      <ion-datetime
-                        presentation="date"
-                        locale="es-CO"
-                        [firstDayOfWeek]="1"
-                        [max]="maxSaleDate"
+                      <div class="calendar__head">
+                        <h3 class="t-section">¿Qué día vendiste?</h3>
+                        <button type="button" class="circle-btn" aria-label="Cerrar calendario" (click)="calendarOpen.set(false)">
+                          <ion-icon name="close" aria-hidden="true"></ion-icon>
+                        </button>
+                      </div>
+                      <p class="calendar__hint">Desde que abriste la cosecha hasta hoy.</p>
+                      <app-month-calendar
                         [value]="saleDateChoice() === 'other' ? saleDate() : null"
-                        [showDefaultButtons]="true"
-                        doneText="Listo"
-                        cancelText="Cancelar"
-                        (ionChange)="onCalendarDate($event.detail.value)"
-                        (ionCancel)="calendarOpen.set(false)"
-                      ></ion-datetime>
+                        [min]="openingDay()"
+                        [max]="maxSaleDate"
+                        [today]="maxSaleDate"
+                        [markers]="openingMarkers()"
+                        (dateSelected)="onCalendarDate($event)"
+                      ></app-month-calendar>
                     </div>
                   </ng-template>
                 </ion-modal>
@@ -343,9 +360,9 @@ const today = () => {
               </form>
 
               @if (saleAndCostsFacade.costs().length > 0) {
-                <ul class="rows">
+                <ul class="group">
                   @for (cost of saleAndCostsFacade.costs(); track cost.id) {
-                    <li class="row">
+                    <li class="group__row row">
                       <span>{{ cost.description }}<small>{{ cost.date | dateFormat: 'date' }}</small></span>
                       <strong>{{ cost.amount | currency }}</strong>
                     </li>
@@ -371,23 +388,35 @@ const today = () => {
       padding: 0;
       list-style: none;
     }
+    /* Pasos: tres barras de progreso redondeadas con su nombre debajo, como el avance
+       de una instalación del sistema. Hecho = verde, actual = verde oscuro. */
     .steps li {
       flex: 1;
-      padding: var(--spacing-xs) 0;
-      border-bottom: 3px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       font-family: var(--font-family-body);
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-footnote);
+      font-weight: var(--font-weight-medium);
       color: var(--color-text-muted);
       text-align: center;
-      transition: border-color var(--dur-fast) ease, color var(--dur-fast) ease;
     }
-    .steps li.done {
-      border-color: var(--color-primary-muted);
+    .steps li::before {
+      content: '';
+      height: 4px;
+      border-radius: var(--radius-full);
+      background: rgba(29, 33, 27, 0.1);
+      transition: background-color var(--dur-base) var(--ease-out);
+    }
+    .steps li.done::before {
+      background: var(--color-primary);
+    }
+    .steps li.current::before {
+      background: var(--color-primary-ink);
     }
     .steps li.current {
-      border-color: var(--color-primary);
       color: var(--color-text);
-      font-weight: var(--font-weight-bold);
+      font-weight: var(--font-weight-semibold);
     }
     .card {
       padding: var(--spacing-md);
@@ -425,7 +454,7 @@ const today = () => {
     }
     .summary .total {
       padding-top: var(--spacing-sm);
-      border-top: 1px solid rgba(43, 36, 32, 0.08);
+      border-top: 1px solid var(--color-separator);
       font-size: var(--font-size-lg);
     }
     .summary .total dt {
@@ -433,67 +462,61 @@ const today = () => {
       font-weight: var(--font-weight-bold);
     }
     .summary .total dd {
-      color: var(--color-primary);
+      color: var(--color-primary-ink);
     }
     .summary dd.loss {
       color: var(--color-accent-alert);
     }
     .card__title {
       margin: 0 0 var(--spacing-xs);
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
     }
-    .choice {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--spacing-sm);
+    .card app-segmented {
       margin: var(--spacing-sm) 0;
     }
-    .choice__option {
-      min-height: var(--touch-target-min);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      background: var(--color-surface);
-      color: var(--color-text);
-      font: inherit;
-      font-weight: var(--font-weight-bold);
-      transition:
-        transform var(--dur-press) var(--ease-out),
-        background-color var(--dur-fast) ease,
-        border-color var(--dur-fast) ease,
-        color var(--dur-fast) ease;
-    }
-    .choice__option:active {
-      transform: scale(0.97);
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .choice__option:active {
-        transform: none;
-      }
-    }
-    .choice--three {
-      grid-template-columns: repeat(3, 1fr);
-    }
-    .sale-date__label {
-      font-weight: var(--font-weight-bold);
-    }
-    .sale-date__chosen {
-      margin: 0;
-      color: var(--color-primary);
-      font-weight: var(--font-weight-bold);
-    }
-    .calendar {
+    .sale-date {
       display: flex;
       flex-direction: column;
+      gap: 6px;
+    }
+    .sale-date__label {
+      padding-left: var(--spacing-xs);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+    }
+    .sale-date__chosen {
+      display: flex;
       align-items: center;
-      padding: var(--spacing-lg) var(--spacing-md) calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+      gap: 6px;
+      margin: var(--spacing-xs) 0 0;
+      padding-left: var(--spacing-xs);
+      color: var(--color-primary-ink);
+      font-family: var(--font-family-body);
+      font-weight: var(--font-weight-semibold);
     }
-    .calendar h3 {
-      margin: 0 0 var(--spacing-sm);
-      font-family: var(--font-family-display);
+    .sale-date__chosen ion-icon {
+      font-size: 20px;
     }
-    .choice__option.selected {
-      border-color: var(--color-primary);
-      background: var(--color-primary);
-      color: var(--color-text-on-primary);
+    .calendar {
+      padding: var(--spacing-lg) 20px calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
+    }
+    .calendar__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+    }
+    .calendar__head h3 {
+      margin: 0;
+    }
+    .calendar__hint {
+      margin: var(--spacing-xs) 0 var(--spacing-lg);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
     }
     .settle-total {
       margin: 0 0 var(--spacing-xs);
@@ -501,7 +524,7 @@ const today = () => {
     }
     .settle-details summary {
       cursor: pointer;
-      color: var(--color-primary);
+      color: var(--color-primary-ink);
       font-weight: var(--font-weight-bold);
     }
     .settle-list {
@@ -514,7 +537,7 @@ const today = () => {
       grid-template-columns: 1fr auto;
       column-gap: var(--spacing-sm);
       padding: var(--spacing-xs) 0;
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
+      border-bottom: 1px solid var(--color-separator);
     }
     .settle-list__name {
       font-weight: var(--font-weight-bold);
@@ -533,27 +556,11 @@ const today = () => {
     h2 {
       margin: 0;
     }
-    .rows {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      border-radius: var(--radius-lg);
-      background: var(--color-surface);
-      box-shadow: var(--shadow-card);
-      font-variant-numeric: tabular-nums;
-    }
+    /* Registros: filas del grupo global (separador desde donde empieza el texto). */
     .row {
-      display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: var(--spacing-md);
-      min-height: var(--list-row-height);
-      padding: var(--spacing-sm) var(--list-row-padding-h);
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
       font-family: var(--font-family-body);
-    }
-    .row:last-child {
-      border-bottom: none;
+      font-variant-numeric: tabular-nums;
     }
     .row small {
       display: block;
@@ -585,6 +592,24 @@ export class HarvestClosePage {
   readonly calendarOpen = signal(false);
   /** El calendario no deja elegir días futuros. */
   protected readonly maxSaleDate = colombiaDay();
+  /** Ni días anteriores a la apertura: no se vende café que aún no se había recogido. */
+  readonly openingDay = computed(() => {
+    const opening = this.harvest()?.openingDate;
+    return opening ? colombiaDayOf(opening) : null;
+  });
+  readonly openingMarkers = computed<CalendarMarker[]>(() => {
+    const day = this.openingDay();
+    return day ? [{ date: day, label: 'abriste la cosecha' }] : [];
+  });
+  protected readonly saleDayOptions: SegmentedOption[] = [
+    { value: 'today', label: 'Hoy' },
+    { value: 'yesterday', label: 'Ayer' },
+    { value: 'other', label: 'Otro día' },
+  ];
+  protected readonly mealsOptions: SegmentedOption[] = [
+    { value: 'no', label: 'Sin comida' },
+    { value: 'yes', label: 'Con comida' },
+  ];
   /** "Sábado, 11 de octubre de 2026" (mediodía, para no correr el día por zona horaria). */
   readonly saleDateLabel = computed(() => {
     const date = this.saleDate();
@@ -630,7 +655,7 @@ export class HarvestClosePage {
   readonly saleTotal = computed(() => (this.dryKilograms() ?? 0) * (this.salePrice() ?? 0));
 
   constructor() {
-    addIcons({ scaleOutline, alertCircleOutline, addOutline, checkmarkCircleOutline, lockClosedOutline, cashOutline, warningOutline });
+    addIcons({ scaleOutline, alertCircleOutline, addOutline, checkmarkCircle, checkmarkCircleOutline, close, lockClosedOutline, cashOutline, warningOutline });
     void this.load();
   }
 
@@ -716,6 +741,15 @@ export class HarvestClosePage {
         date: this.saleDate(),
       }),
     );
+  }
+
+  /** Hoy y Ayer eligen de una; "Otro día" abre el calendario (también si ya estaba elegido, para cambiarlo). */
+  onSaleDayOption(option: string): void {
+    if (option === 'today' || option === 'yesterday') {
+      this.pickSaleDay(option);
+    } else {
+      this.calendarOpen.set(true);
+    }
   }
 
   pickSaleDay(day: 'today' | 'yesterday'): void {

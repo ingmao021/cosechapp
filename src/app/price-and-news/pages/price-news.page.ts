@@ -1,14 +1,14 @@
 import { Component, OnInit, inject, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonLabel, IonBadge, IonButtons, IonSkeletonText } from '@ionic/angular';
-import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
+import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonRefresher, IonRefresherContent, IonCard, IonCardContent, IonBadge, IonButtons, IonSkeletonText } from '@ionic/angular';
+import { EmptyStateComponent, ListSkeletonComponent, NavRowComponent } from '@shared/components';
 import { addIcons } from 'ionicons';
 import { pricetagOutline, newspaperOutline, refreshOutline, alertCircleOutline, chevronForwardOutline, notificationsOutline, openOutline, sparklesOutline, cloudOfflineOutline } from 'ionicons/icons';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.facade';
 
 /**
- * Pestaña "Precio y Noticias" — Tarea 6.1.
+ * Pestaña "Mercado" (precio y noticias del café) — Tarea 6.1.
  * Contenido según Design System 1.10:
  * - Precio actual FNC (valor grande, Zilla Slab, fecha) y análisis corto con IA
  * - Noticias del café (Google Noticias, elegidas con IA), con enlace a la nota original
@@ -32,7 +32,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
     IonRefresherContent,
     IonCard,
     IonCardContent,
-    IonLabel,
+    NavRowComponent,
     IonBadge,
     IonButtons,
     DateFormatPipe,
@@ -40,12 +40,13 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
   template: `
     <ion-header>
       <ion-toolbar>
-        <ion-title class="text-level-1">Precio y noticias</ion-title>
+        <ion-title class="text-level-1">Mercado</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" (click)="goToNotifications()" aria-label="Notificaciones">
+          <ion-button fill="clear" class="bell" (click)="goToNotifications()"
+            [attr.aria-label]="facade.unreadCount() > 0 ? 'Notificaciones, ' + facade.unreadCount() + ' sin leer' : 'Notificaciones'">
             <ion-icon name="notifications-outline" slot="icon-only"></ion-icon>
             @if (facade.unreadCount() > 0) {
-              <ion-badge color="danger">{{ facade.unreadCount() }}</ion-badge>
+              <ion-badge color="danger" aria-hidden="true">{{ facade.unreadCount() }}</ion-badge>
             }
           </ion-button>
         </ion-buttons>
@@ -97,17 +98,14 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
 
         <!-- Notificaciones recientes -->
         @if (facade.unreadCount() > 0) {
-          <ion-card class="notification-banner">
-            <ion-card-content>
-              <ion-icon name="alert-circle-outline" color="warning" slot="start"></ion-icon>
-              <ion-label class="text-level-4">
-                Tienes {{ facade.unreadCount() }} notificación{{ facade.unreadCount() > 1 ? 'es' : '' }} sin leer
-              </ion-label>
-              <ion-button fill="clear" color="primary" size="small" (click)="goToNotifications()">
-                Ver
-              </ion-button>
-            </ion-card-content>
-          </ion-card>
+          <button
+            app-nav-row
+            class="notification-row"
+            icon="notifications-outline"
+            [label]="facade.unreadCount() + ' ' + (facade.unreadCount() > 1 ? 'notificaciones sin leer' : 'notificación sin leer')"
+            subtitle="Cambios de precio y avisos de la app"
+            (click)="goToNotifications()"
+          ></button>
         }
 
         <!-- Noticias -->
@@ -159,14 +157,15 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       color: var(--color-text-on-primary);
     }
     /* Firma de la marca: las ramas de café del arranque, multiplicadas sobre el verde.
-       El blanco del dibujo desaparece y solo quedan los trazos, un verde más hondo. */
+       El blanco del dibujo desaparece y solo quedan los trazos, un verde más hondo.
+       Tenue: el texto oscuro pasa por encima y los trazos no deben comerle contraste. */
     .fnc-price-card::before {
       content: '';
       position: absolute;
       inset: 0;
       background: url('/assets/brand/splash-bg.webp') center 30% / 160% auto no-repeat;
       mix-blend-mode: multiply;
-      opacity: 0.55;
+      opacity: 0.3;
       pointer-events: none;
     }
     .fnc-price-card ion-card-content {
@@ -196,14 +195,14 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       overflow-wrap: anywhere;
     }
     .price-empty {
-      font-family: var(--font-family-display);
+      font-family: var(--font-family-body);
       font-size: var(--font-size-lg);
       font-weight: var(--font-weight-bold);
     }
     .price-analysis {
       margin-top: var(--spacing-sm);
       padding-top: var(--spacing-sm);
-      border-top: 1px solid rgba(255, 255, 255, 0.25);
+      border-top: 1px solid rgba(var(--ion-color-primary-contrast-rgb), 0.2);
     }
     .price-analysis p {
       margin: 0 0 var(--spacing-xs);
@@ -227,18 +226,23 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
     }
-    .notification-banner {
-      --card-shadow: var(--shadow-card);
-      margin: var(--spacing-md);
-      --background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)), var(--color-surface);
+    .notification-row {
+      width: calc(100% - 2 * var(--spacing-md));
+      margin: 0 var(--spacing-md) var(--spacing-sm);
     }
-    .notification-banner ion-card-content {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-sm);
-    }
-    .notification-banner ion-label {
-      flex: 1;
+    /* Campana: el número va en la esquina, como el de las apps del sistema. Se ubica
+       respecto al ícono (el contenedor interno del botón), no del círculo. */
+    .bell ion-badge {
+      position: absolute;
+      top: -8px;
+      right: -12px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: var(--font-weight-bold);
+      line-height: 18px;
     }
     .section {
       padding: 0 var(--spacing-md) var(--spacing-lg);
@@ -266,16 +270,16 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs);
     }
     .news-meta {
-      margin: 0 0 var(--spacing-xs);
-      font-size: var(--font-size-xs);
+      margin: 0 0 6px;
+      font-size: var(--font-size-footnote);
       color: var(--color-text-muted);
     }
     .news-title {
       margin: 0 0 var(--spacing-xs);
-      font-family: var(--font-family-display);
-      font-size: var(--font-size-lg);
-      font-weight: var(--font-weight-bold);
-      line-height: 1.25;
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
+      line-height: 1.35;
       color: var(--color-text);
     }
     .news-summary {
@@ -300,8 +304,8 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       padding: var(--spacing-md);
     }
     .skeleton__price {
-      --background: rgba(43, 36, 32, 0.07);
-      --background-rgb: 43, 36, 32;
+      --background: rgba(29, 33, 27, 0.07);
+      --background-rgb: 29, 33, 27;
       width: 100%;
       height: 168px;
       margin: 0;

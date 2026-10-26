@@ -10,7 +10,6 @@ import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonItem } from '@ionic/angular/ion-item';
 import { IonLabel } from '@ionic/angular/ion-label';
-import { IonAvatar } from '@ionic/angular/ion-avatar';
 import { IonItemOption } from '@ionic/angular/ion-item-option';
 import { IonItemOptions } from '@ionic/angular/ion-item-options';
 import { IonItemSliding } from '@ionic/angular/ion-item-sliding';
@@ -18,9 +17,9 @@ import { IonList } from '@ionic/angular/ion-list';
 import { IonToast } from '@ionic/angular/ion-toast';
 import { EmptyStateComponent, ListSkeletonComponent } from '@shared/components';
 import { addIcons } from 'ionicons';
-import { personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForwardOutline, peopleOutline } from 'ionicons/icons';
+import { personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForward, peopleOutline } from 'ionicons/icons';
 import { WorkerFacade } from '../services/worker.facade';
-import { apiErrorMessage } from '../../shared/utils';
+import { apiErrorMessage, initialsOf } from '../../shared/utils';
 
 /**
  * Pantalla Catálogo de Trabajadores — Tarea 3.1.
@@ -43,7 +42,6 @@ import { apiErrorMessage } from '../../shared/utils';
     IonIcon,
     IonItem,
     IonLabel,
-    IonAvatar,
     IonItemOption,
     IonItemOptions,
     IonItemSliding,
@@ -78,13 +76,13 @@ import { apiErrorMessage } from '../../shared/utils';
         </app-empty-state>
       } @else {
         <!-- Lista de trabajadores -->
-        <ion-list lines="full" class="worker-list">
+        <ion-list lines="inset" class="worker-list">
           @for (worker of workerFacade.workers(); track worker.id) {
             <ion-item-sliding>
-              <ion-item button [detail]="false" (click)="goToEdit(worker.id)" lines="full">
-                <ion-avatar slot="start" aria-hidden="true">{{ initials(worker.firstName, worker.lastName) }}</ion-avatar>
+              <ion-item button [detail]="false" (click)="goToEdit(worker.id)" lines="inset">
+                <span slot="start" class="icon-chip worker-chip" aria-hidden="true">{{ initials(worker.firstName, worker.lastName) }}</span>
                 <ion-label>
-                  <h3 class="text-level-3">{{ worker.displayName }}</h3>
+                  <h3>{{ worker.displayName }}</h3>
                   <!-- El nombre completo solo aporta cuando se muestra el alias arriba. -->
                   @if (worker.alias) {
                     <p class="text-level-4">{{ worker.firstName }} {{ worker.lastName }}</p>
@@ -96,7 +94,7 @@ import { apiErrorMessage } from '../../shared/utils';
                     </p>
                   }
                 </ion-label>
-                <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+                <ion-icon name="chevron-forward" slot="end" class="worker-chevron" aria-hidden="true"></ion-icon>
               </ion-item>
 
               <ion-item-options side="end">
@@ -146,27 +144,39 @@ import { apiErrorMessage } from '../../shared/utils';
       background: var(--color-surface);
     }
     .worker-list h3 {
+      margin: 0;
       overflow: hidden;
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    ion-avatar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      background: var(--color-primary-soft);
-      color: var(--color-primary);
-    }
-    ion-avatar {
+    .worker-list p {
       font-family: var(--font-family-body);
       font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-bold);
+      color: var(--color-text-muted);
+    }
+    /* Chip de iniciales con el mismo aire que una fila de navegación (12dp hasta el texto). */
+    .worker-chip {
+      margin-inline-end: var(--row-gap);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+    }
+    .worker-chevron {
+      font-size: 18px;
+      color: var(--color-text-muted);
     }
     ion-item {
       --background: var(--color-surface);
       --color: var(--color-text);
+      --min-height: var(--row-min-height);
+    }
+    /* La tarjeta ya cierra la lista: la última fila no lleva línea debajo. */
+    ion-item-sliding:last-child ion-item {
+      --inner-border-width: 0;
     }
     ion-item-option {
       --width: 60px;
@@ -184,13 +194,10 @@ export class WorkerCatalogPage {
   workerToDelete = signal<any | null>(null);
 
   /** Iniciales de las dos primeras palabras del nombre (igual que la tarjeta del recolector). */
-  initials(firstName: string, lastName: string | null): string {
-    const words = `${firstName} ${lastName ?? ''}`.trim().split(/\s+/);
-    return words.slice(0, 2).map((word) => word.charAt(0)).join('').toUpperCase();
-  }
+  readonly initials = initialsOf;
 
   constructor() {
-    addIcons({ personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForwardOutline, peopleOutline });
+    addIcons({ personAddOutline, personOutline, callOutline, createOutline, trashOutline, chevronForward, peopleOutline });
 
     // Cargar trabajadores al inicializar
     effect(() => {

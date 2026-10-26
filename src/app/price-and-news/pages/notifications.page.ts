@@ -60,25 +60,28 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
           <ul class="notif-list stagger-in">
             @for (n of priceAndNewsFacade.notifications(); track n.id) {
               <li class="notif" [class.notif--unread]="!n.read">
-                <div class="notif__head">
-                  <span class="notif__status">
+                <span class="icon-chip" aria-hidden="true"><ion-icon name="pricetag-outline"></ion-icon></span>
+                <div class="notif__body">
+                  <div class="notif__head">
+                    <p class="notif__title">Cambio de precio FNC</p>
+                    @if (n.priceValue !== null) {
+                      <strong class="notif__price num">{{ n.priceValue | currency }}</strong>
+                    }
+                  </div>
+                  <p class="notif__date">
                     @if (!n.read) {
                       <span class="notif__dot" aria-hidden="true"></span>
+                      <span class="notif__new">Nueva ·</span>
                     }
-                    {{ n.read ? 'Leída' : 'Nueva' }}
-                  </span>
-                  @if (n.priceValue !== null) {
-                    <strong class="notif__price">{{ n.priceValue | currency }}</strong>
+                    {{ n.date | dateFormat:'short' }}
+                  </p>
+                  @if (!n.read) {
+                    <ion-button fill="clear" color="primary" size="small" class="notif__action" (click)="markAsRead(n.id)">
+                      <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+                      Marcar como leída
+                    </ion-button>
                   }
                 </div>
-                <p class="notif__title">Cambio de precio del café FNC</p>
-                <p class="notif__date">{{ n.date | dateFormat:'short' }}</p>
-                @if (!n.read) {
-                  <ion-button fill="clear" color="primary" size="small" class="notif__action" (click)="markAsRead(n.id)">
-                    <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-                    Marcar como leída
-                  </ion-button>
-                }
               </li>
             }
           </ul>
@@ -98,55 +101,62 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       flex-direction: column;
       gap: var(--card-gap-vertical);
     }
+    /* Chip a la izquierda y el contenido alineado a su derecha (texto a 68dp del borde). */
     .notif {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--row-gap);
       padding: var(--spacing-md);
       border-radius: var(--radius-lg);
       background: var(--color-surface);
       box-shadow: var(--shadow-card);
       font-family: var(--font-family-body);
-      transition: background-color var(--dur-fast) ease;
+      transition: background-color var(--dur-base) var(--ease-out);
     }
-    /* Sin leer: un punto y un tinte suave, no un borde grueso de color. */
-    .notif--unread {
-      background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)), var(--color-surface);
+    /* Leída: el chip pasa a gris; sin leer conserva el verde y un punto. Sin bordes de color. */
+    .notif:not(.notif--unread) .icon-chip {
+      background: var(--color-surface-muted);
+      color: var(--color-text-muted);
+    }
+    .notif__body {
+      flex: 1;
+      min-width: 0;
     }
     .notif__head {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: baseline;
       gap: var(--spacing-sm);
     }
-    .notif__status {
-      display: inline-flex;
+    .notif__title {
+      margin: 0;
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+    .notif__price {
+      flex-shrink: 0;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+    .notif__date {
+      display: flex;
       align-items: center;
       gap: 6px;
-      font-size: var(--font-size-xs);
-      font-weight: var(--font-weight-bold);
+      margin: 2px 0 0;
+      font-size: var(--font-size-sm);
       color: var(--color-text-muted);
-    }
-    .notif--unread .notif__status {
-      color: var(--color-primary);
     }
     .notif__dot {
       width: 8px;
       height: 8px;
+      flex-shrink: 0;
       border-radius: 50%;
       background: var(--color-primary);
     }
-    .notif__price {
-      font-variant-numeric: tabular-nums;
-      color: var(--color-text);
-    }
-    .notif__title {
-      margin: var(--spacing-sm) 0 0;
-      font-size: var(--font-size-md);
-      font-weight: var(--font-weight-bold);
-      color: var(--color-text);
-    }
-    .notif__date {
-      margin: 2px 0 0;
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
+    .notif__new {
+      color: var(--color-primary-ink);
+      font-weight: var(--font-weight-semibold);
     }
     .notif__action {
       margin: var(--spacing-xs) 0 0 calc(-1 * var(--spacing-sm));
