@@ -5,11 +5,9 @@ import { IonToolbar } from '@ionic/angular/ion-toolbar';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
-import { IonAvatar } from '@ionic/angular/ion-avatar';
-import { IonCard } from '@ionic/angular/ion-card';
-import { IonCardContent } from '@ionic/angular/ion-card-content';
 import { addIcons } from 'ionicons';
-import { personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline } from 'ionicons/icons';
+import { person, keyOutline, documentTextOutline, logOutOutline, peopleOutline, chevronForwardOutline } from 'ionicons/icons';
+import { NavRowComponent } from '@shared/components';
 import { AuthFacade } from '../services/auth.facade';
 import { SyncFacade } from '../../sync/services/sync.facade';
 import { AlertController } from '@ionic/angular/alert-controller';
@@ -26,7 +24,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonAvatar, IonCard, IonCardContent],
+  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, NavRowComponent],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -34,182 +32,149 @@ import { Router } from '@angular/router';
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      <!-- Perfil de usuario -->
-      <ion-card class="profile-card">
-        <ion-card-content>
-          <div class="profile-header">
-            <ion-avatar class="profile-avatar">
-              @if (!profilePhoto()) {
-                <ion-icon name="person-outline" size="large"></ion-icon>
-              }
-              @if (profilePhoto()) {
-                <img [src]="profilePhoto()" alt="Foto de perfil" />
-              }
-            </ion-avatar>
-            <div class="profile-info">
-              <p class="text-level-4 profile-label">Cédula</p>
-              <h2 class="text-level-2">{{ userNationalId() }}</h2>
-              <p class="text-level-4 profile-label">Caficultor</p>
-            </div>
+    <ion-content>
+      <div class="page">
+        <!-- Identidad: avatar centrado sobre un halo verde suave, como la ficha de un
+             contacto del sistema. Es lo primero que se ve y no compite con nada. -->
+        <header class="identity">
+          <div class="identity__avatar">
+            @if (profilePhoto()) {
+              <img [src]="profilePhoto()" alt="Foto de perfil" />
+            } @else {
+              <ion-icon name="person" aria-hidden="true"></ion-icon>
+            }
           </div>
+          <h2 class="identity__id num">C.C. {{ userNationalId() }}</h2>
+          <p class="identity__role">Caficultor</p>
+        </header>
 
-          <!-- Ajustes como filas: se leen como opciones de la app, no como tres botones iguales. -->
-          <nav class="settings" aria-label="Opciones de la cuenta">
-            <button type="button" class="settings__row" (click)="goToWorkerCatalog()">
-              <span class="settings__icon" aria-hidden="true"><ion-icon name="people-outline"></ion-icon></span>
-              <span class="settings__label">Catálogo de trabajadores</span>
-              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
-            </button>
-            <button type="button" class="settings__row" (click)="changePassword()">
-              <span class="settings__icon" aria-hidden="true"><ion-icon name="key-outline"></ion-icon></span>
-              <span class="settings__label">Cambiar contraseña</span>
-              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
-            </button>
-            <button type="button" class="settings__row" (click)="goToPrivacy()">
-              <span class="settings__icon" aria-hidden="true"><ion-icon name="document-outline"></ion-icon></span>
-              <span class="settings__label">Aviso de privacidad</span>
-              <ion-icon name="chevron-forward-outline" class="settings__chevron" aria-hidden="true"></ion-icon>
-            </button>
-          </nav>
+        <!-- Ajustes como tiles separados: cada uno es un destino, no un dato. -->
+        <nav class="settings" aria-label="Opciones de la cuenta">
+          <button app-nav-row icon="people-outline" label="Catálogo de trabajadores" (click)="goToWorkerCatalog()"></button>
+          <button app-nav-row icon="key-outline" label="Cambiar contraseña" (click)="changePassword()"></button>
+          <button app-nav-row icon="document-text-outline" label="Aviso de privacidad" (click)="goToPrivacy()"></button>
+        </nav>
 
-          <ion-button fill="outline" color="danger" expand="block" class="logout-btn" (click)="logout()">
-            <ion-icon name="log-out-outline" slot="start"></ion-icon>
-            Cerrar sesión
+        <button type="button" class="logout tappable" (click)="logout()">
+          <ion-icon name="log-out-outline" aria-hidden="true"></ion-icon>
+          Cerrar sesión
+        </button>
+
+        <!-- Info legal: nota al pie, no otra tarjeta compitiendo con la de la cuenta. -->
+        <section class="legal" aria-labelledby="legal-title">
+          <h3 id="legal-title">Información legal</h3>
+          <p>
+            Esta app procesa datos personales bajo la Ley 1581 de 2012 (Habeas Data).
+            Al usar la app, autorizas el tratamiento de tus datos y los de tus recolectores
+            para la gestión de cosechas y pagos.
+          </p>
+          <ion-button fill="clear" color="primary" size="small" (click)="goToPrivacy()">
+            Ver política completa
+            <ion-icon name="chevron-forward-outline" slot="end"></ion-icon>
           </ion-button>
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Info legal: nota al pie, no otra tarjeta compitiendo con la de la cuenta. -->
-      <section class="legal" aria-labelledby="legal-title">
-        <h3 id="legal-title">Información legal</h3>
-        <p>
-          Esta app procesa datos personales bajo la Ley 1581 de 2012 (Habeas Data).
-          Al usar la app, autorizas el tratamiento de tus datos y los de tus recolectores
-          para la gestión de cosechas y pagos.
-        </p>
-        <ion-button fill="clear" color="primary" size="small" (click)="goToPrivacy()">
-          Ver política completa
-          <ion-icon name="chevron-forward-outline" slot="end"></ion-icon>
-        </ion-button>
-      </section>
+        </section>
+      </div>
     </ion-content>
   `,
   styles: [`
-    .profile-card {
-      --card-shadow: var(--shadow-card);
-      margin-bottom: var(--spacing-md);
-    }
-    .profile-header {
+    .page {
       display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-md);
+      flex-direction: column;
+      gap: var(--spacing-lg);
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 var(--screen-margin) var(--spacing-xl);
     }
-    .profile-avatar {
-      width: var(--avatar-size);
-      height: var(--avatar-size);
-      --border-radius: var(--avatar-radius);
-      flex-shrink: 0;
-      background: var(--color-primary-soft);
-      color: var(--color-primary);
+    .identity {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--spacing-md) 0 0;
+      text-align: center;
+      /* Halo: un claro verde detrás del avatar, sin franja de color que corte la pantalla. */
+      background: radial-gradient(closest-side, var(--color-chip-pressed), transparent) center 0 / 260px 200px no-repeat;
+    }
+    .identity__avatar {
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 96px;
+      height: 96px;
+      margin-bottom: var(--spacing-md);
+      border: 4px solid var(--color-surface);
+      border-radius: 50%;
+      background: var(--color-chip);
+      box-shadow: var(--shadow-card);
+      color: var(--color-primary-ink);
+      overflow: hidden;
     }
-    .profile-avatar img {
+    .identity__avatar ion-icon {
+      font-size: 44px;
+    }
+    .identity__avatar img {
       width: 100%;
       height: 100%;
-      border-radius: var(--avatar-radius);
       object-fit: cover;
     }
-    .profile-info {
-      flex: 1;
-      min-width: 0;
+    .identity__id {
+      margin: 0;
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-title);
+      font-weight: var(--font-weight-bold);
+      letter-spacing: -0.01em;
+      color: var(--color-text);
       overflow-wrap: anywhere;
     }
-    .profile-info h2,
-    .profile-label {
-      margin: 0;
+    .identity__role {
+      margin: 2px 0 0;
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
     }
     .settings {
       display: flex;
       flex-direction: column;
-      margin: 0 calc(-1 * var(--spacing-sm)) var(--spacing-md);
+      gap: var(--card-gap-vertical);
     }
-    .settings__row {
+    /* Cerrar sesión: píldora de ancho completo con tinte rojo tierra suave. Es una
+       salida, no la acción principal: no lleva relleno sólido. */
+    .logout {
       display: flex;
       align-items: center;
-      gap: var(--spacing-md);
+      justify-content: center;
+      gap: var(--spacing-sm);
       width: 100%;
-      min-height: var(--list-row-height);
-      padding: 0 var(--spacing-sm);
-      border: none;
-      border-radius: var(--radius-md);
-      background: transparent;
-      color: var(--color-text);
+      min-height: var(--btn-primary-height);
+      border: 0;
+      border-radius: var(--radius-full);
+      background: rgba(122, 46, 34, 0.08);
+      color: var(--color-accent-alert);
       font-family: var(--font-family-body);
-      font-size: var(--font-size-md);
-      text-align: left;
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
       cursor: pointer;
-      transition:
-        transform var(--dur-press) var(--ease-out),
-        background-color var(--dur-fast) ease;
     }
-    .settings__row:active {
-      background: var(--color-surface-muted);
-    }
-    /* Divisor alineado con el texto, no con el ícono, como en los ajustes nativos. */
-    .settings__row + .settings__row {
-      position: relative;
-    }
-    .settings__row + .settings__row::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: calc(var(--spacing-sm) + 24px + var(--spacing-md));
-      right: var(--spacing-sm);
-      height: 1px;
-      background: rgba(43, 36, 32, 0.08);
-    }
-    /* Ícono de lista de Android: solo el trazo, sin recuadro de color detrás. */
-    .settings__icon {
-      display: flex;
-      flex-shrink: 0;
-      width: 24px;
-      color: var(--color-primary);
-    }
-    .settings__icon ion-icon {
-      font-size: 24px;
-    }
-    .settings__label {
-      flex: 1;
-      min-width: 0;
-      font-weight: var(--font-weight-bold);
-    }
-    .settings__chevron {
+    .logout ion-icon {
       font-size: 20px;
-      color: var(--color-text-muted);
     }
-    .logout-btn {
-      --border-radius: var(--radius-full);
-      height: 48px;
-      min-height: 48px;
+    .logout:active {
+      background: rgba(122, 46, 34, 0.14);
+      box-shadow: none;
     }
     .legal {
-      padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-xl);
+      padding: 0 var(--spacing-xs);
       font-family: var(--font-family-body);
     }
     .legal h3 {
       margin: 0 0 var(--spacing-xs);
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-footnote);
+      font-weight: var(--font-weight-semibold);
       color: var(--color-text);
     }
     .legal p {
       margin: 0;
       max-width: 60ch;
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-footnote);
       line-height: 1.5;
       color: var(--color-text-muted);
     }
@@ -228,7 +193,7 @@ export class ProfilePage {
   readonly profilePhoto = this.authFacade.userProfilePhoto;
 
   constructor() {
-    addIcons({ personOutline, keyOutline, documentOutline, logOutOutline, peopleOutline, chevronForwardOutline });
+    addIcons({ person, keyOutline, documentTextOutline, logOutOutline, peopleOutline, chevronForwardOutline });
   }
 
   changePassword(): void {

@@ -45,8 +45,8 @@ import { IonSkeletonText } from '@ionic/angular/ion-skeleton-text';
       box-shadow: var(--shadow-card);
     }
     ion-skeleton-text {
-      --background: rgba(43, 36, 32, 0.07);
-      --background-rgb: 43, 36, 32;
+      --background: rgba(29, 33, 27, 0.07);
+      --background-rgb: 29, 33, 27;
       margin: 0;
       border-radius: var(--radius-sm);
     }

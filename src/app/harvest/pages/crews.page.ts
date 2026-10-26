@@ -13,11 +13,12 @@ import { peopleOutline, addOutline, chevronForwardOutline, alertCircleOutline, p
 import { HarvestFacade } from '../services/harvest.facade';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { ToastController } from '@ionic/angular/toast-controller';
-import { apiErrorMessage } from '../../shared/utils';
+import { apiErrorMessage, initialsOf } from '../../shared/utils';
 import {
   EmptyStateComponent,
   HarvestPickerCardComponent,
   ListSkeletonComponent,
+  NavRowComponent,
   PickerCardData,
 } from '@shared/components';
 import { PickerActionsService } from '../services/picker-actions.service';
@@ -38,6 +39,7 @@ import { NetworkService } from '../../network/services/network.service';
     HarvestPickerCardComponent,
     EmptyStateComponent,
     ListSkeletonComponent,
+    NavRowComponent,
   ],
   template: `
     <ion-header>
@@ -84,14 +86,15 @@ import { NetworkService } from '../../network/services/network.service';
           <!-- Lista de cuadrillas -->
           <div class="crew-list stagger-in">
             @for (crew of harvestFacade.activeHarvestCrews(); track crew.id) {
-              <button type="button" class="crew-row tappable" (click)="goToCrewDetail(crew.id)">
-                <span class="crew-row__avatar" aria-hidden="true">{{ initials(crew.name) }}</span>
-                <span class="crew-row__info">
-                  <span class="crew-row__name">{{ crew.name }}</span>
-                  <span class="crew-row__meta"><span class="num">{{ getPickersCount(crew.id) }}</span> {{ getPickersCount(crew.id) === 1 ? 'recolector' : 'recolectores' }}</span>
-                </span>
-                <ion-icon name="chevron-forward-outline" class="crew-row__chevron" aria-hidden="true"></ion-icon>
-              </button>
+              <!-- Iniciales, como en la tarjeta del recolector: la cuadrilla se reconoce por su
+                   nombre, no por un ícono genérico repetido. -->
+              <button
+                app-nav-row
+                [initials]="initials(crew.name)"
+                [label]="crew.name"
+                [subtitle]="getPickersCount(crew.id) + ' ' + (getPickersCount(crew.id) === 1 ? 'recolector' : 'recolectores')"
+                (click)="goToCrewDetail(crew.id)"
+              ></button>
             }
           </div>
         }
@@ -141,69 +144,18 @@ import { NetworkService } from '../../network/services/network.service';
       flex-direction: column;
       gap: var(--card-gap-vertical);
     }
-    .crew-row {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-md);
-      width: 100%;
-      min-height: var(--picker-card-min-height);
-      padding: var(--spacing-sm) var(--spacing-md);
-      border: none;
-      border-radius: var(--radius-lg);
-      background: var(--color-surface);
-      box-shadow: var(--shadow-card);
-      color: var(--color-text);
-      font-family: var(--font-family-body);
-      text-align: left;
-      cursor: pointer;
-    }
-    /* Mismo avatar de iniciales que la tarjeta del recolector: la cuadrilla se reconoce
-       por su nombre, no por un ícono genérico repetido. */
-    .crew-row__avatar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--color-primary-soft);
-      color: var(--color-primary);
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-bold);
-    }
-    .crew-row__info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .crew-row__name {
-      font-size: var(--font-size-md);
-      font-weight: var(--font-weight-bold);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .crew-row__meta {
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
-    }
-    .crew-row__chevron {
-      flex-shrink: 0;
-      font-size: 20px;
-      color: var(--color-text-muted);
-    }
     .solo-section {
       margin-top: var(--spacing-xl);
     }
     .solo-section h2 {
-      margin: 0 0 var(--spacing-xs);
+      margin: 0 0 2px;
     }
     .solo-hint {
       margin: 0 0 var(--spacing-md);
       color: var(--color-text-muted);
+    }
+    .solo-section ion-button {
+      margin-top: var(--spacing-sm);
     }
   `],
 })
@@ -255,9 +207,7 @@ export class CrewsPage {
   }
 
   /** Iniciales de las dos primeras palabras del nombre de la cuadrilla. */
-  initials(name: string): string {
-    return name.trim().split(/\s+/).slice(0, 2).map((word) => word.charAt(0)).join('').toUpperCase();
-  }
+  readonly initials = initialsOf;
 
   getPickersCount(crewId: string): number {
     // Filtrar pickers por crewId

@@ -47,22 +47,19 @@ import { refreshCircleOutline } from 'ionicons/icons';
       height: var(--btn-primary-height);
       min-height: var(--btn-primary-height);
       font-family: var(--font-family-body);
-      font-size: var(--font-size-md);
-      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
       --background: var(--color-primary);
-      --background-activated: var(--color-primary);
       --background-hover: var(--color-primary);
       --color: var(--color-text-on-primary);
     }
     ion-button[color="danger"] {
       --background: var(--color-accent-alert);
-      --background-activated: var(--color-accent-alert);
       --background-hover: var(--color-accent-alert);
       --color: var(--color-text-on-alert);
     }
     ion-button[color="secondary"] {
       --background: var(--color-secondary);
-      --background-activated: var(--color-secondary);
       --background-hover: var(--color-secondary);
       --color: var(--color-text-on-primary);
     }
@@ -72,9 +69,13 @@ import { refreshCircleOutline } from 'ionicons/icons';
     ion-button.button-disabled {
       opacity: 1;
     }
+    /* Con color="..." Ionic pinta el relleno con --ion-color-base (fijado con !important
+       por .ion-color-*), no con --background: hay que cambiar ese también. */
     ion-button.is-inactive {
-      --background: rgba(43, 36, 32, 0.08);
-      --color: rgba(43, 36, 32, 0.45);
+      --background: rgba(29, 33, 27, 0.08);
+      --color: rgba(29, 33, 27, 0.45);
+      --ion-color-base: rgba(29, 33, 27, 0.08) !important;
+      --ion-color-contrast: rgba(29, 33, 27, 0.45) !important;
       --box-shadow: none;
     }
     .spin {

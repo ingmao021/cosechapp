@@ -10,7 +10,7 @@ import { IonIcon } from '@ionic/angular/ion-icon';
 import { IonCard } from '@ionic/angular/ion-card';
 import { IonSkeletonText } from '@ionic/angular/ion-skeleton-text';
 import { addIcons } from 'ionicons';
-import { scaleOutline, addOutline, closeOutline, pricetagOutline, addCircleOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline, ellipsisVertical, createOutline, trashOutline } from 'ionicons/icons';
+import { scaleOutline, addOutline, closeCircleOutline, pricetagOutline, addCircleOutline, calendarClearOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline, ellipsisVertical, createOutline, trashOutline } from 'ionicons/icons';
 import { ActionSheetController } from '@ionic/angular/action-sheet-controller';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { ToastController } from '@ionic/angular/toast-controller';
@@ -55,11 +55,30 @@ import { EmptyStateComponent } from '@shared/components';
   template: `
     <ion-header>
       <ion-toolbar>
-        <ion-title class="text-level-1">CosechApp</ion-title>
+        <ion-title class="text-level-1 wordmark">CosechApp</ion-title>
       </ion-toolbar>
     </ion-header>
 
     <ion-content class="ion-padding">
+      <!-- Franja del día: fecha y precio FNC de un vistazo, como el resumen de arriba de
+           una pantalla de inicio del sistema. Tocarla lleva a Mercado. -->
+      <button type="button" class="today tile tappable" (click)="goToMarket()" aria-label="Ver precio y noticias del café">
+        <span class="today__item">
+          <span class="icon-chip" aria-hidden="true"><ion-icon name="calendar-clear-outline"></ion-icon></span>
+          <span class="today__text">
+            <span class="today__label">Hoy</span>
+            <span class="today__value">{{ todayLabel }}</span>
+          </span>
+        </span>
+        <span class="today__item">
+          <span class="icon-chip" aria-hidden="true"><ion-icon name="pricetag-outline"></ion-icon></span>
+          <span class="today__text">
+            <span class="today__label">Precio FNC</span>
+            <span class="today__value num">{{ priceAndNewsFacade.hasPrice() ? shortPrice() : 'Sin publicar' }}</span>
+          </span>
+        </span>
+      </button>
+
       @if (harvestFacade.hasActiveHarvest()) {
         <!-- Cosecha activa -->
         <ion-card class="harvest-card">
@@ -75,7 +94,8 @@ import { EmptyStateComponent } from '@shared/components';
             </ion-button>
           </div>
 
-          <!-- Resumen del día: solo datos reales de la cosecha cargada. -->
+          <!-- Resumen del día: solo datos reales de la cosecha cargada. Las cifras en slab,
+               como en el cuaderno de la finca: es lo que se busca con la mirada. -->
           <dl class="stats">
             <div class="stat">
               <dt>Kilos hoy</dt>
@@ -89,30 +109,24 @@ import { EmptyStateComponent } from '@shared/components';
 
           <div class="status-row">
             @if (sync.pendingCount() > 0) {
-              <span class="status-pill status-pill--offline">
+              <span class="pill pill--warn">
                 <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
                 {{ sync.pendingCount() }} {{ sync.pendingCount() === 1 ? 'pesada' : 'pesadas' }} por enviar
               </span>
             } @else if (!network.isOnline()) {
-              <span class="status-pill status-pill--offline">
+              <span class="pill pill--warn">
                 <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
                 Sin conexión · se guarda en el teléfono
               </span>
             } @else if (sync.lastSync()) {
-              <span class="status-pill">
+              <span class="pill">
                 <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
                 Todo enviado · {{ sync.lastSync() | dateFormat: 'time' }}
               </span>
             } @else {
-              <span class="status-pill">
+              <span class="pill">
                 <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
                 En línea
-              </span>
-            }
-            @if (priceAndNewsFacade.hasPrice()) {
-              <span class="status-pill">
-                <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
-                FNC {{ priceAndNewsFacade.formattedPrice() }} · {{ priceAndNewsFacade.priceDate() }}
               </span>
             }
           </div>
@@ -122,8 +136,9 @@ import { EmptyStateComponent } from '@shared/components';
               <ion-icon name="scale-outline" slot="start"></ion-icon>
               Pesar
             </ion-button>
-            <ion-button expand="block" fill="outline" color="danger" class="close-harvest-btn" (click)="goToCloseHarvest()">
-              <ion-icon name="close-outline" slot="start"></ion-icon>
+            <!-- Salida poco frecuente y de alto impacto: texto rojo, sin el peso de un botón. -->
+            <ion-button expand="block" fill="clear" color="danger" class="close-harvest-btn" (click)="goToCloseHarvest()">
+              <ion-icon name="close-circle-outline" slot="start"></ion-icon>
               Cerrar cosecha
             </ion-button>
           </div>
@@ -148,15 +163,61 @@ import { EmptyStateComponent } from '@shared/components';
     </ion-content>
   `,
   styles: [`
+    /* El nombre de la app en la barra de Inicio: la única vez que la marca va como
+       título (el resto de pestañas llevan su nombre en Inter). */
+    .wordmark {
+      font-family: var(--font-family-display);
+      color: var(--color-primary-ink);
+      letter-spacing: -0.01em;
+    }
+    /* Los dos datos van lado a lado; si con letra grande no caben, el segundo baja a
+       otra línea en vez de cortarse (cada uno mide lo que su texto, sin recortar). */
+    .today {
+      flex-wrap: wrap;
+      gap: var(--spacing-sm) var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      padding: var(--spacing-sm) 12px;
+    }
+    .today__item {
+      display: flex;
+      flex: 1 1 auto;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .today__text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .today__label {
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+    }
+    .today__value {
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      white-space: nowrap;
+    }
+    .today__value::first-letter {
+      text-transform: uppercase;
+    }
+    .today .icon-chip {
+      --icon-chip-size: 36px;
+    }
     .harvest-card {
       --background: var(--color-surface);
-      --card-shadow: var(--shadow-raised);
+      --card-shadow: var(--shadow-card);
       display: flex;
       flex-direction: column;
       gap: var(--spacing-md);
       min-height: 0;
       margin: 0 0 var(--spacing-md);
-      padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
+      padding: 20px var(--spacing-md) var(--spacing-md);
     }
     .harvest-card__head {
       display: flex;
@@ -169,18 +230,19 @@ import { EmptyStateComponent } from '@shared/components';
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-xs);
+      gap: 2px;
     }
     .harvest-card__title p,
     .harvest-card__title h2 {
       margin: 0;
     }
     .harvest-card__title h2 {
-      font-family: var(--font-family-display);
-      font-size: var(--font-size-xl);
-      font-weight: var(--font-weight-bold);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: -0.01em;
       color: var(--color-text);
-      line-height: 1.15;
+      line-height: 1.25;
       overflow-wrap: anywhere;
     }
     .harvest-card__price {
@@ -190,38 +252,36 @@ import { EmptyStateComponent } from '@shared/components';
     }
     .harvest-card__price .num {
       color: var(--color-text);
-      font-weight: var(--font-weight-bold);
+      font-weight: var(--font-weight-semibold);
     }
     .harvest-card__menu {
       margin: -8px -12px 0 0;
     }
-    /* Las cifras del día van en una fila con líneas finas arriba y abajo, como un
-       renglón del cuaderno: sin tarjetas dentro de la tarjeta. */
+    /* Las cifras del día van en dos celdas suaves, como dos renglones del cuaderno:
+       la cifra grande en slab y su nombre pequeño arriba. */
     .stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-sm);
       margin: 0;
-      padding: var(--spacing-sm) 0;
-      border-block: 1px solid rgba(43, 36, 32, 0.08);
     }
     .stat {
       min-width: 0;
-      padding: var(--spacing-xs) 0;
-    }
-    .stat + .stat {
-      padding-left: var(--spacing-md);
-      border-left: 1px solid rgba(43, 36, 32, 0.08);
+      padding: 12px var(--spacing-md);
+      border-radius: var(--radius-md);
+      background: var(--color-background);
     }
     .stat dt {
       font-family: var(--font-family-body);
-      font-size: var(--font-size-xs);
+      font-size: var(--font-size-footnote);
+      font-weight: var(--font-weight-medium);
       color: var(--color-text-muted);
     }
     .stat dd {
-      margin: 2px 0 0;
+      margin: 4px 0 0;
       font-family: var(--font-family-display);
-      font-size: var(--font-size-xl);
-      line-height: 1.1;
+      font-size: 2rem;
+      line-height: 1.05;
       font-weight: var(--font-weight-bold);
       color: var(--color-text);
       overflow: hidden;
@@ -233,34 +293,16 @@ import { EmptyStateComponent } from '@shared/components';
       flex-wrap: wrap;
       gap: var(--spacing-sm);
     }
-    /* Etiqueta informativa, no interactiva (no usa ion-chip para no parecer botón). */
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-      max-width: 100%;
-      padding: var(--spacing-xs) var(--spacing-sm);
-      border-radius: var(--radius-full);
-      background: var(--color-primary-soft);
-      color: var(--color-text);
-      font-family: var(--font-family-body);
-      font-size: var(--font-size-xs);
-    }
-    .status-pill ion-icon {
-      flex-shrink: 0;
-      font-size: 16px;
-      color: var(--color-primary);
-    }
-    .status-pill--offline {
+    .pill--warn {
       background: rgba(183, 121, 31, 0.12);
     }
-    .status-pill--offline ion-icon {
-      color: var(--ion-color-warning);
+    .pill--warn ion-icon {
+      color: var(--ion-color-warning-shade);
     }
     .main-actions {
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-sm);
+      gap: var(--spacing-xs);
     }
     .main-actions ion-button {
       margin: 0;
@@ -269,13 +311,14 @@ import { EmptyStateComponent } from '@shared/components';
       --border-radius: var(--radius-full);
       height: 56px;
       min-height: 56px;
-      font-size: var(--font-size-lg);
-      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-headline);
+      font-weight: var(--font-weight-semibold);
     }
     .close-harvest-btn {
       --border-radius: var(--radius-full);
       height: 48px;
       min-height: 48px;
+      font-size: var(--font-size-md);
     }
     .harvest-card--skeleton {
       gap: var(--spacing-sm);
@@ -284,8 +327,8 @@ import { EmptyStateComponent } from '@shared/components';
       box-shadow: var(--shadow-card);
     }
     .sk {
-      --background: rgba(43, 36, 32, 0.07);
-      --background-rgb: 43, 36, 32;
+      --background: rgba(29, 33, 27, 0.07);
+      --background-rgb: 29, 33, 27;
       margin: 0;
       border-radius: var(--radius-sm);
     }
@@ -317,8 +360,19 @@ export class HomePage {
     this.harvestFacade.activeHarvestPickers().reduce((total, picker) => total + picker.totalKilograms, 0),
   );
 
+  /** "sáb 24 oct": el día en Colombia, aunque el teléfono tenga otra zona horaria. Corto
+   *  para que quepa junto al precio en 360dp. */
+  protected readonly todayLabel = new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'America/Bogota',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date()).replace(/[.,]/g, '');
+  /** El precio sin " COP": la etiqueta "Precio FNC" ya dice de qué se trata. */
+  protected readonly shortPrice = computed(() => this.priceAndNewsFacade.formattedPrice().replace(/\s*COP$/, ''));
+
   constructor() {
-    addIcons({ scaleOutline, addOutline, closeOutline, pricetagOutline, addCircleOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline, ellipsisVertical, createOutline, trashOutline });
+    addIcons({ scaleOutline, addOutline, closeCircleOutline, pricetagOutline, addCircleOutline, calendarClearOutline, cloudDoneOutline, cloudOfflineOutline, cloudUploadOutline, ellipsisVertical, createOutline, trashOutline });
 
     // Cargar cosecha activa y precio FNC al inicializar
     effect(() => {
@@ -351,6 +405,10 @@ export class HomePage {
       ],
     });
     await alert.present();
+  }
+
+  goToMarket(): void {
+    this.router.navigate(['/price-news']);
   }
 
   openHarvest(): void {

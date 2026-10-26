@@ -123,13 +123,13 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
           </div>
 
           <section>
-            <h2 class="text-level-2">Pesadas de hoy</h2>
+            <h2 class="section-title">Pesadas de hoy</h2>
             @if (weighingFacade.todayWeighings().length === 0) {
               <p class="empty">Todavía no hay pesadas hoy.</p>
             } @else {
-              <ul class="rows">
+              <ul class="group">
                 @for (weighing of weighingFacade.todayWeighings(); track weighing.id) {
-                  <li class="row">
+                  <li class="group__row row">
                     <span class="row__main">{{ weighing.kilograms | kilos }}</span>
                     <span class="row__meta">
                       @if (weighing.pending) {
@@ -144,13 +144,13 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
           </section>
 
           <section>
-            <h2 class="text-level-2">Pagos</h2>
+            <h2 class="section-title">Pagos</h2>
             @if (paymentFacade.payments().length === 0) {
               <p class="empty">Aún no se le ha pagado en esta cosecha.</p>
             } @else {
-              <ul class="rows">
+              <ul class="group">
                 @for (payment of paymentFacade.payments(); track payment.id) {
-                  <li class="row">
+                  <li class="group__row row">
                     <span class="row__main">{{ payment.amount | currency }}</span>
                     <span class="row__meta">
                       @if (payment.includesMeals) {
@@ -196,7 +196,7 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       min-width: 0;
     }
     .total + .total {
-      border-left: 1px solid rgba(43, 36, 32, 0.08);
+      border-left: 1px solid var(--color-separator);
     }
     .total__value {
       font-family: var(--font-family-display);
@@ -224,7 +224,7 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       font-family: var(--font-family-display);
       font-size: var(--font-size-xl);
       font-weight: var(--font-weight-bold);
-      color: var(--color-primary);
+      color: var(--color-primary-ink);
       font-variant-numeric: tabular-nums;
       overflow-wrap: anywhere;
     }
@@ -237,32 +237,16 @@ import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils
       margin: 0;
       text-align: center;
     }
-    h2 {
-      margin: var(--spacing-sm) 0;
+    .section-title {
+      margin: var(--spacing-sm) 0 var(--spacing-sm) var(--spacing-xs);
     }
-    .rows {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      background: var(--color-surface);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-card);
-    }
+    /* Registros: filas del grupo global (separador desde donde empieza el texto). */
     .row {
-      display: flex;
       justify-content: space-between;
-      align-items: center;
-      min-height: var(--list-row-height);
-      padding: 0 var(--list-row-padding-h);
-      gap: var(--spacing-sm);
-      border-bottom: 1px solid rgba(43, 36, 32, 0.08);
       font-family: var(--font-family-body);
     }
-    .row:last-child {
-      border-bottom: none;
-    }
     .row__main {
-      font-weight: var(--font-weight-bold);
+      font-weight: var(--font-weight-semibold);
       font-variant-numeric: tabular-nums;
     }
     .row__meta {
