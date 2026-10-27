@@ -11,9 +11,9 @@ Define qué información y elementos se muestran en cada pantalla de CosechApp, 
 ### 1.0 Splash
 Arranque animado mientras se verifica la sesión:
 1. **Splash nativo** (Android): un instante en blanco `#FFFFFF` mientras carga el WebView. Configurado en `capacitor.config.ts` (`SplashScreen`, `launchAutoHide: false`) y en `styles.xml` (`windowSplashScreenBackground` blanco, también con el teléfono en modo oscuro).
-2. **`SplashPage`:** oculta el nativo y muestra el fondo de café (`splash-bg.webp`), luego el costal sube y aparece (`splash-sack.webp`) y tres granos laten mientras carga. Con movimiento reducido todo aparece con un fundido.
+2. **`SplashPage`:** oculta el nativo y muestra el fondo de café (`splash-bg.webp`). Arriba aparecen el nombre "CosechApp" (Zilla Slab) y tres granos que laten mientras carga. Abajo, apoyado en el borde de la pantalla como un retrato, **el campesino de la marca sube serio** (`farmer-serious.webp`) y, mientras carga, **sonríe** (`farmer-smile.webp` se funde encima) con un leve asentimiento y un halo verde suave detrás. Las dos caras son la misma ilustración; la seria solo cambia la boca (labios cerrados). Con movimiento reducido aparece directamente sonriendo, con un fundido.
 - Sin controles ni texto interactivo: es una pantalla de transición, no requiere acción del usuario.
-- Duración: lo que tarde **lo más largo** entre 1,8 s (para que la entrada se vea completa) y la verificación de sesión (ver sección 3.1). Sale con un fundido de 250 ms hacia Login o Inicio.
+- Duración: lo que tarde **lo más largo** entre 2 s (para que se vea la sonrisa) y la verificación de sesión (ver sección 3.1). Sale con un fundido de 250 ms hacia Login o Inicio.
 
 ### 1.1 Login / Registro
 **Login:**

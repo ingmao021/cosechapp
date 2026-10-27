@@ -4,15 +4,19 @@ import { IonContent } from '@ionic/angular/ion-content';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { AuthFacade } from '../services/auth.facade';
 
-/** Tiempo mínimo en pantalla, para que la entrada del fondo y del costal se vea completa. */
-const MIN_VISIBLE_MS = 1800;
+/** Tiempo mínimo en pantalla: el campesino sube serio y sonríe (~1,1 s); que la sonrisa se vea. */
+const MIN_VISIBLE_MS = 2000;
 /** Duración del fundido de salida antes de navegar (igual que `.splash--leaving`). */
 const LEAVE_MS = 250;
 
 /**
- * Splash — arranque animado mientras se verifica la sesión. El splash nativo es solo un
- * instante en blanco; aquí aparece el fondo de café, luego el costal sube y aparece, y los
- * granos de carga laten hasta que se sabe a dónde ir (Login o Inicio).
+ * Splash — arranque animado mientras se verifica la sesión (Design System §1.0). El splash
+ * nativo es solo un instante en blanco; aquí entra el fondo de ramas de café, arriba el
+ * nombre y los granos de carga, y abajo el campesino de la marca: sube serio y, mientras
+ * carga, sonríe con un leve asentimiento y un halo verde detrás. Luego se va a Login o Inicio.
+ *
+ * Las dos caras son la misma ilustración (assets/brand): la seria lleva la boca cerrada y
+ * la sonriente se funde encima. Con movimiento reducido aparece directamente sonriendo.
  */
 @Component({
   selector: 'app-splash',
@@ -21,10 +25,20 @@ const LEAVE_MS = 250;
   template: `
     <ion-content [fullscreen]="true" class="splash" [class.splash--leaving]="leaving()">
       <div class="splash__bg" aria-hidden="true"></div>
-      <div class="splash__center">
-        <img class="splash__sack" src="assets/brand/splash-sack.webp" alt="CosechApp" />
+
+      <div class="splash__top">
+        <p class="splash__name">CosechApp</p>
         <div class="splash__loader" role="status" aria-label="Cargando">
           <span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- Apoyado en el borde de abajo, como un retrato: el corte del busto no se ve. -->
+      <div class="splash__farmer">
+        <div class="splash__halo" aria-hidden="true"></div>
+        <div class="splash__portrait">
+          <img class="splash__face" src="assets/brand/farmer-serious.webp" alt="" aria-hidden="true" />
+          <img class="splash__face splash__face--smile" src="assets/brand/farmer-smile.webp" alt="CosechApp" />
         </div>
       </div>
     </ion-content>
@@ -44,29 +58,37 @@ const LEAVE_MS = 250;
       opacity: 0;
       animation: bg-in 700ms ease-out forwards;
     }
-    .splash__center {
+
+    /* Arriba: el nombre y los granos, centrados en el espacio libre sobre el campesino
+       (que mide lo mismo de alto que de ancho). */
+    .splash__top {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: min(92vw, 420px);
+      left: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 24px;
+      gap: 18px;
+      padding-top: env(safe-area-inset-top, 0px);
     }
-    /* Tamaño mediano: acompaña al fondo sin llenar la pantalla. A más de ~180dp la
-       acuarela se ve tosca (se nota el escalado y pesa más que la marca). */
-    .splash__sack {
-      width: min(42vw, 180px);
+    .splash__name {
+      margin: 0;
+      font-family: var(--font-family-display);
+      font-size: 2.5rem;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: -0.01em;
+      color: var(--color-primary-ink);
       opacity: 0;
-      animation:
-        sack-in 800ms cubic-bezier(0.22, 1, 0.36, 1) 350ms forwards,
-        sack-breathe 2400ms ease-in-out 1150ms infinite;
+      animation: fade-in 500ms ease-out 150ms forwards;
     }
     .splash__loader {
       display: flex;
       gap: 10px;
       opacity: 0;
-      animation: fade-in 400ms ease-out 1000ms forwards;
+      animation: fade-in 400ms ease-out 700ms forwards;
     }
     .splash__loader span {
       width: 10px;
@@ -78,17 +100,55 @@ const LEAVE_MS = 250;
     .splash__loader span:nth-child(2) { animation-delay: 180ms; }
     .splash__loader span:nth-child(3) { animation-delay: 360ms; }
 
+    /* Abajo: el campesino, centrado y apoyado en el borde de la pantalla. */
+    .splash__farmer {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      width: min(92vw, 420px);
+      margin: 0 auto;
+    }
+    /* El halo verde que se enciende cuando sonríe. */
+    .splash__halo {
+      position: absolute;
+      inset: -12% -18% 0;
+      background: radial-gradient(closest-side at 50% 55%, rgba(121, 166, 54, 0.30), rgba(121, 166, 54, 0));
+      opacity: 0;
+      animation: fade-in 600ms ease-out 1100ms forwards;
+    }
+    /* Sube desde abajo, serio; al sonreír, asiente apenas (desde la base, como un busto). */
+    .splash__portrait {
+      position: relative;
+      aspect-ratio: 833 / 834;
+      transform-origin: 50% 100%;
+      opacity: 0;
+      animation:
+        rise 700ms cubic-bezier(0.22, 1, 0.36, 1) 200ms forwards,
+        nod 520ms ease-in-out 1100ms;
+    }
+    .splash__face {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .splash__face--smile {
+      opacity: 0;
+      animation: fade-in 350ms ease-out 1100ms forwards;
+    }
+
     @keyframes bg-in {
       from { opacity: 0; transform: scale(1.06); }
       to   { opacity: 1; transform: scale(1); }
     }
-    @keyframes sack-in {
-      from { opacity: 0; transform: translateY(24px) scale(0.88); }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(40px); }
       to   { opacity: 1; transform: none; }
     }
-    @keyframes sack-breathe {
-      0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.03); }
+    @keyframes nod {
+      0%, 100% { transform: none; }
+      40%      { transform: scale(1.03) rotate(-1.5deg); }
     }
     @keyframes fade-in {
       to { opacity: 1; }
@@ -98,9 +158,14 @@ const LEAVE_MS = 250;
       50%      { opacity: 1; transform: scale(1.1); }
     }
 
+    /* Sin movimiento: aparece directamente sonriendo, con un fundido. */
     @media (prefers-reduced-motion: reduce) {
-      .splash__bg, .splash__sack, .splash__loader {
+      .splash__bg, .splash__name, .splash__loader, .splash__portrait, .splash__halo {
         animation: fade-in 300ms ease-out forwards;
+      }
+      .splash__face--smile {
+        animation: none;
+        opacity: 1;
       }
       .splash__loader span {
         animation: none;
