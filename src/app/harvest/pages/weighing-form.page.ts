@@ -68,13 +68,13 @@ const MAX_KILOGRAMS = 1000;
         <div class="form-page__fields">
           <app-input
             label="Kilos"
-            type="number"
+            type="decimal"
             name="kilograms"
             [(ngModel)]="kilograms"
             required
             inputmode="decimal"
             enterkeyhint="done"
-            placeholder="Ej: 25.5"
+            placeholder="Ej: 25,5"
             helperText="Kilos de café cereza de esta pesada."
             errorMessage="Escribe los kilos de la pesada."
           ></app-input>

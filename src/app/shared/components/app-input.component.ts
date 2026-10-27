@@ -13,6 +13,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
 import { IonInput } from '@ionic/angular/ion-input';
 import { IonInputPasswordToggle } from '@ionic/angular/ion-input-password-toggle';
 import { IonIcon } from '@ionic/angular/ion-icon';
+import { parseDecimal, parseInteger, sanitizeDecimal, sanitizeInteger } from '../utils';
 
 /**
  * Componente atómico: Input de texto/numérico
@@ -22,6 +23,11 @@ import { IonIcon } from '@ionic/angular/ion-icon';
  * sobre el placeholder. Al enfocar, la etiqueta, el ícono y el borde pasan a verde.
  * Uso: <app-input label="Cédula" iconStart="id-card-outline" [(ngModel)]="value" required />
  * El ícono lo registra la página que lo usa (addIcons), como con cualquier ion-icon.
+ *
+ * Números (Design System §2.6): al escribir no se usa punto.
+ * - type="integer" (pesos): solo dígitos; "18.500" queda "18500". El modelo es un entero.
+ * - type="decimal" (kilos): dígitos y coma decimal; un punto pasa a coma ("25.5" → "25,5").
+ * El campo nativo es de texto: un <input type="number"> tomaría "18.500" como 18,5.
  */
 @Component({
   selector: 'app-input',
@@ -41,7 +47,7 @@ import { IonIcon } from '@ionic/angular/ion-icon';
       [class.has-icon]="iconStart()"
       fill="outline"
       [attr.aria-label]="label() || null"
-      [type]="type()"
+      [type]="nativeType()"
       [placeholder]="placeholder()"
       [value]="currentValue()"
       [disabled]="isDisabled()"
@@ -124,7 +130,7 @@ import { IonIcon } from '@ionic/angular/ion-icon';
 export class AppInputComponent implements ControlValueAccessor {
   // Inputs
   label = input<string>('');
-  type = input<'text' | 'password' | 'email' | 'number' | 'tel'>('text');
+  type = input<'text' | 'password' | 'email' | 'tel' | 'integer' | 'decimal'>('text');
   placeholder = input<string>('');
   value = input<string>('');
   disabled = input(false, { transform: booleanAttribute });
@@ -174,12 +180,20 @@ export class AppInputComponent implements ControlValueAccessor {
   });
   readonly showError = computed(() => this.touched() && this.hasError());
 
+  /** Los números se escriben en un campo de texto: la app decide qué entra (ver arriba). */
+  protected readonly nativeType = computed(() => {
+    const type = this.type();
+    return type === 'integer' || type === 'decimal' ? 'text' : type;
+  });
+
   // Callbacks registrados por Angular Forms
   private onChange: (value: string | number | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;
 
   onInput(event: Event): void {
-    const val = (event.target as HTMLInputElement | null)?.value ?? '';
+    const typed = (event.target as HTMLInputElement | null)?.value ?? '';
+    const val = this.sanitize(typed);
+    if (val !== typed) this.correctNativeInput(event, typed, val);
     this.currentValue.set(val);
     this.onChange(this.toModelValue(val));
     this.valueChange.emit(val);
@@ -199,7 +213,12 @@ export class AppInputComponent implements ControlValueAccessor {
 
   // ControlValueAccessor
   writeValue(value: unknown): void {
-    this.currentValue.set(value === null || value === undefined ? '' : String(value));
+    if (value === null || value === undefined) {
+      this.currentValue.set('');
+      return;
+    }
+    // Los kilos se muestran con coma decimal, como se escriben.
+    this.currentValue.set(this.type() === 'decimal' ? String(value).replace('.', ',') : String(value));
   }
 
   registerOnChange(fn: (value: string | number | null) => void): void {
@@ -214,12 +233,42 @@ export class AppInputComponent implements ControlValueAccessor {
     this.isDisabled.set(isDisabled);
   }
 
-  /** Igual que NumberValueAccessor de Angular: los inputs numéricos entregan number (o null si está vacío). */
-  private toModelValue(val: string): string | number | null {
-    if (this.type() !== 'number') {
-      return val;
+  /** Lo que se deja escribir en un campo de número: sin puntos (ver arriba). */
+  private sanitize(val: string): string {
+    switch (this.type()) {
+      case 'integer':
+        return sanitizeInteger(val);
+      case 'decimal':
+        return sanitizeDecimal(val);
+      default:
+        return val;
     }
-    return val === '' ? null : parseFloat(val);
+  }
+
+  /** Como NumberValueAccessor de Angular: los campos de número entregan number (o null si está vacío). */
+  private toModelValue(val: string): string | number | null {
+    switch (this.type()) {
+      case 'integer':
+        return parseInteger(val);
+      case 'decimal':
+        return parseDecimal(val);
+      default:
+        return val;
+    }
+  }
+
+  /**
+   * Deja en el campo nativo el texto ya limpio, sin mover el cursor de donde estaba: lo
+   * corre a la izquierda tantos caracteres como se quitaron antes de él.
+   */
+  private correctNativeInput(event: Event, typed: string, clean: string): void {
+    const native = (event as CustomEvent<{ event?: Event }>).detail?.event?.target as HTMLInputElement | undefined;
+    if (!native) return;
+    const caret = native.selectionStart ?? typed.length;
+    const keptBeforeCaret = this.sanitize(typed.slice(0, caret)).length;
+    native.value = clean;
+    const position = Math.min(keptBeforeCaret, clean.length);
+    native.setSelectionRange(position, position);
   }
 }
 

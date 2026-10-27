@@ -26,7 +26,7 @@ import { AppButtonPrimaryComponent, AppInputComponent } from '@shared/components
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
-import { apiErrorMessage } from '../../shared/utils';
+import { apiErrorMessage, parseInteger } from '../../shared/utils';
 import { HarvestFacade } from '../services/harvest.facade';
 import { DashboardFacade } from '../services/dashboard.facade';
 import { NetworkService } from '../../network/services/network.service';
@@ -157,7 +157,7 @@ import { NetworkService } from '../../network/services/network.service';
 
             <app-input
               label="Precio por kilo (COP)"
-              type="number"
+              type="integer"
               name="pricePerKilogram"
               [(ngModel)]="pricePerKilogram"
               required
@@ -425,7 +425,8 @@ export class CreatePage {
       header: 'Editar cosecha',
       inputs: [
         { name: 'name', type: 'text', placeholder: 'Nombre de la cosecha', value: harvest.name, attributes: { maxlength: 100, autocapitalize: 'sentences' } },
-        { name: 'price', type: 'number', placeholder: 'Precio por kilo', value: harvest.pricePerKilogram, min: 1, attributes: { inputmode: 'numeric' } },
+        // Texto y no número: "1.200" (con punto, como se escribe aquí) es mil doscientos, no 1,2.
+        { name: 'price', type: 'text', placeholder: 'Precio por kilo', value: String(harvest.pricePerKilogram), attributes: { inputmode: 'numeric' } },
       ],
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
@@ -433,9 +434,9 @@ export class CreatePage {
           text: 'Guardar',
           handler: (data: { name: string; price: string }) => {
             const name = data.name?.trim();
-            const price = Number(data.price);
-            if (!name || !(price > 0)) return false; // mantiene el diálogo abierto
-            void this.saveHarvest(name, price);
+            const price = parseInteger(data.price);
+            if (!name || !(price! > 0)) return false; // mantiene el diálogo abierto
+            void this.saveHarvest(name, price!);
             return true;
           },
         },
