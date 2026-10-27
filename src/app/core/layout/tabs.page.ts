@@ -123,9 +123,15 @@ import { add, home, homeOutline, pricetag, pricetagOutline, time, timeOutline, p
       padding: 0;
       border: 0;
       background: none;
-      color: var(--color-primary-ink);
+      color: var(--color-text-muted);
       font: inherit;
       cursor: pointer;
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+    /* Crear es una sección más: su etiqueta se marca como la de la pestaña activa. El
+       círculo verde no cambia (es la acción principal y siempre debe verse). */
+    .tabs-create[aria-current='page'] {
+      color: var(--color-primary-ink);
     }
     .tabs-create::before {
       content: '';
@@ -171,8 +177,12 @@ import { add, home, homeOutline, pricetag, pricetagOutline, time, timeOutline, p
       margin-bottom: 6px;
       font-family: var(--font-family-body);
       font-size: var(--font-size-xs);
-      font-weight: var(--font-weight-bold);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: -0.01em;
       line-height: 1.1;
+    }
+    .tabs-create[aria-current='page'] .tabs-create__label {
+      font-weight: var(--font-weight-semibold);
     }
     .tabs-create:focus-visible {
       outline: none;

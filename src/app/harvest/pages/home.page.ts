@@ -204,8 +204,10 @@ import { formatKilos } from '../../shared/utils';
         <section aria-labelledby="chart-title">
           <h2 id="chart-title" class="section-title">Kilos por día <span class="section-title__sub">· últimos 7 días</span></h2>
           <div class="card">
-            @if (dashboard.dailySeries().length > 0) {
+            @if (weekHasKilograms()) {
               <app-daily-kilos-chart [days]="dashboard.dailySeries()"></app-daily-kilos-chart>
+            } @else if (dashboard.dailySeries().length > 0) {
+              <p class="card__note">Aún no hay pesadas en los últimos 7 días.</p>
             } @else if (dashboard.isLoading()) {
               <ion-skeleton-text [animated]="true" class="sk sk--chart"></ion-skeleton-text>
             } @else {
@@ -492,6 +494,9 @@ export class HomePage {
   }).format(new Date()).replace(/[.,]/g, '');
   /** El precio sin " COP": la etiqueta "Precio FNC" ya dice de qué se trata. */
   protected readonly shortPrice = computed(() => this.priceAndNewsFacade.formattedPrice().replace(/\s*COP$/, ''));
+
+  /** Sin kilos en la semana el gráfico sería una caja vacía: se dice con palabras. */
+  protected readonly weekHasKilograms = computed(() => this.dashboard.dailySeries().some((day) => day.kilograms > 0));
 
   /** Hoy frente a ayer, en palabras (el color solo acompaña). */
   protected readonly delta = computed(() => {
