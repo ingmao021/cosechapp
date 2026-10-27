@@ -7,8 +7,9 @@ android {
         applicationId "io.ionic.starter"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // El workflow Release APK los pasa desde el tag (v1.2.3 → 10203 / "1.2.3")
+        versionCode = (project.findProperty('appVersionCode') ?: '1') as Integer
+        versionName = project.findProperty('appVersionName') ?: '1.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +17,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Firma de release: el workflow Release APK pasa el keystore por variables de entorno.
+    // Sin ellas (build local) la APK de release sale sin firmar.
+    def releaseKeystore = System.getenv('ANDROID_KEYSTORE_FILE')
+    signingConfigs {
+        release {
+            if (releaseKeystore) {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias = System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseKeystore) {
+                signingConfig = signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

@@ -141,6 +141,17 @@ cd android
 
 También se puede abrir el proyecto en Android Studio con `npx cap open android`.
 
+### Publicar una versión (APK en Releases)
+
+El workflow `.github/workflows/release-apk.yml` compila la APK de producción firmada y la publica en [Releases](https://github.com/ingmao021/cosechapp/releases). Solo acepta commits de `main` (lo que corre en Render). Para lanzarlo:
+
+- En GitHub: **Actions → Release APK → Run workflow** (rama `main`) y escribir la versión, por ejemplo `1.2.0`.
+- O desde la terminal: `git tag v1.2.0 && git push origin v1.2.0`.
+
+Enlace fijo a la última versión, para compartir: https://github.com/ingmao021/cosechapp/releases/latest/download/CosechApp.apk
+
+La firma usa siempre el mismo keystore, guardado en los secretos del repo (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`). Si se cambia, los teléfonos no dejan actualizar encima de la versión instalada.
+
 ### Flujo de ejemplo
 
 1. **Crear cuenta** con cédula, nombre y contraseña.
