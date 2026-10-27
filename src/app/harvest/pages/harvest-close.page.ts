@@ -173,7 +173,7 @@ const today = () => {
                 @if (mealsChoice() === 'yes') {
                   <app-input
                     label="¿Cuánto cobras de comida por día?"
-                    type="number"
+                    type="integer"
                     inputmode="numeric"
                     name="mealPerDay"
                     placeholder="Ej: 10000"
@@ -241,7 +241,7 @@ const today = () => {
                 </p>
                 <app-input
                   label="Kilos secos vendidos"
-                  type="number"
+                  type="decimal"
                   name="dryKilograms"
                   [(ngModel)]="dryKilograms"
                   required
@@ -251,7 +251,7 @@ const today = () => {
                 ></app-input>
                 <app-input
                   label="Precio por kilo seco (COP)"
-                  type="number"
+                  type="integer"
                   name="salePrice"
                   [(ngModel)]="salePrice"
                   required
@@ -298,7 +298,11 @@ const today = () => {
                   </ng-template>
                 </ion-modal>
                 @if (saleTotal() > 0) {
-                  <p class="form-page__intro">Total de la venta: <strong>{{ saleTotal() | currency }}</strong></p>
+                  <!-- La cuenta a la vista (con punto de miles): que nadie confunda el total con el precio. -->
+                  <p class="form-page__intro">
+                    Total de la venta: {{ dryKilograms() | kilos }} × {{ salePrice() | currency: true : false }} =
+                    <strong class="nowrap">{{ saleTotal() | currency }}</strong>
+                  </p>
                 }
                 <app-button-primary
                   type="submit"
@@ -339,7 +343,7 @@ const today = () => {
                 ></app-input>
                 <app-input
                   label="Valor (COP)"
-                  type="number"
+                  type="integer"
                   name="costAmount"
                   [(ngModel)]="costAmount"
                   required
@@ -474,6 +478,10 @@ const today = () => {
     }
     .card app-segmented {
       margin: var(--spacing-sm) 0;
+    }
+    /* El total no se parte entre "$" y la cifra. */
+    .nowrap {
+      white-space: nowrap;
     }
     .sale-date {
       display: flex;

@@ -97,6 +97,70 @@ describe('AppInputComponent', () => {
     expect(component.showError()).toBe(true);
   });
 
+  describe('numbers: no dot while typing', () => {
+    let modelValues: unknown[];
+    const type = (typed: string) => {
+      const native = document.createElement('input');
+      native.value = typed;
+      fixture.debugElement
+        .query(By.css('ion-input'))
+        .triggerEventHandler('ionInput', { target: { value: typed }, detail: { event: { target: native } } });
+      fixture.detectChanges();
+      return native;
+    };
+
+    beforeEach(() => {
+      modelValues = [];
+      component.registerOnChange((value) => modelValues.push(value));
+    });
+
+    it('integer (pesos) keeps only digits: "18.500" is 18500, never 18,5', () => {
+      fixture.componentRef.setInput('type', 'integer');
+      fixture.detectChanges();
+
+      const native = type('18.500');
+
+      expect(native.value).toBe('18500');
+      expect(component.currentValue()).toBe('18500');
+      expect(modelValues.at(-1)).toBe(18500);
+      // El campo nativo es de texto: un input type="number" tomaría "18.500" como 18,5.
+      expect((component as unknown as { nativeType(): string }).nativeType()).toBe('text');
+    });
+
+    it('integer gives null when empty and shows a written amount without dots', () => {
+      fixture.componentRef.setInput('type', 'integer');
+      fixture.detectChanges();
+
+      type('');
+      expect(modelValues.at(-1)).toBeNull();
+
+      component.writeValue(1200);
+      expect(component.currentValue()).toBe('1200');
+    });
+
+    it('decimal (kilos) turns a typed dot into the decimal comma', () => {
+      fixture.componentRef.setInput('type', 'decimal');
+      fixture.detectChanges();
+
+      const native = type('25.5');
+
+      expect(native.value).toBe('25,5');
+      expect(modelValues.at(-1)).toBe(25.5);
+
+      component.writeValue(12.75);
+      expect(component.currentValue()).toBe('12,75');
+    });
+
+    it('decimal keeps one comma and up to 3 decimals', () => {
+      fixture.componentRef.setInput('type', 'decimal');
+      fixture.detectChanges();
+
+      expect(type('1,2,3').value).toBe('1,23');
+      expect(type('2,12345').value).toBe('2,123');
+      expect(modelValues.at(-1)).toBe(2.123);
+    });
+  });
+
   it('should respect maxlength validation', () => {
     fixture.componentRef.setInput('required', true);
     fixture.componentRef.setInput('maxlength', 10);

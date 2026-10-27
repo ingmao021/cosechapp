@@ -385,6 +385,8 @@ Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en
 1. Una línea de ayuda que explica para qué sirve el formulario.
 2. Campos con etiqueta visible; los ejemplos van como placeholder ("Ej: 1200") y las reglas como texto de ayuda bajo el campo.
 3. Campos numéricos vacíos al empezar: nunca un "0" precargado que hay que borrar.
+   - **Al escribir, sin punto; en los resultados, con punto.** Los montos en pesos (`app-input type="integer"`) solo aceptan dígitos: "18.500" queda "18500" y nunca se toma como 18,5. Los kilos (`type="decimal"`) usan la coma decimal y un punto escrito pasa a coma ("25.5" → "25,5"). Los diálogos con montos (`ion-alert`) usan campo de texto y `parseInteger()`. Donde se muestra el resultado va el punto de miles ("$ 18.500", "1.250 kg").
+   - Un total calculado muestra su cuenta para que no se confunda con lo escrito: "Total de la venta: 12,5 kg × $ 18.500 = $ 231.250".
 4. Validación por campo al salir de él, con un mensaje que dice qué hacer ("Escribe el precio por kilo.").
 5. Error de envío dentro del formulario, sobre el botón. Se mantiene visible hasta el siguiente intento.
 6. Un solo botón principal, con el verbo de la acción ("Abrir cosecha", "Guardar trabajador"), que se desactiva mientras el formulario es inválido.
