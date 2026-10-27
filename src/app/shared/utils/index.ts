@@ -15,6 +15,44 @@ export const formatCurrency = (value: number): string => {
   return `${rounded < 0 ? '−' : ''}$ ${formatted} COP`;
 };
 
+/*
+ * Números que escribe el usuario (Design System §2.6 Formulario): al digitar no se usa
+ * punto; en los resultados, sí (punto de miles y coma decimal, con los pipes). Así
+ * "18.500", escrito a la colombiana, nunca se toma como 18,5.
+ */
+
+/** Más dígitos que esto no son un monto real (y JavaScript los perdería). */
+const MAX_INTEGER_DIGITS = 12;
+const MAX_DECIMALS = 3;
+
+/** Montos en pesos al escribir: solo dígitos, sin ceros a la izquierda ("18.500" → "18500"). */
+export const sanitizeInteger = (text: string): string =>
+  text.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, MAX_INTEGER_DIGITS);
+
+/** Monto escrito → entero, o null si no hay dígitos. */
+export const parseInteger = (text: string | null | undefined): number | null => {
+  const digits = sanitizeInteger(text ?? '');
+  return digits === '' ? null : Number(digits);
+};
+
+/**
+ * Kilos al escribir: dígitos y una sola coma decimal (con hasta 3 decimales). Un punto
+ * se toma como esa coma ("25.5" → "25,5"), para que nunca se cuele un 255.
+ */
+export const sanitizeDecimal = (text: string): string => {
+  const [whole, ...rest] = text.replace(/\./g, ',').replace(/[^\d,]/g, '').split(',');
+  const integer = whole.replace(/^0+(?=\d)/, '').slice(0, MAX_INTEGER_DIGITS);
+  if (rest.length === 0) return integer;
+  return `${integer || '0'},${rest.join('').slice(0, MAX_DECIMALS)}`;
+};
+
+/** Kilos escritos → número, o null si no hay dígitos. */
+export const parseDecimal = (text: string | null | undefined): number | null => {
+  const clean = sanitizeDecimal(text ?? '');
+  if (!/\d/.test(clean)) return null;
+  return Number(clean.replace(',', '.'));
+};
+
 const COLOMBIA_OFFSET_MS = -5 * 60 * 60 * 1000; // UTC−5, sin horario de verano
 const DAY_MS = 24 * 60 * 60 * 1000;
 

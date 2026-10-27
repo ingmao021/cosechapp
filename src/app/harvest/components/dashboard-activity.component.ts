@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { IonIcon } from '@ionic/angular/ion-icon';
 import { addIcons } from 'ionicons';
 import { cashOutline, cloudUploadOutline, scaleOutline } from 'ionicons/icons';
@@ -20,42 +20,54 @@ const dayFormat = new Intl.DateTimeFormat('es-CO', {
   month: 'short',
 });
 
+/** Un día de la actividad: "Hoy", "Ayer" o "lun 20 oct", con sus movimientos. */
+interface ActivityDay {
+  key: string;
+  label: string;
+  items: DashboardActivity[];
+}
+
 /**
- * Organismo de Inicio: últimas pesadas y pagos. Cada fila abre al recolector (emite
- * `open` con su id); las pesadas que siguen en el teléfono dicen "Por enviar".
+ * Organismo de Inicio: últimas pesadas y pagos, agrupados por día como en el cuaderno.
+ * Las pesadas llevan chip verde con balanza y los pagos chip café con billete (ícono y
+ * color, nunca solo color). Cada fila abre al recolector (emite `open` con su id); las
+ * pesadas que siguen en el teléfono dicen "Por enviar".
  */
 @Component({
   selector: 'app-dashboard-activity',
   standalone: true,
   imports: [IonIcon, CurrencyPipe, KilosPipe],
   template: `
-    <ul class="activity">
-      @for (item of items(); track item.id) {
-        <li>
-          <button type="button" class="row" (click)="open.emit(item.pickerId)">
-            <span class="icon-chip" aria-hidden="true">
-              <ion-icon [name]="item.type === 'weighing' ? 'scale-outline' : 'cash-outline'"></ion-icon>
-            </span>
-            <span class="row__text">
-              <span class="row__title">{{ item.displayName }}</span>
-              <span class="row__meta">
-                {{ kind(item) }} · {{ when(item.dateTime) }}
-                @if (item.pending) {
-                  · <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon> Por enviar
+    @for (day of days(); track day.key) {
+      <h3 class="day">{{ day.label }}</h3>
+      <ul class="activity">
+        @for (item of day.items; track item.id) {
+          <li>
+            <button type="button" class="row" (click)="open.emit(item.pickerId)">
+              <span class="icon-chip" [class.icon-chip--coffee]="item.type === 'payment'" aria-hidden="true">
+                <ion-icon [name]="item.type === 'weighing' ? 'scale-outline' : 'cash-outline'"></ion-icon>
+              </span>
+              <span class="row__text">
+                <span class="row__title">{{ item.displayName }}</span>
+                <span class="row__meta">
+                  {{ kind(item) }} · {{ time(item.dateTime) }}
+                  @if (item.pending) {
+                    · <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon> Por enviar
+                  }
+                </span>
+              </span>
+              <span class="row__value num">
+                @if (item.type === 'weighing') {
+                  {{ item.kilograms | kilos }}
+                } @else {
+                  {{ item.amount | currency: true : false }}
                 }
               </span>
-            </span>
-            <span class="row__value num">
-              @if (item.type === 'weighing') {
-                {{ item.kilograms | kilos }}
-              } @else {
-                {{ item.amount | currency: true : false }}
-              }
-            </span>
-          </button>
-        </li>
-      }
-    </ul>
+            </button>
+          </li>
+        }
+      </ul>
+    }
   `,
   styles: [`
     .activity {
@@ -63,6 +75,23 @@ const dayFormat = new Intl.DateTimeFormat('es-CO', {
       padding: 0;
       list-style: none;
       font-family: var(--font-family-body);
+    }
+    /* Cabecera de cada día, pequeña y en gris: ordena sin competir con las filas. */
+    .day {
+      margin: 0;
+      padding: 12px var(--spacing-md) 2px;
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-footnote);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+    }
+    .day::first-letter {
+      text-transform: uppercase;
+    }
+    /* Los pagos en café (el tono del costal), las pesadas en el verde de siempre. */
+    .icon-chip--coffee {
+      background: var(--color-coffee-chip);
+      color: var(--color-primary-muted);
     }
     /* Separador desde donde empieza el texto, no desde el borde. */
     li + li .row::before {
@@ -126,6 +155,25 @@ export class DashboardActivityComponent {
   /** Id del recolector de la fila tocada. */
   readonly open = output<string>();
 
+  /** Los movimientos ya llegan del más reciente al más antiguo: se agrupan por día en ese orden. */
+  protected readonly days = computed<ActivityDay[]>(() => {
+    const today = colombiaDateKey(new Date());
+    const yesterday = addDaysToDateKey(today, -1);
+    const days: ActivityDay[] = [];
+    for (const item of this.items()) {
+      const key = colombiaDateKey(item.dateTime);
+      let day = days.find((existing) => existing.key === key);
+      if (!day) {
+        const label =
+          key === today ? 'Hoy' : key === yesterday ? 'Ayer' : dayFormat.format(new Date(item.dateTime)).replace(/[.,]/g, '');
+        day = { key, label, items: [] };
+        days.push(day);
+      }
+      day.items.push(item);
+    }
+    return days;
+  });
+
   constructor() {
     addIcons({ cashOutline, cloudUploadOutline, scaleOutline });
   }
@@ -135,13 +183,8 @@ export class DashboardActivityComponent {
     return item.isSettlement ? 'Liquidación' : 'Pago';
   }
 
-  /** "hoy 10:32", "ayer 15:10" o "lun 20 oct", en hora de Colombia. */
-  protected when(dateTime: string): string {
-    const day = colombiaDateKey(dateTime);
-    const today = colombiaDateKey(new Date());
-    const time = timeFormat.format(new Date(dateTime));
-    if (day === today) return `hoy ${time}`;
-    if (day === addDaysToDateKey(today, -1)) return `ayer ${time}`;
-    return dayFormat.format(new Date(dateTime)).replace(/[.,]/g, '');
+  /** Hora de Colombia ("10:32"): el día ya lo dice la cabecera del grupo. */
+  protected time(dateTime: string): string {
+    return timeFormat.format(new Date(dateTime));
   }
 }

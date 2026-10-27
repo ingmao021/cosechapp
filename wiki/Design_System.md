@@ -11,9 +11,9 @@ Define qué información y elementos se muestran en cada pantalla de CosechApp, 
 ### 1.0 Splash
 Arranque animado mientras se verifica la sesión:
 1. **Splash nativo** (Android): un instante en blanco `#FFFFFF` mientras carga el WebView. Configurado en `capacitor.config.ts` (`SplashScreen`, `launchAutoHide: false`) y en `styles.xml` (`windowSplashScreenBackground` blanco, también con el teléfono en modo oscuro).
-2. **`SplashPage`:** oculta el nativo y muestra el fondo de café (`splash-bg.webp`), luego el costal sube y aparece (`splash-sack.webp`) y tres granos laten mientras carga. Con movimiento reducido todo aparece con un fundido.
+2. **`SplashPage`:** oculta el nativo y muestra el fondo de café (`splash-bg.webp`). Arriba aparecen el nombre "CosechApp" (Zilla Slab) y tres granos que laten mientras carga. Abajo, apoyado en el borde de la pantalla como un retrato, **el campesino de la marca sube serio** (`farmer-serious.webp`) y, mientras carga, **sonríe** (`farmer-smile.webp` se funde encima) con un leve asentimiento y un halo verde suave detrás. Las dos caras son la misma ilustración; la seria solo cambia la boca (labios cerrados). Con movimiento reducido aparece directamente sonriendo, con un fundido.
 - Sin controles ni texto interactivo: es una pantalla de transición, no requiere acción del usuario.
-- Duración: lo que tarde **lo más largo** entre 1,8 s (para que la entrada se vea completa) y la verificación de sesión (ver sección 3.1). Sale con un fundido de 250 ms hacia Login o Inicio.
+- Duración: lo que tarde **lo más largo** entre 2 s (para que se vea la sonrisa) y la verificación de sesión (ver sección 3.1). Sale con un fundido de 250 ms hacia Login o Inicio.
 
 ### 1.1 Login / Registro
 **Login:**
@@ -33,16 +33,15 @@ Arranque animado mientras se verifica la sesión:
 ### 1.2 Inicio (dashboard de la cosecha activa)
 Inicio **solo informa**: no tiene formularios ni acciones sobre la cosecha (abrir, editar, eliminar y cerrar viven en Crear, §1.2.1). Los botones que tiene solo llevan a otra pantalla.
 - Arriba, una franja del día (tile tocable que lleva a Mercado): la fecha de hoy en hora de Colombia ("Sáb 24 oct") y el precio FNC, cada uno con su chip de ícono. Sin precio publicado dice "Sin publicar"; **nunca** un valor de ejemplo ni "$ 0".
-- Debajo, en tarjetas blancas con su nombre encima (`.section-title`), de arriba hacia abajo:
-  1. **Cosecha activa:** nombre, "Día N de la cosecha" (N = 1 el día que se abrió, en hora de Colombia), el chip de sincronización ("En línea", "Sin conexión · se guarda en el teléfono", "N pesadas por enviar"; nunca "Sincronizado" si no es verdad) y el botón **"Continuar"**, que lleva a Cuadrillas para seguir pesando.
-  2. **Kilos recogidos:** hoy y ayer en dos celdas suaves (cifras en Zilla Slab) y la diferencia en palabras ("12 kg más que ayer", "5 kg menos que ayer", "Igual que ayer"; el primer día, "Primer día de la cosecha"). El color solo acompaña al texto. Los kilos de hoy incluyen las pesadas guardadas sin señal.
-  3. **Pagos pendientes:** total por pagar y hasta 5 recolectores con saldo (el mayor primero), cada uno con su atajo **"Pagar ahora"**: abre su detalle con el flujo de pago ya en marcha (§1.5). Si hay más, "y N más". Requiere conexión. Sin saldos: "Nada pendiente: todos están al día".
-  4. **Acumulado de la cosecha:** kilos recogidos, pagado a recolectores, por pagar y costos de producción ("Se registran al cerrar" mientras no haya). Después, separadas, **Ganancia bruta** y **Ganancia de la cosecha**, con la etiqueta "estimada": con la cosecha abierta no hay venta, así que se estiman con el valor del punto 5. Bruta = valor estimado − pagos a recolectores (pagado + por pagar, porque al cerrar se liquida todo lo pendiente); de la cosecha = bruta − costos (PRD 7.8 y 7.9). Sin precio FNC dicen "Sin precio FNC", nunca una cifra inventada.
-  5. **Valor estimado de lo recogido:** kilos secos proyectados (cereza ÷ 5, PRD 7.7) × precio FNC ÷ 125 (el precio es por carga de 125 kg), con la cuenta escrita debajo.
-  6. **Kilos por día (últimos 7 días):** columnas finas (`app-daily-kilos-chart`). Hoy en el verde de marca y los demás días en un paso más claro del mismo verde; cifra solo sobre hoy y el día más alto (tocar una columna muestra la suya). Los días antes de abrir la cosecha no tienen columna, y los días sin pesadas una marca gris mínima. El lector de pantalla recibe todas las cifras.
-  7. **Actividad reciente:** las últimas 6 pesadas y pagos ("Pesada · hoy 10:32", "Pago · ayer", "Liquidación · lun 20 oct") con su cifra; las que siguen en el teléfono dicen "Por enviar". Tocar una fila abre al recolector.
+- Debajo, de arriba hacia abajo: el bloque principal en verde y el resto en tarjetas blancas con su nombre encima (`.section-title`):
+  1. **Bloque principal (cosecha activa y kilos de hoy frente a ayer)** — el elemento firma de la app. Es la única tarjeta en color: verde hoja profundo (`--color-leaf-deep`, texto blanco 8,4:1) con el dibujo de ramas de café del splash y del login, invertido y muy suave, que se desvanece hacia la izquierda para que el texto quede sobre verde limpio. Lleva "Cosecha activa · Día N" (N = 1 el día que se abrió, en hora de Colombia), el nombre, **los kilos de hoy en grande** en Zilla Slab ("157,3 kg hoy"; incluyen las pesadas guardadas sin señal), una píldora con la diferencia en palabras ("49,7 kg menos que ayer", "Igual que ayer"; el primer día, "Primer día de la cosecha") y "Ayer: 207 kg", el estado de envío ("En línea", "Sin conexión · se guarda en el teléfono", "N pesadas por enviar" en ámbar claro; nunca "Sincronizado" si no es verdad) y el botón blanco **"Continuar"**, que lleva a Cuadrillas.
+  2. **Pagos pendientes:** total por pagar en Zilla Slab verde oscuro y hasta 5 recolectores con saldo (el mayor primero), cada uno con su atajo **"Pagar ahora"**, un botón tonal (verde suave, sin borde, 44dp) que abre su detalle con el flujo de pago ya en marcha (§1.5). Si hay más, "y N más". Requiere conexión. Sin saldos: "Nada pendiente: todos están al día".
+  3. **Acumulado de la cosecha:** cuatro celdas blancas con ícono, cifra en Zilla Slab y nombre: kilos recogidos, pagado, por pagar y costos ("—" con "se registran al cerrar" mientras no haya). Con letra grande la cuadrícula pasa a una columna (ancho mínimo en `rem`), nunca parte un monto.
+  4. **Valor y ganancia · estimados:** solo resultados, sin fórmulas: cinco renglones nombre → cifra en el orden en que se calculan (valor de lo recogido, pagos a recolectores, **ganancia bruta**, costos de producción y **ganancia de la cosecha** en Zilla Slab; PRD 7.7 a 7.9), con una raya antes de cada ganancia. El valor se estima con el precio FNC de hoy (kilos secos proyectados = cereza ÷ 5; el precio FNC es por carga de 125 kg) y los pagos incluyen lo pagado y lo que falta por pagar, porque al cerrar se liquida todo. Es estimada: con la cosecha abierta no hay venta. Sin precio FNC dice "Sin precio FNC" y las ganancias "—", nunca una cifra inventada. La ganancia de la cosecha va en verde solo si es ganancia; $ 0 en color neutro y una pérdida en rojo tierra, como en el historial. Si con letra grande nombre y cifra no caben, la cifra baja a su propia línea.
+  5. **Kilos por día (últimos 7 días):** arriba, una frase que resume la semana ("783,9 kg en 7 días" · "Mejor día: vie, 242,7 kg"); debajo, columnas finas (`app-daily-kilos-chart`). Hoy en el verde de marca y los demás días en un paso más claro del mismo verde; cifra solo sobre hoy y el día más alto (tocar una columna muestra la suya). Los días antes de abrir la cosecha no tienen columna, y los días sin pesadas una marca gris mínima. El lector de pantalla recibe todas las cifras. Si no hubo pesadas en esos 7 días, en vez del gráfico vacío dice "Aún no hay pesadas en los últimos 7 días."
+  6. **Actividad reciente:** las últimas 6 pesadas y pagos, agrupados por día con una cabecera pequeña ("Hoy", "Ayer", "Lun 20 oct"); cada fila lleva "Pesada · 10:32", "Pago" o "Liquidación" y su cifra. Las pesadas con chip verde y balanza, los pagos con chip café (`--color-coffee-chip`) y billete: se distinguen por ícono, no solo por color. Las que siguen en el teléfono dicen "Por enviar". Tocar una fila abre al recolector.
 - Se refresca al volver a la pestaña y con deslizar hacia abajo. Sin señal muestra la última copia guardada.
-- Si no hay cosecha activa: "No hay cosecha activa" con un solo botón, "Ir a Crear".
+- Si no hay cosecha activa: el costal de la marca (`splash-sack.webp`), "No hay cosecha activa" y un solo botón, "Ir a Crear".
 
 ### 1.2.1 Crear (sección de la barra inferior, `/create`)
 - Página de nivel 1 con el título "Crear".
@@ -222,6 +221,10 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranqu
 --color-text: #2B2420          /* texto de cuerpo — no se usa --color-primary-muted aquí (ver nota de contraste) */
 --color-border: #D8D2C0
 --color-accent-alert: #7A2E22  /* rojo tierra — se mantiene para alertas puntuales, no viene del logo */
+--color-leaf-deep: #3B551A     /* verde hoja profundo — fondo del bloque principal de Inicio (blanco encima: 8.4:1) */
+--color-on-leaf: #FFFFFF       /* texto y cifras sobre verde hoja profundo */
+--color-on-leaf-muted: rgba(255,255,255,.78) /* secundario sobre verde hoja profundo (~5.4:1) */
+--color-coffee-chip: #F3EEED   /* chip de los pagos en Actividad reciente; el ícono va en --color-primary-muted */
 ```
 
 > **Nota de contraste (obligatoria por el PRD, sección 10 — Accesibilidad):** se verificó el contraste de cada color de marca contra `--color-background` (#F2EFF2) siguiendo WCAG:
@@ -385,6 +388,8 @@ Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en
 1. Una línea de ayuda que explica para qué sirve el formulario.
 2. Campos con etiqueta visible; los ejemplos van como placeholder ("Ej: 1200") y las reglas como texto de ayuda bajo el campo.
 3. Campos numéricos vacíos al empezar: nunca un "0" precargado que hay que borrar.
+   - **Al escribir, sin punto; en los resultados, con punto.** Los montos en pesos (`app-input type="integer"`) solo aceptan dígitos: "18.500" queda "18500" y nunca se toma como 18,5. Los kilos (`type="decimal"`) usan la coma decimal y un punto escrito pasa a coma ("25.5" → "25,5"). Los diálogos con montos (`ion-alert`) usan campo de texto y `parseInteger()`. Donde se muestra el resultado va el punto de miles ("$ 18.500", "1.250 kg").
+   - Los totales calculados muestran solo el resultado, sin la fórmula ("Total de la venta: $ 231.250 COP").
 4. Validación por campo al salir de él, con un mensaje que dice qué hacer ("Escribe el precio por kilo.").
 5. Error de envío dentro del formulario, sobre el botón. Se mantiene visible hasta el siguiente intento.
 6. Un solo botón principal, con el verbo de la acción ("Abrir cosecha", "Guardar trabajador"), que se desactiva mientras el formulario es inválido.
@@ -583,7 +588,7 @@ Perfil
 
 ### 3.3 Elementos de navegación
 - Barra inferior de pestañas flotante (4 pestañas: Inicio, Mercado, Historial, Perfil), con etiquetas de una sola palabra para que quepan en 360dp. La pestaña activa pasa a ícono relleno y etiqueta en negrita `--color-primary-ink`.
-- **Crear** (botón circular verde al centro, que sobresale de la barra) es una sección con ruta propia (`/create`, §1.2.1): sin cosecha muestra el formulario para abrirla; con una abierta, su estado y por qué no se puede abrir otra. El círculo siempre es verde; estar en Crear se anuncia con `aria-current="page"`.
+- **Crear** (botón circular verde al centro, que sobresale de la barra) es una sección con ruta propia (`/create`, §1.2.1): sin cosecha muestra el formulario para abrirla; con una abierta, su estado y por qué no se puede abrir otra. El círculo siempre es verde. Su etiqueta va gris como las de las pestañas y pasa a verde oscuro en negrita solo estando en Crear, para que nunca parezcan seleccionadas dos secciones; estar en Crear se anuncia con `aria-current="page"`.
 - Dentro de cada pestaña, navegación por profundización (tocar una tarjeta lleva al detalle) con botón de "volver" estándar.
 - "Cuadrillas" y "Cerrar cosecha" no son pestañas propias, porque dependen de que haya una cosecha activa: a Cuadrillas se llega con "Continuar" (Inicio) o "Ir a la cosecha" (Crear); "Cerrar cosecha" está en Crear.
 - El catálogo de trabajadores y el aviso de privacidad viven dentro de Perfil, por ser de uso ocasional (no diario).

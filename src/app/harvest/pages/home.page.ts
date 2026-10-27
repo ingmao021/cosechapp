@@ -10,40 +10,30 @@ import { IonSkeletonText } from '@ionic/angular/ion-skeleton-text';
 import { IonRefresher } from '@ionic/angular/ion-refresher';
 import { IonRefresherContent } from '@ionic/angular/ion-refresher-content';
 import { addIcons } from 'ionicons';
-import {
-  addCircleOutline,
-  arrowForward,
-  calendarClearOutline,
-  cloudDoneOutline,
-  cloudOfflineOutline,
-  cloudUploadOutline,
-  flagOutline,
-  pricetagOutline,
-  refreshOutline,
-  removeOutline,
-  trendingDownOutline,
-  trendingUpOutline,
-} from 'ionicons/icons';
+import { arrowForward, calendarClearOutline, pricetagOutline, refreshOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
-import { DashboardFacade, FNC_LOAD_KG } from '../services/dashboard.facade';
+import { DashboardFacade } from '../services/dashboard.facade';
 import { DashboardActivityComponent } from '../components/dashboard-activity.component';
+import { DashboardHeroComponent } from '../components/dashboard-hero.component';
 import { DashboardLedgerComponent } from '../components/dashboard-ledger.component';
 import { DashboardPendingComponent } from '../components/dashboard-pending.component';
+import { DashboardTotalsComponent } from '../components/dashboard-totals.component';
 import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.facade';
-import { NetworkService } from '../../network/services/network.service';
 import { SyncFacade } from '../../sync/services/sync.facade';
-import { DateFormatPipe } from '@shared/pipes/date.pipe';
-import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
-import { DailyKilosChartComponent, EmptyStateComponent } from '@shared/components';
-import { formatKilos } from '../../shared/utils';
+import { DailyKilosChartComponent } from '@shared/components';
+import { colombiaDateKey } from '../../shared/utils';
+
+const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
 /**
  * Inicio — dashboard de la cosecha activa (Design System §1.2). Solo informa: las
  * acciones sobre la cosecha (abrir, editar, eliminar, cerrar) viven en Crear.
- * De arriba hacia abajo: cosecha activa (día N y "Continuar"), kilos de hoy frente a
- * ayer, pagos pendientes (con atajo a "Pagar ahora"), acumulado con la ganancia
- * estimada, valor estimado a precio FNC, kilos de los últimos 7 días y actividad reciente.
+ * De arriba hacia abajo: el bloque principal en verde hoja (cosecha activa, día N, kilos
+ * de hoy frente a ayer y "Continuar"), pagos pendientes con atajo a "Pagar ahora", el
+ * acumulado en celdas, la cuenta del valor y la ganancia estimados, kilos de los últimos
+ * 7 días y la actividad reciente. Cada bloque es su propio componente; esta página los
+ * ordena, carga los datos y navega.
  */
 @Component({
   selector: 'app-home',
@@ -58,13 +48,12 @@ import { formatKilos } from '../../shared/utils';
     IonSkeletonText,
     IonRefresher,
     IonRefresherContent,
-    EmptyStateComponent,
     DailyKilosChartComponent,
+    DashboardHeroComponent,
     DashboardPendingComponent,
+    DashboardTotalsComponent,
     DashboardLedgerComponent,
     DashboardActivityComponent,
-    CurrencyPipe,
-    DateFormatPipe,
     KilosPipe,
   ],
   template: `
@@ -99,70 +88,8 @@ import { formatKilos } from '../../shared/utils';
       </button>
 
       @if (harvestFacade.hasActiveHarvest()) {
-        <!-- 1. Cosecha activa -->
-        <section class="card harvest" aria-labelledby="harvest-name">
-          <p class="eyebrow">Cosecha activa</p>
-          <h2 id="harvest-name" class="harvest__name">{{ harvestFacade.activeHarvestName() }}</h2>
-          <p class="harvest__day">Día <span class="num">{{ dashboard.harvestDay() }}</span> de la cosecha</p>
-
-          <div class="status-row">
-            @if (sync.pendingCount() > 0) {
-              <span class="pill pill--warn">
-                <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
-                {{ sync.pendingCount() }} {{ sync.pendingCount() === 1 ? 'pesada' : 'pesadas' }} por enviar
-              </span>
-            } @else if (!network.isOnline()) {
-              <span class="pill pill--warn">
-                <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
-                Sin conexión · se guarda en el teléfono
-              </span>
-            } @else if (sync.lastSync()) {
-              <span class="pill">
-                <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
-                Todo enviado · {{ sync.lastSync() | dateFormat: 'time' }}
-              </span>
-            } @else {
-              <span class="pill">
-                <ion-icon name="cloud-done-outline" aria-hidden="true"></ion-icon>
-                En línea
-              </span>
-            }
-          </div>
-
-          <ion-button expand="block" fill="solid" color="primary" class="continue-btn" (click)="goToHarvest()">
-            Continuar
-            <ion-icon name="arrow-forward" slot="end" aria-hidden="true"></ion-icon>
-          </ion-button>
-        </section>
-
-        <!-- 2. Kilos de hoy frente a ayer -->
-        <section aria-labelledby="kilos-title">
-          <h2 id="kilos-title" class="section-title">Kilos recogidos</h2>
-          <div class="card">
-            <dl class="stats">
-              <div class="stat">
-                <dt>Hoy</dt>
-                <dd class="num">{{ dashboard.todayKilograms() | kilos: false }}<span class="unit">kg</span></dd>
-              </div>
-              <div class="stat stat--muted">
-                <dt>Ayer</dt>
-                <dd class="num">
-                  @if (dashboard.harvestDay() > 1 && dashboard.yesterdayKilograms() !== null) {
-                    {{ dashboard.yesterdayKilograms() | kilos: false }}<span class="unit">kg</span>
-                  } @else {
-                    <span aria-label="Sin dato">—</span>
-                  }
-                </dd>
-              </div>
-            </dl>
-            @if (delta(); as delta) {
-              <p class="delta" [class.delta--up]="delta.kind === 'up'">
-                <ion-icon [name]="delta.icon" aria-hidden="true"></ion-icon>
-                {{ delta.text }}
-              </p>
-            }
-          </div>
-        </section>
+        <!-- 1 y 2. Cosecha activa y kilos de hoy frente a ayer: el bloque en verde hoja. -->
+        <app-dashboard-hero (continue)="goToHarvest()"></app-dashboard-hero>
 
         <!-- 3. Pagos pendientes -->
         <section aria-labelledby="pending-title">
@@ -172,40 +99,35 @@ import { formatKilos } from '../../shared/utils';
           </div>
         </section>
 
-        <!-- 4. Acumulado de la cosecha -->
+        <!-- 4. Acumulado de la cosecha: cuatro celdas -->
         <section aria-labelledby="totals-title">
           <h2 id="totals-title" class="section-title">Acumulado de la cosecha</h2>
+          <app-dashboard-totals></app-dashboard-totals>
+        </section>
+
+        <!-- 5. Valor y ganancia: la cuenta, estimada con el precio FNC -->
+        <section aria-labelledby="value-title">
+          <h2 id="value-title" class="section-title">Valor y ganancia <span class="section-title__sub">· estimados</span></h2>
           <div class="card">
             <app-dashboard-ledger></app-dashboard-ledger>
           </div>
         </section>
 
-        <!-- 5. Valor estimado de lo recogido -->
-        <section aria-labelledby="value-title">
-          <h2 id="value-title" class="section-title">Valor estimado de lo recogido</h2>
-          <div class="card">
-            @if (dashboard.estimatedValue() !== null) {
-              <p class="figure num">{{ dashboard.estimatedValue() | currency }}</p>
-              <p class="hint">
-                {{ dashboard.projectedDryKilograms() | kilos }} secos (cereza ÷ 5) × precio FNC de
-                <span class="nowrap">{{ priceAndNewsFacade.coffeePrice()!.value | currency: true : false }}</span>
-                la carga de {{ fncLoadKg }} kg.
-              </p>
-            } @else {
-              <p class="card__note">
-                <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
-                Sin precio FNC publicado. Se calcula cuando haya precio.
-              </p>
-            }
-          </div>
-        </section>
-
-        <!-- 6. Kilos por día -->
+        <!-- 6. Kilos por día: una frase que resume la semana y el gráfico -->
         <section aria-labelledby="chart-title">
           <h2 id="chart-title" class="section-title">Kilos por día <span class="section-title__sub">· últimos 7 días</span></h2>
           <div class="card">
-            @if (dashboard.dailySeries().length > 0) {
+            @if (dashboard.bestDay(); as best) {
+              <div class="week">
+                <p class="week__total">
+                  <span class="num">{{ dashboard.weekKilograms() | kilos: false }}</span><span class="week__unit"> kg</span>
+                  <span class="week__label">en 7 días</span>
+                </p>
+                <p class="week__best">Mejor día: {{ dayName(best.date) }}, {{ best.kilograms | kilos }}</p>
+              </div>
               <app-daily-kilos-chart [days]="dashboard.dailySeries()"></app-daily-kilos-chart>
+            } @else if (dashboard.dailySeries().length > 0) {
+              <p class="card__note">Aún no hay pesadas en los últimos 7 días.</p>
             } @else if (dashboard.isLoading()) {
               <ion-skeleton-text [animated]="true" class="sk sk--chart"></ion-skeleton-text>
             } @else {
@@ -214,7 +136,7 @@ import { formatKilos } from '../../shared/utils';
           </div>
         </section>
 
-        <!-- 7. Actividad reciente -->
+        <!-- 7. Actividad reciente, por día -->
         <section aria-labelledby="activity-title">
           <h2 id="activity-title" class="section-title">Actividad reciente</h2>
           <div class="card card--list">
@@ -230,21 +152,24 @@ import { formatKilos } from '../../shared/utils';
           </div>
         </section>
       } @else if (harvestFacade.isLoading()) {
-        <!-- Primera carga: la forma de la tarjeta, sin pasar antes por "No hay cosecha activa". -->
-        <div class="card harvest harvest--skeleton" role="status" aria-label="Cargando cosecha">
-          <ion-skeleton-text [animated]="true" class="sk sk--title"></ion-skeleton-text>
+        <!-- Primera carga: la forma del bloque principal, sin pasar antes por "No hay cosecha activa". -->
+        <div class="hero-skeleton" role="status" aria-label="Cargando cosecha">
           <ion-skeleton-text [animated]="true" class="sk sk--line"></ion-skeleton-text>
-          <ion-skeleton-text [animated]="true" class="sk sk--stats"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" class="sk sk--title"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" class="sk sk--figure"></ion-skeleton-text>
           <ion-skeleton-text [animated]="true" class="sk sk--button"></ion-skeleton-text>
         </div>
       } @else {
-        <app-empty-state icon="add-circle-outline" title="No hay cosecha activa">
-          <p>Abre una cosecha en Crear para empezar a registrar pesadas. Aquí verás su resumen.</p>
-          <ion-button fill="solid" color="primary" (click)="goToCreate()">
+        <!-- Sin cosecha: el costal de la marca invita a abrir una, en vez de un ícono genérico. -->
+        <section class="card empty" aria-labelledby="empty-title">
+          <img class="empty__art" src="assets/brand/splash-sack.webp" alt="" aria-hidden="true" />
+          <h2 id="empty-title" class="empty__title">No hay cosecha activa</h2>
+          <p class="empty__text">Abre una cosecha en Crear para empezar a registrar pesadas. Aquí verás su resumen.</p>
+          <ion-button fill="solid" color="primary" class="empty__button" (click)="goToCreate()">
             Ir a Crear
             <ion-icon name="arrow-forward" slot="end" aria-hidden="true"></ion-icon>
           </ion-button>
-        </app-empty-state>
+        </section>
       }
     </ion-content>
   `,
@@ -318,144 +243,84 @@ import { formatKilos } from '../../shared/utils';
       color: var(--color-text-muted);
     }
     .card__note {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-sm);
       margin: 0;
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
-    }
-    .card__note ion-icon {
-      flex-shrink: 0;
-      font-size: 20px;
-      color: var(--color-primary-ink);
-    }
-    .hint {
-      margin: var(--spacing-sm) 0 0;
-      font-size: var(--font-size-footnote);
-      line-height: 1.4;
-      color: var(--color-text-muted);
-    }
-    .nowrap {
-      white-space: nowrap;
-    }
-    /* Cifra destacada en Zilla Slab, como en el cuaderno de la finca. */
-    .figure {
-      margin: 0;
-      font-family: var(--font-family-display);
-      font-size: var(--font-size-figure);
-      font-weight: var(--font-weight-bold);
-      line-height: 1.05;
-      color: var(--color-text);
-      overflow-wrap: anywhere;
-    }
-    /* 1. Cosecha activa */
-    .harvest {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding-top: 20px;
-    }
-    .eyebrow {
-      margin: 0 0 2px;
-      font-size: var(--font-size-footnote);
-      font-weight: var(--font-weight-medium);
-      color: var(--color-text-muted);
-    }
-    .harvest__name {
-      margin: 0;
-      font-size: var(--font-size-lg);
-      font-weight: var(--font-weight-semibold);
-      letter-spacing: -0.01em;
-      line-height: 1.25;
-      color: var(--color-text);
-      overflow-wrap: anywhere;
-    }
-    .harvest__day {
-      margin: 0;
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
-    }
-    .harvest__day .num {
-      font-weight: var(--font-weight-semibold);
-      color: var(--color-text);
-    }
-    .status-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--spacing-sm);
-      margin: 12px 0 var(--spacing-md);
-    }
-    .pill--warn {
-      background: rgba(183, 121, 31, 0.12);
-    }
-    .pill--warn ion-icon {
-      color: var(--ion-color-warning-shade);
-    }
-    .continue-btn {
-      --border-radius: var(--radius-full);
-      height: 52px;
-      min-height: 52px;
-      margin: 0;
-      font-size: var(--font-size-headline);
-      font-weight: var(--font-weight-semibold);
     }
 
-    /* 2. Hoy y ayer en dos celdas suaves; ayer en gris para que hoy sea lo primero que se lee. */
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--spacing-sm);
+    /* 6. La frase de la semana: el total en Zilla Slab y el mejor día, antes del gráfico. */
+    .week {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 2px var(--spacing-md);
+      margin-bottom: 4px;
+    }
+    .week p {
       margin: 0;
     }
-    .stat {
-      min-width: 0;
-      padding: 12px var(--spacing-md);
-      border-radius: var(--radius-md);
-      background: var(--color-background);
-    }
-    .stat dt {
-      font-size: var(--font-size-footnote);
-      font-weight: var(--font-weight-medium);
-      color: var(--color-text-muted);
-    }
-    /* La cifra manda; la unidad va más pequeña para que "1.234,5 kg" quepa en 360dp. */
-    .stat dd {
-      margin: 4px 0 0;
+    .week__total {
       font-family: var(--font-family-display);
-      font-size: clamp(1.375rem, 7vw, 2rem);
-      line-height: 1.05;
+      font-size: 1.375rem;
       font-weight: var(--font-weight-bold);
       color: var(--color-text);
-      overflow-wrap: anywhere;
     }
-    .unit {
-      margin-left: 0.2em;
-      font-size: 0.6em;
+    .week__unit {
+      font-size: 0.7em;
     }
-    .stat--muted dd {
-      color: var(--color-text-muted);
-    }
-    .delta {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin: 12px 0 0;
+    .week__label {
+      margin-left: 6px;
+      font-family: var(--font-family-body);
       font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-medium);
+      font-weight: var(--font-weight-regular);
       color: var(--color-text-muted);
     }
-    .delta ion-icon {
-      flex-shrink: 0;
-      font-size: 18px;
+    .week__best {
+      font-size: var(--font-size-footnote);
+      color: var(--color-text-muted);
     }
-    .delta--up {
-      color: var(--color-primary-ink);
+
+    /* Sin cosecha */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--spacing-lg) var(--spacing-md);
+      text-align: center;
+    }
+    .empty__art {
+      width: 128px;
+      height: auto;
+      margin-bottom: var(--spacing-sm);
+    }
+    .empty__title {
+      margin: 0 0 6px;
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+    .empty__text {
+      max-width: 300px;
+      margin: 0 0 var(--spacing-md);
+      font-size: var(--font-size-md);
+      line-height: 1.45;
+      color: var(--color-text-muted);
+    }
+    .empty__button {
+      --border-radius: var(--radius-full);
+      margin: 0;
     }
 
     /* Esqueletos */
-    .harvest--skeleton {
+    .hero-skeleton {
+      display: flex;
+      flex-direction: column;
       gap: var(--spacing-sm);
+      padding: 20px var(--spacing-md) var(--spacing-md);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-card);
     }
     .sk {
       --background: rgba(29, 33, 27, 0.07);
@@ -463,9 +328,9 @@ import { formatKilos } from '../../shared/utils';
       margin: 0;
       border-radius: var(--radius-sm);
     }
-    .sk--title { width: 65%; height: 26px; }
     .sk--line { width: 45%; height: 14px; }
-    .sk--stats { width: 100%; height: 64px; margin-top: var(--spacing-sm); border-radius: var(--radius-md); }
+    .sk--title { width: 65%; height: 26px; }
+    .sk--figure { width: 50%; height: 52px; margin-top: var(--spacing-sm); }
     .sk--button { width: 100%; height: 52px; margin-top: var(--spacing-sm); border-radius: var(--radius-full); }
     .sk--chart { width: 100%; height: 150px; }
     .sk--rows { width: auto; height: 112px; }
@@ -475,11 +340,9 @@ export class HomePage {
   protected readonly harvestFacade = inject(HarvestFacade);
   protected readonly dashboard = inject(DashboardFacade);
   protected readonly priceAndNewsFacade = inject(PriceAndNewsFacade);
-  protected readonly network = inject(NetworkService);
-  protected readonly sync = inject(SyncFacade);
+  private readonly sync = inject(SyncFacade);
   private readonly router = inject(Router);
 
-  protected readonly fncLoadKg = FNC_LOAD_KG;
   protected readonly loadErrorText = 'No se pudo cargar. Desliza hacia abajo para intentar de nuevo.';
 
   /** "sáb 24 oct": el día en Colombia, aunque el teléfono tenga otra zona horaria. Corto
@@ -493,38 +356,18 @@ export class HomePage {
   /** El precio sin " COP": la etiqueta "Precio FNC" ya dice de qué se trata. */
   protected readonly shortPrice = computed(() => this.priceAndNewsFacade.formattedPrice().replace(/\s*COP$/, ''));
 
-  /** Hoy frente a ayer, en palabras (el color solo acompaña). */
-  protected readonly delta = computed(() => {
-    if (this.dashboard.harvestDay() <= 1) return { kind: 'first', icon: 'flag-outline', text: 'Primer día de la cosecha' };
-    const yesterday = this.dashboard.yesterdayKilograms();
-    if (yesterday === null) return null;
-    const diff = Math.round((this.dashboard.todayKilograms() - yesterday) * 1000) / 1000;
-    if (diff === 0) return { kind: 'same', icon: 'remove-outline', text: 'Igual que ayer' };
-    return diff > 0
-      ? { kind: 'up', icon: 'trending-up-outline', text: `${formatKilos(diff)} más que ayer` }
-      : { kind: 'down', icon: 'trending-down-outline', text: `${formatKilos(-diff)} menos que ayer` };
-  });
-
   constructor() {
-    addIcons({
-      addCircleOutline,
-      arrowForward,
-      calendarClearOutline,
-      cloudDoneOutline,
-      cloudOfflineOutline,
-      cloudUploadOutline,
-      flagOutline,
-      pricetagOutline,
-      refreshOutline,
-      removeOutline,
-      trendingDownOutline,
-      trendingUpOutline,
-    });
+    addIcons({ arrowForward, calendarClearOutline, pricetagOutline, refreshOutline });
 
     // Al enviarse la cola de pesadas, el resumen del servidor ya las incluye.
     effect(() => {
       if (this.sync.lastSync()) untracked(() => void this.dashboard.load());
     });
+  }
+
+  /** "hoy" o el día de la semana ("vie") de un "AAAA-MM-DD". */
+  protected dayName(date: string): string {
+    return date === colombiaDateKey(new Date()) ? 'hoy' : WEEKDAYS[new Date(date).getUTCDay()];
   }
 
   /** Cada vez que se vuelve a Inicio (ej. después de pesar o pagar) los datos se refrescan. */

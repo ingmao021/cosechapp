@@ -21,7 +21,7 @@ import { ListSkeletonComponent, SyncStatusComponent } from '@shared/components';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
-import { apiErrorMessage, formatCurrency, formatKilos } from '../../shared/utils';
+import { apiErrorMessage, formatCurrency, formatKilos, parseInteger } from '../../shared/utils';
 
 /**
  * Detalle del recolector en la cosecha (Design System §1.5): acumulados de hoy, la
@@ -373,19 +373,20 @@ export class PickerDetailPage {
     const amount = await this.alertController.create({
       header: '¿Cuánto cobras de comida por día?',
       message: 'Se descuenta por cada día que pesó desde el último pago.',
-      inputs: [{ name: 'value', type: 'number', placeholder: 'Ej: 10000', min: 1, attributes: { inputmode: 'numeric' } }],
+      // Texto y no número: "10.000" (con punto, como se escribe aquí) es diez mil, no 10.
+      inputs: [{ name: 'value', type: 'text', placeholder: 'Ej: 10000', attributes: { inputmode: 'numeric' } }],
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
           text: 'Continuar',
           role: 'confirm',
-          handler: (data: { value: string }) => Number(data.value) > 0, // sin valor, el diálogo sigue abierto
+          handler: (data: { value: string }) => (parseInteger(data.value) ?? 0) > 0, // sin valor, el diálogo sigue abierto
         },
       ],
     });
     await amount.present();
     const entered = await amount.onDidDismiss();
-    return entered.role === 'confirm' ? Math.round(Number(entered.data?.values?.value)) : undefined;
+    return entered.role === 'confirm' ? (parseInteger(entered.data?.values?.value) ?? undefined) : undefined;
   }
 
   private async confirmPayment(name: string, preview: PaymentPreviewResponse): Promise<boolean> {
