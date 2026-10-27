@@ -298,11 +298,7 @@ const today = () => {
                   </ng-template>
                 </ion-modal>
                 @if (saleTotal() > 0) {
-                  <!-- La cuenta a la vista (con punto de miles): que nadie confunda el total con el precio. -->
-                  <p class="form-page__intro">
-                    Total de la venta: {{ dryKilograms() | kilos }} × {{ salePrice() | currency: true : false }} =
-                    <strong class="nowrap">{{ saleTotal() | currency }}</strong>
-                  </p>
+                  <p class="form-page__intro">Total de la venta: <strong class="nowrap">{{ saleTotal() | currency }}</strong></p>
                 }
                 <app-button-primary
                   type="submit"
