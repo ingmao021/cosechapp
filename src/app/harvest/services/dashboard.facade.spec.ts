@@ -125,6 +125,22 @@ describe('DashboardFacade', () => {
     expect(series[3].kilograms).toBe(40);
   });
 
+  it('sums the week and finds its best day for the chart headline', async () => {
+    expect(facade.bestDay()).toBeNull(); // sin datos del servidor todavía
+
+    await facade.load();
+
+    // 12 + 40 + 0 + 25 + 40 (hoy, de los recolectores); el 20 y el 21 son de antes de abrir
+    expect(facade.weekKilograms()).toBe(117);
+    expect(facade.bestDay()).toMatchObject({ date: '2026-10-23', kilograms: 40 });
+  });
+
+  it('gives the FNC price per dry kilo (published per 125 kg load)', () => {
+    expect(facade.pricePerDryKilogram()).toBe(20000);
+    coffeePrice.set(null);
+    expect(facade.pricePerDryKilogram()).toBeNull();
+  });
+
   it('lists who has a balance, the largest first, and adds it up', () => {
     expect(facade.pendingPickers().map((p) => p.id)).toEqual(['p1', 'p2']);
     expect(facade.pendingTotal()).toBe(130000);
@@ -139,6 +155,7 @@ describe('DashboardFacade', () => {
     // 34 kg secos × (2.500.000 ÷ 125) = 680.000
     expect(facade.estimatedValue()).toBe(680000);
     // 680.000 − (40.000 pagado + 130.000 por pagar)
+    expect(facade.pickerPayments()).toBe(170000);
     expect(facade.estimatedGrossProfit()).toBe(510000);
     expect(facade.estimatedHarvestProfit()).toBe(510000);
   });

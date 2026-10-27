@@ -52,6 +52,10 @@
   --color-chip: #EEF4E6;           /* fondo de chips de ícono; el ícono va en primary-ink (5.2:1) */
   --color-chip-pressed: #E1EBD3;   /* el chip, un paso más hondo al tocar su fila */
   --color-accent-alert: #7A2E22;   /* rojo tierra — alertas puntuales (botón cerrar cosecha, errores) */
+  --color-leaf-deep: #3B551A;      /* verde hoja profundo — fondo del bloque principal de Inicio (blanco encima: 8.4:1) */
+  --color-on-leaf: #FFFFFF;        /* texto y cifras sobre verde hoja profundo */
+  --color-on-leaf-muted: rgba(255, 255, 255, 0.78); /* secundario sobre verde hoja profundo (~5.4:1) */
+  --color-coffee-chip: #F3EEED;    /* chip de los pagos: ícono en primary-muted (café), distinto de las pesadas */
 
   /* Paleta de Ionic mapeada a la marca: sin esto, color="primary" etc. usan el azul
      por defecto de Ionic (Ionic aplica el color por clase, no por atributo). */

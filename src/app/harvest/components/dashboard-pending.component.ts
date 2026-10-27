@@ -43,9 +43,7 @@ const ROWS = 5;
             </span>
             @if (picker.status === 'active') {
               <ion-button
-                size="small"
-                fill="outline"
-                color="primary"
+                fill="solid"
                 class="pay-btn"
                 [disabled]="!network.isOnline()"
                 [attr.aria-label]="'Pagar ahora a ' + picker.displayName"
@@ -145,10 +143,21 @@ const ROWS = 5;
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
     }
+    /* Tonal y sin borde: cinco botones con borde, uno por fila, hacían ruido. Sigue
+       siendo un botón claro (verde suave, texto verde oscuro 5.2:1) de 44px de alto. */
     .pay-btn {
+      --background: var(--color-primary-soft);
+      --background-activated: var(--color-chip-pressed);
+      --background-focused: var(--color-chip-pressed);
+      --color: var(--color-primary-ink);
       --border-radius: var(--radius-full);
-      min-height: 40px;
+      --box-shadow: none;
+      --padding-start: 14px;
+      --padding-end: 14px;
+      height: 44px;
+      min-height: 44px;
       margin: 0 0 0 auto;
+      font-size: var(--font-size-sm);
       font-weight: var(--font-weight-semibold);
     }
     .hint {
