@@ -11,9 +11,7 @@ describe('DashboardLedgerComponent', () => {
 
   const profit = () => fixture.debugElement.query(By.css('.profit'));
   const lines = () =>
-    fixture.debugElement
-      .queryAll(By.css('.line'))
-      .map((line) => `${line.query(By.css('.line__op')).nativeElement.textContent.trim()} ${line.query(By.css('.line__name')).nativeElement.textContent.trim()}`.trim());
+    fixture.debugElement.queryAll(By.css('.line')).map((line) => line.query(By.css('.line__name')).nativeElement.textContent.trim());
 
   beforeEach(async () => {
     value = signal<number | null>(3135600);
@@ -41,16 +39,19 @@ describe('DashboardLedgerComponent', () => {
     fixture.detectChanges();
   });
 
-  it('reads like a notebook sum: value − payments = gross − costs = harvest profit', () => {
+  it('shows only results, in the order they are worked out (no formulas)', () => {
     expect(lines()).toEqual([
       'Valor de lo recogido',
-      '− Pagos a recolectores',
-      '= Ganancia bruta',
-      '− Costos de producción',
-      '= Ganancia de la cosecha',
+      'Pagos a recolectores',
+      'Ganancia bruta',
+      'Costos de producción',
+      'Ganancia de la cosecha',
     ]);
-    expect(fixture.nativeElement.textContent).toContain('Pagado $ 226.480');
-    expect(fixture.nativeElement.textContent).toContain('Se registran al cerrar');
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('$ 3.135.600');
+    expect(text).toContain('$ 908.680');
+    expect(text).toContain('Se registran al cerrar');
+    expect(text).not.toMatch(/[×÷=]/);
   });
 
   it('shows a zero harvest profit in a neutral color, not as a gain', () => {

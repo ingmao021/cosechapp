@@ -1,47 +1,35 @@
 import { Component, inject } from '@angular/core';
 import { DashboardFacade } from '../services/dashboard.facade';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
-import { KilosPipe } from '@shared/pipes/kilos.pipe';
 
 /**
- * Organismo de Inicio: la cuenta de la cosecha, como se haría en el cuaderno. Valor de lo
- * recogido − pagos a recolectores = ganancia bruta − costos = ganancia de la cosecha
- * (PRD 7.8 y 7.9). Con la cosecha abierta todavía no hay venta: el valor se estima con el
- * precio FNC de hoy, y sin precio no se inventa una cifra. Montos sin " COP", como en las
- * listas, para que nombre y cifra quepan en un renglón.
+ * Organismo de Inicio: valor y ganancia de la cosecha, en el orden en que se calculan
+ * (valor de lo recogido, pagos a recolectores, ganancia bruta, costos y ganancia de la
+ * cosecha; PRD 7.8 y 7.9). Solo resultados, sin fórmulas: cada renglón es nombre y cifra.
+ * Con la cosecha abierta todavía no hay venta: el valor se estima con el precio FNC de
+ * hoy, y sin precio no se inventa una cifra. Montos sin " COP", como en las listas.
  */
 @Component({
   selector: 'app-dashboard-ledger',
   standalone: true,
-  imports: [CurrencyPipe, KilosPipe],
+  imports: [CurrencyPipe],
   template: `
     <div class="account">
       <div class="line">
-        <span class="line__op"></span>
         <span class="line__name">Valor de lo recogido</span>
         @if (dashboard.estimatedValue() !== null) {
           <span class="line__value num">{{ dashboard.estimatedValue() | currency: true : false }}</span>
-          <span class="line__detail">
-            {{ dashboard.projectedDryKilograms() | kilos }} secos (cereza ÷ 5) ×
-            <span class="nowrap">{{ dashboard.pricePerDryKilogram() | currency: true : false }}</span> por kg seco (FNC)
-          </span>
         } @else {
           <span class="line__value line__value--muted">Sin precio FNC</span>
         }
       </div>
 
       <div class="line">
-        <span class="line__op">−</span>
         <span class="line__name">Pagos a recolectores</span>
         <span class="line__value num">{{ dashboard.pickerPayments() | currency: true : false }}</span>
-        <span class="line__detail">
-          Pagado <span class="nowrap">{{ dashboard.totalPaid() | currency: true : false }}</span>
-          + por pagar <span class="nowrap">{{ dashboard.pendingTotal() | currency: true : false }}</span>
-        </span>
       </div>
 
       <div class="line line--subtotal">
-        <span class="line__op">=</span>
         <span class="line__name">Ganancia bruta</span>
         @if (dashboard.estimatedGrossProfit() !== null) {
           <span class="line__value num" [class.loss]="dashboard.estimatedGrossProfit()! < 0">
@@ -53,7 +41,6 @@ import { KilosPipe } from '@shared/pipes/kilos.pipe';
       </div>
 
       <div class="line">
-        <span class="line__op">−</span>
         <span class="line__name">Costos de producción</span>
         @if (dashboard.productionCosts() > 0) {
           <span class="line__value num">{{ dashboard.productionCosts() | currency: true : false }}</span>
@@ -64,7 +51,6 @@ import { KilosPipe } from '@shared/pipes/kilos.pipe';
       </div>
 
       <div class="line line--total">
-        <span class="line__op">=</span>
         <span class="line__name">Ganancia de la cosecha</span>
         @if (dashboard.estimatedHarvestProfit() !== null) {
           <span
@@ -86,21 +72,15 @@ import { KilosPipe } from '@shared/pipes/kilos.pipe';
       display: block;
       font-family: var(--font-family-body);
     }
-    /* Renglones de una cuenta: el signo en su propia columna, el nombre y la cifra a la
-       derecha con dígitos de ancho fijo, para que las cantidades se lean alineadas. Si con
-       letra grande no caben juntos, la cifra baja a su propia línea (nunca se parte una palabra). */
+    /* Renglones nombre → cifra, con la cifra a la derecha y dígitos de ancho fijo para que
+       las cantidades se lean alineadas. Si con letra grande no caben juntos, la cifra baja a
+       su propia línea (nunca se parte una palabra). */
     .line {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
       column-gap: var(--spacing-sm);
       padding: 8px 0;
-    }
-    .line__op {
-      flex: 0 0 16px;
-      font-size: var(--font-size-md);
-      font-weight: var(--font-weight-semibold);
-      color: var(--color-text-muted);
     }
     .line__name {
       flex: 1 1 8rem;
@@ -124,15 +104,11 @@ import { KilosPipe } from '@shared/pipes/kilos.pipe';
     .line__detail {
       flex-basis: 100%;
       margin-top: 2px;
-      padding-left: calc(16px + var(--spacing-sm));
       font-size: var(--font-size-footnote);
       line-height: 1.35;
       color: var(--color-text-muted);
     }
-    .nowrap {
-      white-space: nowrap;
-    }
-    /* Cada "=" cierra un tramo de la cuenta con una raya, como al sumar en el cuaderno. */
+    /* Cada ganancia cierra un tramo con una raya, como al sumar en el cuaderno. */
     .line--subtotal,
     .line--total {
       border-top: 1px solid var(--color-separator);
