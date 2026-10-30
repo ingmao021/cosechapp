@@ -60,4 +60,17 @@ describe('DailyKilosChartComponent', () => {
     const label = fixture.debugElement.query(By.css('[role="img"]')).attributes['aria-label'];
     expect(label).toBe('Kilos por día, últimos 7 días: jue 12 kg, vie 80 kg, sáb 0 kg, dom 20 kg, hoy 40 kg.');
   });
+
+  it('labels every day with kilos when asked to', () => {
+    fixture.componentRef.setInput('labelAll', true);
+    fixture.detectChanges();
+    expect(values()).toEqual(['12', '80', '20', '40']);
+  });
+
+  it('names the period it shows to screen readers', () => {
+    fixture.componentRef.setInput('period', 'esta semana');
+    fixture.detectChanges();
+    const label = fixture.debugElement.query(By.css('[role="img"]')).attributes['aria-label'];
+    expect(label).toBe('Kilos por día, esta semana: jue 12 kg, vie 80 kg, sáb 0 kg, dom 20 kg, hoy 40 kg.');
+  });
 });
