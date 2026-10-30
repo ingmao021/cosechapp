@@ -226,6 +226,10 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       font-size: var(--font-size-sm);
       color: var(--color-text-muted);
     }
+    .offline-note ion-icon {
+      flex-shrink: 0;
+      color: var(--color-secondary);
+    }
     .notification-row {
       width: calc(100% - 2 * var(--spacing-md));
       margin: 0 var(--spacing-md) var(--spacing-sm);

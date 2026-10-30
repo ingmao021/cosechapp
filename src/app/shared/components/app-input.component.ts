@@ -69,7 +69,7 @@ import { parseDecimal, parseInteger, sanitizeDecimal, sanitizeInteger } from '..
       (ionFocus)="onFocus()"
     >
       @if (iconStart()) {
-        <ion-icon slot="start" class="field-icon" [class.is-focused]="focused()" [name]="iconStart()" aria-hidden="true"></ion-icon>
+        <ion-icon slot="start" class="field-icon" [name]="iconStart()" aria-hidden="true"></ion-icon>
       }
       @if (type() === 'password' && !readonly()) {
         <ion-input-password-toggle slot="end" color="medium" showLabel="Mostrar contraseña" hideLabel="Ocultar contraseña"></ion-input-password-toggle>
@@ -114,16 +114,13 @@ import { parseDecimal, parseInteger, sanitizeDecimal, sanitizeInteger } from '..
       font-family: var(--font-family-body);
       font-size: var(--font-size-md);
     }
-    /* Ícono inicial: gris en reposo, verde al enfocar; 12dp de aire hasta el texto. */
+    /* Ícono inicial en café, enfocado o no (el foco lo marcan la etiqueta y el borde
+       verdes); 12dp de aire hasta el texto. */
     .field-icon {
       flex-shrink: 0;
       margin-inline-end: var(--row-gap);
       font-size: 22px;
-      color: var(--color-text-muted);
-      transition: color var(--dur-fast) var(--ease-out);
-    }
-    .field-icon.is-focused {
-      color: var(--color-primary-ink);
+      color: var(--color-secondary);
     }
   `],
 })

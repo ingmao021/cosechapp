@@ -175,10 +175,11 @@ const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
   `,
   styles: [`
     /* El nombre de la app en la barra de Inicio: la única vez que la marca va como
-       título (el resto de pestañas llevan su nombre en Inter). */
+       título (el resto de pestañas llevan su nombre en Inter). En café: 3.6:1 sobre la
+       barra blanca, que cumple AA para texto grande (28sp en negrita). */
     .wordmark {
       font-family: var(--font-family-display);
-      color: var(--color-primary-ink);
+      color: var(--color-secondary);
       letter-spacing: -0.01em;
     }
     /* Los dos datos van lado a lado; si con letra grande no caben, el segundo baja a

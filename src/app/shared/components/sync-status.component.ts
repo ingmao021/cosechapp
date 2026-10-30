@@ -87,7 +87,7 @@ import { HarvestFacade } from '../../harvest/services/harvest.facade';
     .sync-note ion-icon {
       flex-shrink: 0;
       font-size: 20px;
-      color: var(--color-primary-ink);
+      color: var(--color-secondary);
     }
     .sync-note--offline {
       background: rgba(183, 121, 31, 0.12);

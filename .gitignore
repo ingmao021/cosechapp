@@ -87,3 +87,9 @@ backend/coverage
 # Caché incremental de TypeScript
 *.tsbuildinfo
 desktop.ini
+
+# Agent & Tool Metadata
+.agents/
+.claude/
+skills-lock.json
+

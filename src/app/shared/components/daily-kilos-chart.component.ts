@@ -13,8 +13,8 @@ const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
 /**
  * Molécula: columnas de kilos por día (Inicio y detalle del recolector). Una sola serie,
- * así que no lleva leyenda: el título de la tarjeta dice qué se grafica. Hoy va en el verde
- * de marca y los demás días en un paso más claro del mismo verde; la cifra se escribe solo
+ * así que no lleva leyenda: el título de la tarjeta dice qué se grafica. Hoy va en el café
+ * secundario y los demás días en un paso más claro del mismo café; la cifra se escribe solo
  * sobre hoy y el día más alto (rotular 7 columnas no se lee), o sobre cada día con
  * `labelAll` cuando son pocas. Tocar una columna muestra su cifra, y el lector de pantalla
  * recibe todas en el aria-label.
@@ -77,7 +77,7 @@ const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
       width: min(24px, 64%);
       min-height: 2px;
       border-radius: 4px 4px 0 0;
-      background: rgba(var(--ion-color-primary-rgb), 0.42);
+      background: rgba(var(--ion-color-secondary-rgb), 0.42);
       transform: translateX(-50%);
       transition:
         height var(--dur-base) var(--ease-out),
@@ -85,7 +85,7 @@ const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     }
     .col--today .col__bar,
     .col--selected .col__bar {
-      background: var(--color-primary);
+      background: var(--color-secondary);
     }
     /* Día sin pesadas: una marca mínima en gris, para que se lea "cero", no "falta". */
     .col__bar--empty,

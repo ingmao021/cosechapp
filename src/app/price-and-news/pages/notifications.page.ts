@@ -113,7 +113,7 @@ import { PriceAndNewsFacade } from '@price-and-news/services/price-and-news.faca
       font-family: var(--font-family-body);
       transition: background-color var(--dur-base) var(--ease-out);
     }
-    /* Leída: el chip pasa a gris; sin leer conserva el verde y un punto. Sin bordes de color. */
+    /* Leída: el chip pasa a gris; sin leer conserva el café y un punto. Sin bordes de color. */
     .notif:not(.notif--unread) .icon-chip {
       background: var(--color-surface-muted);
       color: var(--color-text-muted);

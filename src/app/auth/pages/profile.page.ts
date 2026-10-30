@@ -91,8 +91,8 @@ import { Router } from '@angular/router';
       align-items: center;
       padding: var(--spacing-md) 0 0;
       text-align: center;
-      /* Halo: un claro verde detrás del avatar, sin franja de color que corte la pantalla. */
-      background: radial-gradient(closest-side, var(--color-chip-pressed), transparent) center 0 / 260px 200px no-repeat;
+      /* Halo: un claro café detrás del avatar, sin franja de color que corte la pantalla. */
+      background: radial-gradient(closest-side, var(--color-secondary-chip-pressed), transparent) center 0 / 260px 200px no-repeat;
     }
     .identity__avatar {
       display: flex;
@@ -103,9 +103,9 @@ import { Router } from '@angular/router';
       margin-bottom: var(--spacing-md);
       border: 4px solid var(--color-surface);
       border-radius: 50%;
-      background: var(--color-chip);
+      background: var(--color-secondary-chip);
       box-shadow: var(--shadow-card);
-      color: var(--color-primary-ink);
+      color: var(--color-secondary);
       overflow: hidden;
     }
     .identity__avatar ion-icon {

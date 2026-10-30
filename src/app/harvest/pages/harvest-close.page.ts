@@ -503,6 +503,7 @@ const today = () => {
     }
     .sale-date__chosen ion-icon {
       font-size: 20px;
+      color: var(--color-secondary);
     }
     .calendar {
       padding: var(--spacing-lg) 20px calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
