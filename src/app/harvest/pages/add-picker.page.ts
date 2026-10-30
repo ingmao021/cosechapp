@@ -123,7 +123,7 @@ const normalize = (text: string) =>
                   <span nav-row-end class="worker-row__state">
                     @switch (row.state) {
                       @case ('in-this-crew') {
-                        <ion-icon name="checkmark-circle" color="primary" aria-hidden="true"></ion-icon> {{ solo ? 'Ya está sin cuadrilla' : 'En esta cuadrilla' }}
+                        <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon> {{ solo ? 'Ya está sin cuadrilla' : 'En esta cuadrilla' }}
                       }
                       @case ('in-other-crew') {
                         <ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon> En {{ row.otherCrewName }}
@@ -135,7 +135,7 @@ const normalize = (text: string) =>
                         @if (busyId() === row.worker.id) {
                           <ion-spinner name="crescent"></ion-spinner>
                         } @else {
-                          <ion-icon name="person-add-outline" color="primary" aria-hidden="true"></ion-icon> Agregar
+                          <ion-icon name="person-add-outline" aria-hidden="true"></ion-icon> Agregar
                         }
                       }
                     }
@@ -184,6 +184,7 @@ const normalize = (text: string) =>
     }
     .worker-row__state ion-icon {
       font-size: 20px;
+      color: var(--color-secondary);
     }
   `],
 })

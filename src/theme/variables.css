@@ -43,24 +43,25 @@
   --color-primary-ink: #4F6E22;    /* verde primario oscurecido — texto e iconos verdes sobre claro (5.9:1 AA) */
   --color-primary-muted: #8e716d;  /* mauve/marrón — bordes, iconos, trazo logo (NO texto) */
   --color-background: #F3F4F1;     /* gris niebla con un toque verde — fondo agrupado estilo sistema */
-  --color-secondary: #88AD49;      /* verde claro — acentos decorativos e iconos grandes (NO texto) */
+  --color-secondary: #CA6F1E;      /* café — gráficas, íconos informativos y el nombre en Inicio (3.6:1: íconos y texto grande, NO texto normal) */
   --color-surface: #FFFFFF;        /* blanco puro para tarjetas/superficies */
   --color-text: #1D211B;           /* texto — casi negro con tinte verde (16.4:1 sobre blanco) */
   --color-border: #DADDD6;         /* bordes de campos */
   --color-separator: rgba(29, 33, 27, 0.08); /* líneas entre filas */
   --color-pressed: rgba(29, 33, 27, 0.05);   /* resaltado al tocar una fila */
-  --color-chip: #EEF4E6;           /* fondo de chips de ícono; el ícono va en primary-ink (5.2:1) */
-  --color-chip-pressed: #E1EBD3;   /* el chip, un paso más hondo al tocar su fila */
+  --color-chip: #EEF4E6;           /* fondo de los avatares con iniciales; el texto va en primary-ink (5.2:1) */
+  --color-chip-pressed: #E1EBD3;   /* el avatar, un paso más hondo al tocar su fila */
+  --color-secondary-chip: #F9EEE4;          /* fondo de chips de ícono; el ícono va en café (3.2:1) */
+  --color-secondary-chip-pressed: #F7E8DB;  /* el chip, un paso más hondo al tocar su fila (3.0:1) */
   --color-accent-alert: #7A2E22;   /* rojo tierra — alertas puntuales (botón cerrar cosecha, errores) */
   --color-leaf-deep: #3B551A;      /* verde hoja profundo — fondo del bloque principal de Inicio (blanco encima: 8.4:1) */
   --color-on-leaf: #FFFFFF;        /* texto y cifras sobre verde hoja profundo */
   --color-on-leaf-muted: rgba(255, 255, 255, 0.78); /* secundario sobre verde hoja profundo (~5.4:1) */
-  --color-coffee-chip: #F3EEED;    /* chip de los pagos: ícono en primary-muted (café), distinto de las pesadas */
 
   /* Paleta de Ionic mapeada a la marca: sin esto, color="primary" etc. usan el azul
      por defecto de Ionic (Ionic aplica el color por clase, no por atributo). */
-  /* Sobre los verdes claros el texto va en verde casi negro: el blanco solo llega a
-     2.9:1, #1F2E0E da 5.0:1 sobre el primario y 5.6:1 sobre el secundario. */
+  /* Sobre el verde claro el texto va en verde casi negro: el blanco solo llega a 2.9:1 y
+     #1F2E0E da 5.0:1. Sobre el café, café casi negro: #2B1608 da 4.8:1 (el blanco, 3.6:1). */
   --ion-color-primary: #79A636;
   --ion-color-primary-rgb: 121, 166, 54;
   --ion-color-primary-contrast: #1F2E0E;
@@ -68,12 +69,12 @@
   --ion-color-primary-shade: #6A9230;
   --ion-color-primary-tint: #86AF4A;
 
-  --ion-color-secondary: #88AD49;
-  --ion-color-secondary-rgb: 136, 173, 73;
-  --ion-color-secondary-contrast: #1F2E0E;
-  --ion-color-secondary-contrast-rgb: 31, 46, 14;
-  --ion-color-secondary-shade: #789840;
-  --ion-color-secondary-tint: #94B55B;
+  --ion-color-secondary: #CA6F1E;
+  --ion-color-secondary-rgb: 202, 111, 30;
+  --ion-color-secondary-contrast: #2B1608;
+  --ion-color-secondary-contrast-rgb: 43, 22, 8;
+  --ion-color-secondary-shade: #B2621A;
+  --ion-color-secondary-tint: #CF7D35;
 
   --ion-color-success: #79A636;
   --ion-color-success-rgb: 121, 166, 54;
@@ -747,8 +748,9 @@ ion-item[button]:active {
   text-align: left;
 }
 
-/* Chip de ícono: círculo suave con el ícono en verde oscuro. Solo en filas y tiles de
-   navegación; nunca detrás de un título. */
+/* Chip de ícono: círculo café suave con el ícono en café. Solo en filas y tiles de
+   navegación; nunca detrás de un título. Con iniciales (personas, cuadrillas) es texto,
+   no ícono: va en verde, que llega a 4.5:1. */
 .icon-chip {
   display: inline-flex;
   flex-shrink: 0;
@@ -757,16 +759,23 @@ ion-item[button]:active {
   width: var(--icon-chip-size);
   height: var(--icon-chip-size);
   border-radius: 50%;
-  background: var(--color-chip);
-  color: var(--color-primary-ink);
+  background: var(--color-secondary-chip);
+  color: var(--color-secondary);
   transition: background-color var(--dur-release) var(--ease-out);
 }
 .icon-chip ion-icon {
   font-size: 20px;
 }
 .tappable:active .icon-chip {
-  background: var(--color-chip-pressed);
+  background: var(--color-secondary-chip-pressed);
   transition-duration: var(--dur-press);
+}
+.icon-chip--initials {
+  background: var(--color-chip);
+  color: var(--color-primary-ink);
+}
+.tappable:active .icon-chip--initials {
+  background: var(--color-chip-pressed);
 }
 
 /* Grupo: registros (pesadas, pagos, costos) dentro de una tarjeta, con separadores
@@ -846,7 +855,7 @@ ion-item[button]:active {
 .pill ion-icon {
   flex-shrink: 0;
   font-size: 16px;
-  color: var(--color-primary-ink);
+  color: var(--color-secondary);
 }
 
 /* Cifras: dígitos de ancho fijo para que kilos y montos no "bailen" al cambiar. */

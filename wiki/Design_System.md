@@ -38,8 +38,8 @@ Inicio **solo informa**: no tiene formularios ni acciones sobre la cosecha (abri
   2. **Pagos pendientes:** total por pagar en Zilla Slab verde oscuro y hasta 5 recolectores con saldo (el mayor primero), cada uno con su atajo **"Pagar ahora"**, un botón tonal (verde suave, sin borde, 44dp) que abre su detalle con el flujo de pago ya en marcha (§1.5). Si hay más, "y N más". Requiere conexión. Sin saldos: "Nada pendiente: todos están al día".
   3. **Acumulado de la cosecha:** cuatro celdas blancas con ícono, cifra en Zilla Slab y nombre: kilos recogidos, pagado, por pagar y costos ("—" con "se registran al cerrar" mientras no haya). Con letra grande la cuadrícula pasa a una columna (ancho mínimo en `rem`), nunca parte un monto.
   4. **Valor y ganancia · estimados:** solo resultados, sin fórmulas: cinco renglones nombre → cifra en el orden en que se calculan (valor de lo recogido, pagos a recolectores, **ganancia bruta**, costos de producción y **ganancia de la cosecha** en Zilla Slab; PRD 7.7 a 7.9), con una raya antes de cada ganancia. El valor se estima con el precio FNC de hoy (kilos secos proyectados = cereza ÷ 5; el precio FNC es por carga de 125 kg) y los pagos incluyen lo pagado y lo que falta por pagar, porque al cerrar se liquida todo. Es estimada: con la cosecha abierta no hay venta. Sin precio FNC dice "Sin precio FNC" y las ganancias "—", nunca una cifra inventada. La ganancia de la cosecha va en verde solo si es ganancia; $ 0 en color neutro y una pérdida en rojo tierra, como en el historial. Si con letra grande nombre y cifra no caben, la cifra baja a su propia línea.
-  5. **Kilos por día (últimos 7 días):** arriba, una frase que resume la semana ("783,9 kg en 7 días" · "Mejor día: vie, 242,7 kg"); debajo, columnas finas (`app-daily-kilos-chart`). Hoy en el verde de marca y los demás días en un paso más claro del mismo verde; cifra solo sobre hoy y el día más alto (tocar una columna muestra la suya). Los días antes de abrir la cosecha no tienen columna, y los días sin pesadas una marca gris mínima. El lector de pantalla recibe todas las cifras. Si no hubo pesadas en esos 7 días, en vez del gráfico vacío dice "Aún no hay pesadas en los últimos 7 días."
-  6. **Actividad reciente:** las últimas 6 pesadas y pagos, agrupados por día con una cabecera pequeña ("Hoy", "Ayer", "Lun 20 oct"); cada fila lleva "Pesada · 10:32", "Pago" o "Liquidación" y su cifra. Las pesadas con chip verde y balanza, los pagos con chip café (`--color-coffee-chip`) y billete: se distinguen por ícono, no solo por color. Las que siguen en el teléfono dicen "Por enviar". Tocar una fila abre al recolector.
+  5. **Kilos por día (últimos 7 días):** arriba, una frase que resume la semana ("783,9 kg en 7 días" · "Mejor día: vie, 242,7 kg"); debajo, columnas finas (`app-daily-kilos-chart`). Hoy en el café secundario (`--color-secondary`) y los demás días en un paso más claro del mismo café; cifra solo sobre hoy y el día más alto (tocar una columna muestra la suya). Los días antes de abrir la cosecha no tienen columna, y los días sin pesadas una marca gris mínima. El lector de pantalla recibe todas las cifras. Si no hubo pesadas en esos 7 días, en vez del gráfico vacío dice "Aún no hay pesadas en los últimos 7 días."
+  6. **Actividad reciente:** las últimas 6 pesadas y pagos, agrupados por día con una cabecera pequeña ("Hoy", "Ayer", "Lun 20 oct"); cada fila lleva "Pesada · 10:32", "Pago" o "Liquidación" y su cifra. Pesadas y pagos llevan el mismo chip café (como todos los chips de ícono): se distinguen por el ícono (balanza o billete) y por el texto de la fila. Las que siguen en el teléfono dicen "Por enviar". Tocar una fila abre al recolector.
 - Se refresca al volver a la pestaña y con deslizar hacia abajo. Sin señal muestra la última copia guardada.
 - Si no hay cosecha activa: el costal de la marca (`splash-sack.webp`), "No hay cosecha activa" y un solo botón, "Ir a Crear".
 
@@ -216,7 +216,7 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranqu
 --color-text-on-primary: #1F2E0E /* verde casi negro — texto e iconos sobre rellenos verdes */
 --color-primary-muted: #8e716d /* mauve/marrón de marca — línea del logo, acentos, bordes, iconos */
 --color-background: #F2EFF2    /* fondo claro de marca */
---color-secondary: #88AD49     /* verde claro — acentos decorativos e iconos grandes */
+--color-secondary: #CA6F1E     /* café — gráficas, íconos informativos y el wordmark de Inicio */
 --color-surface: #FFFFFF
 --color-text: #2B2420          /* texto de cuerpo — no se usa --color-primary-muted aquí (ver nota de contraste) */
 --color-border: #D8D2C0
@@ -224,13 +224,14 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranqu
 --color-leaf-deep: #3B551A     /* verde hoja profundo — fondo del bloque principal de Inicio (blanco encima: 8.4:1) */
 --color-on-leaf: #FFFFFF       /* texto y cifras sobre verde hoja profundo */
 --color-on-leaf-muted: rgba(255,255,255,.78) /* secundario sobre verde hoja profundo (~5.4:1) */
---color-coffee-chip: #F3EEED   /* chip de los pagos en Actividad reciente; el ícono va en --color-primary-muted */
+--color-secondary-chip: #F9EEE4         /* fondo de los chips de ícono; el ícono va en café (3.2:1) */
+--color-secondary-chip-pressed: #F7E8DB /* el chip al tocar su fila (3.0:1) */
 ```
 
 > **Nota de contraste (obligatoria por el PRD, sección 10 — Accesibilidad):** se verificó el contraste de cada color de marca contra `--color-background` (#F2EFF2) siguiendo WCAG:
 > - `#79A636` → contraste **2.9:1** sobre blanco — **nunca como texto ni icono sobre fondo claro**. Es un color de relleno; el texto encima va en `#1F2E0E` (**5.0:1**, cumple AA). El blanco sobre este verde solo llega a 2.9:1, por eso no se usa.
 > - `#4F6E22` (`--color-primary-ink`) → contraste **5.9:1** sobre blanco — cumple AA. Es el verde para texto, enlaces, iconos y la pestaña activa.
-> - `#88AD49` → contraste **2.6:1** sobre blanco — solo decorativo (iconos grandes de estados vacíos, carga del splash); con texto encima, `#1F2E0E` (**5.6:1**).
+> - `#CA6F1E` (`--color-secondary`) → contraste **3.6:1** sobre blanco (**3.2:1** sobre su chip `#F9EEE4`) — cumple el 3:1 de íconos y gráficas y el AA de texto grande, por eso va en las columnas de los gráficos, en los íconos informativos sobre fondo claro (chips, estados vacíos, metadatos de filas, campos, avisos de sincronización, avatar del perfil, granos del splash) y en el wordmark de Inicio (28sp negrita). **Nunca para texto normal.** No se usa sobre rellenos verdes (1.3:1 sobre `#79A636`) ni sobre el verde hoja profundo: ahí los íconos siguen el color del texto del relleno. Con texto encima, `#2B1608` (**4.8:1**).
 > - `#8e716d` → contraste **3.9:1** — no cumple AA ni siquiera para texto grande de forma consistente. Reservar para bordes, iconos decorativos y el trazo del logo, **nunca para texto**.
 > - Por eso `--color-text` usa un marrón oscuro propio (#2B2420) en vez de `#8e716d`: mantiene el aire cálido de la marca sin sacrificar legibilidad, algo crítico aquí porque la app se usa a plena luz del sol en el cafetal.
 
@@ -239,7 +240,7 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranqu
 | Color Ionic | Token de marca | Uso |
 |---|---|---|
 | `primary` / `success` | `#79A636`, contraste `#1F2E0E` | Acciones principales, confirmaciones. Con `fill="clear"`/`"outline"` y en `ion-icon`, el verde pasa a `#4F6E22` (regla global en `variables.css`) |
-| `secondary` | `#88AD49`, contraste `#1F2E0E` | Acentos secundarios |
+| `secondary` | `#CA6F1E`, contraste `#2B1608` | Café: gráficas e íconos informativos |
 | `danger` | `#7A2E22` (`--color-accent-alert`) | "Cerrar cosecha", errores |
 | `warning` | `#B7791F` | Avisos (sin conexión) |
 | `medium` | `#6B625D` | Íconos y texto secundario |
@@ -254,7 +255,8 @@ Paleta de marca real, tomada del logo (`LOGO.png`) y de la animación de arranqu
 | `--color-text-muted` | `#6B6F68` | Secundario y metadatos | 5.1:1 sobre blanco, 4.6:1 sobre el fondo |
 | `--color-separator` | `rgba(29,33,27,.08)` | Líneas entre filas | — |
 | `--color-pressed` | `rgba(29,33,27,.05)` | Fila presionada | — |
-| `--color-chip` | `#EEF4E6` | Fondo de chips de ícono (ícono en `#4F6E22`, 5.2:1) | — |
+| `--color-secondary-chip` | `#F9EEE4` | Fondo de chips de ícono (ícono en `#CA6F1E`) | 3.2:1 |
+| `--color-chip` | `#EEF4E6` | Fondo de los chips con iniciales (`.icon-chip--initials`, texto en `#4F6E22`) | 5.2:1 |
 
 No se usan colores escritos a mano en las páginas (ej. el verde `#28a745` o el rojo `#dc3545` de Bootstrap): siempre un token.
 
@@ -411,7 +413,7 @@ Reglas que se repiten en todas las pantallas. Si una pantalla nueva no encaja en
 **Carga y vacío**: la primera carga de una lista muestra un esqueleto con la forma de sus filas (`app-list-skeleton`), no un spinner centrado; al refrescar se queda lo que ya se ve. Una lista sin datos usa `app-empty-state`: ícono de línea en verde claro (sin círculo ni recuadro detrás), título en Inter 20/600, una frase y, si existe, la acción que resuelve el vacío.
 
 **Listas: navegación vs. registros** (componentes en `src/app/shared/components/`)
-- **Navegación** (cada fila lleva a otra pantalla: ajustes de Perfil, Historial, cuadrillas, trabajadores al agregar): `<button app-nav-row>`, un tile blanco por fila con 8dp entre tiles. Chip circular de 40dp (ícono en verde oscuro sobre `#EEF4E6`, o iniciales para personas y cuadrillas), título 17/600, subtítulo 14 atenuado, dato opcional al final (`nav-row-end`) y chevron. Una fila que ejecuta una acción en vez de navegar (agregar trabajador) va sin chevron (`[chevron]="false"`). Con letra grande en pantalla angosta, el título nunca se parte a mitad de palabra: si el dato final no cabe al lado, baja a una segunda línea alineado a la derecha (el chevron queda fijo y centrado). En listas, los montos van sin " COP" y con el signo pegado a la cifra (`−$ 16.000`), para que nunca se partan.
+- **Navegación** (cada fila lleva a otra pantalla: ajustes de Perfil, Historial, cuadrillas, trabajadores al agregar): `<button app-nav-row>`, un tile blanco por fila con 8dp entre tiles. Chip circular de 40dp (ícono en café sobre `#F9EEE4`, o iniciales en verde oscuro sobre `#EEF4E6` para personas y cuadrillas), título 17/600, subtítulo 14 atenuado, dato opcional al final (`nav-row-end`) y chevron. Una fila que ejecuta una acción en vez de navegar (agregar trabajador) va sin chevron (`[chevron]="false"`). Con letra grande en pantalla angosta, el título nunca se parte a mitad de palabra: si el dato final no cabe al lado, baja a una segunda línea alineado a la derecha (el chevron queda fijo y centrado). En listas, los montos van sin " COP" y con el signo pegado a la cifra (`−$ 16.000`), para que nunca se partan.
 - **Registros** (pesadas, pagos, costos): una tarjeta `.group` con filas `.group__row` y separadores que empiezan donde empieza el texto (inset), no en el borde. Con chips, `.group--chips` corre el separador hasta 68dp.
 - **Lista con deslizar** (catálogo de trabajadores): `ion-list lines="inset"` dentro de una tarjeta, con chip de iniciales.
 

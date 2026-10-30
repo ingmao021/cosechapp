@@ -44,7 +44,7 @@ interface ActivityDay {
         @for (item of day.items; track item.id) {
           <li>
             <button type="button" class="row" (click)="open.emit(item.pickerId)">
-              <span class="icon-chip" [class.icon-chip--coffee]="item.type === 'payment'" aria-hidden="true">
+              <span class="icon-chip" aria-hidden="true">
                 <ion-icon [name]="item.type === 'weighing' ? 'scale-outline' : 'cash-outline'"></ion-icon>
               </span>
               <span class="row__text">
@@ -87,11 +87,6 @@ interface ActivityDay {
     }
     .day::first-letter {
       text-transform: uppercase;
-    }
-    /* Los pagos en café (el tono del costal), las pesadas en el verde de siempre. */
-    .icon-chip--coffee {
-      background: var(--color-coffee-chip);
-      color: var(--color-primary-muted);
     }
     /* Separador desde donde empieza el texto, no desde el borde. */
     li + li .row::before {
@@ -142,6 +137,7 @@ interface ActivityDay {
     .row__meta ion-icon {
       font-size: 14px;
       vertical-align: -2px;
+      color: var(--color-secondary);
     }
     .row__value {
       flex-shrink: 0;

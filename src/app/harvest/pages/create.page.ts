@@ -296,7 +296,7 @@ import { NetworkService } from '../../network/services/network.service';
     .notice ion-icon {
       flex-shrink: 0;
       font-size: 20px;
-      color: var(--color-primary-ink);
+      color: var(--color-secondary);
     }
     .close-btn {
       --border-radius: var(--radius-full);

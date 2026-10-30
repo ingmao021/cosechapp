@@ -244,6 +244,7 @@ import { HistoryFacade } from '../services/history.facade';
     }
     .meals ion-icon {
       font-size: 16px;
+      color: var(--color-secondary);
     }
     .due,
     .cost-value,

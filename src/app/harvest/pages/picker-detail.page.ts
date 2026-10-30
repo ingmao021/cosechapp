@@ -284,6 +284,7 @@ const WORK_DAYS = 6;
     }
     .row__meta ion-icon {
       font-size: 16px;
+      color: var(--color-secondary);
     }
     .empty {
       margin: 0;

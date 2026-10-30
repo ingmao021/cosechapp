@@ -61,7 +61,7 @@ import { refreshCircleOutline } from 'ionicons/icons';
     ion-button[color="secondary"] {
       --background: var(--color-secondary);
       --background-hover: var(--color-secondary);
-      --color: var(--color-text-on-primary);
+      --color: var(--ion-color-secondary-contrast);
     }
     /* Un giro rápido hace que la espera se sienta más corta. */
     /* Desactivado (faltan datos): gris neutro de Material, no el verde lavado al 50%,

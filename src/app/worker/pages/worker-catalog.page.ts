@@ -89,7 +89,7 @@ import { apiErrorMessage, initialsOf } from '../../shared/utils';
                   }
                   @if (worker.phoneNumber) {
                     <p class="text-level-4">
-                      <ion-icon name="call-outline" size="small"></ion-icon>
+                      <ion-icon name="call-outline" size="small" class="worker-phone-icon" aria-hidden="true"></ion-icon>
                       {{ worker.phoneNumber }}
                     </p>
                   }
@@ -168,6 +168,9 @@ import { apiErrorMessage, initialsOf } from '../../shared/utils';
     .worker-chevron {
       font-size: 18px;
       color: var(--color-text-muted);
+    }
+    .worker-phone-icon {
+      color: var(--color-secondary);
     }
     ion-item {
       --background: var(--color-surface);

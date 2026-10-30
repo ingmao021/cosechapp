@@ -27,7 +27,7 @@ import { chevronForward } from 'ionicons/icons';
     '[class.nav-row--chevron]': 'chevron()',
   },
   template: `
-    <span class="icon-chip" aria-hidden="true">
+    <span class="icon-chip" [class.icon-chip--initials]="initials()" aria-hidden="true">
       @if (initials()) {
         <span class="nav-row__initials">{{ initials() }}</span>
       } @else {
