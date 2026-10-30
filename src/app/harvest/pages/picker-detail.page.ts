@@ -8,25 +8,37 @@ import { IonBackButton } from '@ionic/angular/ion-back-button';
 import { IonTitle } from '@ionic/angular/ion-title';
 import { IonButton } from '@ionic/angular/ion-button';
 import { IonIcon } from '@ionic/angular/ion-icon';
+import { IonSkeletonText } from '@ionic/angular/ion-skeleton-text';
 import { AlertController } from '@ionic/angular/alert-controller';
 import { ToastController } from '@ionic/angular/toast-controller';
 import { addIcons } from 'ionicons';
-import { addOutline, cashOutline, cloudUploadOutline, restaurantOutline } from 'ionicons/icons';
+import { addOutline, cashOutline, restaurantOutline } from 'ionicons/icons';
 import { HarvestFacade } from '../services/harvest.facade';
 import { WeighingFacade } from '../../weighing/services/weighing.facade';
 import { PaymentFacade } from '../../payment/services/payment.facade';
 import { PaymentPreviewResponse } from '../../payment/services/payment.service';
 import { NetworkService } from '../../network/services/network.service';
-import { ListSkeletonComponent, SyncStatusComponent } from '@shared/components';
+import { ChartDay, DailyKilosChartComponent, ListSkeletonComponent, SyncStatusComponent } from '@shared/components';
 import { KilosPipe } from '@shared/pipes/kilos.pipe';
 import { CurrencyPipe } from '@shared/pipes/currency.pipe';
 import { DateFormatPipe } from '@shared/pipes/date.pipe';
-import { apiErrorMessage, formatCurrency, formatKilos, parseInteger } from '../../shared/utils';
+import {
+  addDaysToDateKey,
+  apiErrorMessage,
+  colombiaDateKey,
+  formatCurrency,
+  formatKilos,
+  parseInteger,
+  weekStartDateKey,
+} from '../../shared/utils';
+
+/** Días del gráfico de la semana: de lunes a sábado (el domingo solo si pesó). */
+const WORK_DAYS = 6;
 
 /**
  * Detalle del recolector en la cosecha (Design System §1.5): acumulados de hoy, la
- * semana y el ciclo; saldo por pagar; pesadas de hoy; "Pagar ahora" con confirmación
- * del monto (y alimentación) y el historial de pagos.
+ * semana y el ciclo; saldo por pagar; kilos por día de esta semana; "Pagar ahora" con
+ * confirmación del monto (y alimentación) y el historial de pagos.
  */
 @Component({
   selector: 'app-picker-detail',
@@ -40,8 +52,10 @@ import { apiErrorMessage, formatCurrency, formatKilos, parseInteger } from '../.
     IonTitle,
     IonButton,
     IonIcon,
+    IonSkeletonText,
     SyncStatusComponent,
     ListSkeletonComponent,
+    DailyKilosChartComponent,
     KilosPipe,
     CurrencyPipe,
     DateFormatPipe,
@@ -122,25 +136,21 @@ import { apiErrorMessage, formatCurrency, formatKilos, parseInteger } from '../.
             }
           </div>
 
-          <section>
-            <h2 class="section-title">Pesadas de hoy</h2>
-            @if (weighingFacade.todayWeighings().length === 0) {
-              <p class="empty">Todavía no hay pesadas hoy.</p>
-            } @else {
-              <ul class="group">
-                @for (weighing of weighingFacade.todayWeighings(); track weighing.id) {
-                  <li class="group__row row">
-                    <span class="row__main">{{ weighing.kilograms | kilos }}</span>
-                    <span class="row__meta">
-                      @if (weighing.pending) {
-                        <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon> Por enviar ·
-                      }
-                      {{ weighing.dateTime | dateFormat: 'time' }}
-                    </span>
-                  </li>
+          <section aria-labelledby="week-title">
+            <h2 id="week-title" class="section-title">Kilos por día <span class="section-title__sub">· esta semana</span></h2>
+            <div class="card">
+              @if (!weighingFacade.hasData()) {
+                @if (weighingFacade.isLoading()) {
+                  <ion-skeleton-text [animated]="true" class="sk--chart"></ion-skeleton-text>
+                } @else {
+                  <p class="card__note">{{ weighingFacade.error() ?? 'Sin conexión. Los kilos de la semana se verán al volver la señal.' }}</p>
                 }
-              </ul>
-            }
+              } @else if (weekTotal() === 0) {
+                <p class="card__note">Aún no ha pesado esta semana.</p>
+              } @else {
+                <app-daily-kilos-chart [days]="weekDays()" [labelAll]="true" period="esta semana"></app-daily-kilos-chart>
+              }
+            </div>
           </section>
 
           <section>
@@ -240,6 +250,24 @@ import { apiErrorMessage, formatCurrency, formatKilos, parseInteger } from '../.
     .section-title {
       margin: var(--spacing-sm) 0 var(--spacing-sm) var(--spacing-xs);
     }
+    .section-title__sub {
+      font-weight: var(--font-weight-regular);
+      color: var(--color-text-muted);
+    }
+    .card__note {
+      margin: 0;
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+    .sk--chart {
+      --background: rgba(29, 33, 27, 0.07);
+      --background-rgb: 29, 33, 27;
+      width: 100%;
+      height: 150px;
+      margin: 0;
+      border-radius: var(--radius-sm);
+    }
     /* Registros: filas del grupo global (separador desde donde empieza el texto). */
     .row {
       justify-content: space-between;
@@ -292,13 +320,37 @@ export class PickerDetailPage {
     return crewId ? `/harvest/crews/${crewId}` : '/harvest/crews';
   });
 
+  /**
+   * Kilos de lunes a sábado de esta semana (la misma que "Esta semana"). Hoy sale del
+   * recolector, igual que la cifra "Hoy", para incluir lo que está por enviar. Sin barra:
+   * los días que no han llegado y los de antes de entrar a la cosecha.
+   */
+  readonly weekDays = computed<ChartDay[]>(() => {
+    const picker = this.picker();
+    if (!picker) return [];
+    const byDay = this.weighingFacade.kilogramsByDay();
+    const today = colombiaDateKey(new Date());
+    const joined = colombiaDateKey(picker.createdAt);
+    const monday = weekStartDateKey(today);
+    const sunday = addDaysToDateKey(monday, WORK_DAYS);
+    const dates = Array.from({ length: WORK_DAYS }, (_, index) => addDaysToDateKey(monday, index));
+    // Se trabaja de lunes a sábado; si un domingo pesó, ese día también cuenta en la semana.
+    if ((sunday === today ? picker.todayKilograms : (byDay.get(sunday) ?? 0)) > 0) dates.push(sunday);
+    return dates.map((date) => {
+      const kilograms = date === today ? picker.todayKilograms : (byDay.get(date) ?? 0);
+      return { date, kilograms, inHarvest: kilograms > 0 || (date >= joined && date <= today) };
+    });
+  });
+
+  readonly weekTotal = computed(() => this.weekDays().reduce((total, day) => total + day.kilograms, 0));
+
   readonly canPay = computed(() => {
     const picker = this.picker();
     return !!picker && picker.status === 'active' && picker.balanceDue > 0 && this.network.isOnline();
   });
 
   constructor() {
-    addIcons({ addOutline, cashOutline, cloudUploadOutline, restaurantOutline });
+    addIcons({ addOutline, cashOutline, restaurantOutline });
     if (!this.harvestFacade.hasActiveHarvest()) {
       this.harvestFacade.loadActiveHarvest();
     }

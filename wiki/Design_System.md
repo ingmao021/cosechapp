@@ -73,7 +73,7 @@ Inicio **solo informa**: no tiene formularios ni acciones sobre la cosecha (abri
 - Nombre/alias del recolector.
 - Acumulados: hoy, esta semana y toda la cosecha.
 - Saldo por pagar (kilos × precio − pagado − alimentación descontada), con lo pagado y la alimentación descontada debajo.
-- Botón "Registrar pesada" y lista de pesadas de hoy (las guardadas sin señal aparecen como "Por enviar").
+- Botón "Registrar pesada" y gráfico **Kilos por día · esta semana**: columnas de lunes a sábado (el domingo solo si pesó) con la cifra sobre cada día, sin horas. Hoy incluye lo guardado sin señal; los días que no han llegado salen sin barra. Sin señal usa la última copia de la semana.
 - Botón "Pagar ahora" (requiere conexión; inactivo si no hay saldo). **Solo para quien se va antes de terminar la cogida**; al cerrar la cosecha se le paga a todos (§1.8). El texto de ayuda lo dice. Confirmación en tres pasos:
   1. ¿Le diste alimentación? (sin / con).
   2. Si fue con alimentación: "¿Cuánto cobras de comida por día?". El caficultor cobra un valor fijo por día, y la app cuenta los días con pesadas desde el último pago (en hora de Colombia). Si el último pago fue un día en que ya había pesado, ese día no se vuelve a cobrar.
@@ -365,7 +365,7 @@ Clases globales en `variables.css` (las `.text-level-*` de siempre quedan como a
 | 1 · título de pestaña | `.text-level-1` / `.t-large` | 28/34, tracking −0.02em | 700 | "Historial", "Perfil" |
 | 1 · título de página interna | (automático en barras con "volver") / `.t-title` | 22/28 | 700 | "Cerrar cosecha" |
 | 2 · sección | `.text-level-2` / `.t-section` | 20/25 | 600 | "Noticias del café" |
-| Encabezado de grupo | `.section-title` | 17/22 | 600 | "Pesadas de hoy" |
+| Encabezado de grupo | `.section-title` | 17/22 | 600 | "Kilos por día" |
 | Título de fila o tarjeta | `.t-headline` | 17/22 | 600 | nombre del recolector |
 | 3 · cuerpo | `.text-level-3` / `.t-body` | 16/22 | 400 | párrafos, ayuda |
 | 4 · secundario | `.text-level-4` / `.t-subhead` | 14/19, atenuado | 500 | subtítulo de fila |
