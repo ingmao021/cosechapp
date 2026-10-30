@@ -12,11 +12,12 @@ export interface ChartDay {
 const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
 /**
- * Molécula: columnas de kilos por día (Inicio). Una sola serie, así que no lleva leyenda:
- * el título de la tarjeta dice qué se grafica. Hoy va en el verde de marca y los demás
- * días en un paso más claro del mismo verde; la cifra se escribe solo sobre hoy y el día
- * más alto (rotular cada columna no se lee). Tocar una columna muestra su cifra, y el
- * lector de pantalla recibe todas en el aria-label.
+ * Molécula: columnas de kilos por día (Inicio y detalle del recolector). Una sola serie,
+ * así que no lleva leyenda: el título de la tarjeta dice qué se grafica. Hoy va en el verde
+ * de marca y los demás días en un paso más claro del mismo verde; la cifra se escribe solo
+ * sobre hoy y el día más alto (rotular 7 columnas no se lee), o sobre cada día con
+ * `labelAll` cuando son pocas. Tocar una columna muestra su cifra, y el lector de pantalla
+ * recibe todas en el aria-label.
  */
 @Component({
   selector: 'app-daily-kilos-chart',
@@ -132,8 +133,12 @@ const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
   `],
 })
 export class DailyKilosChartComponent {
-  /** Del día más antiguo a hoy. */
+  /** Del día más antiguo al más reciente. */
   readonly days = input.required<ChartDay[]>();
+  /** Escribir la cifra sobre cada día con kilos, no solo sobre hoy y el más alto. */
+  readonly labelAll = input(false);
+  /** Qué días son, para el lector de pantalla; por defecto "últimos N días". */
+  readonly period = input<string | null>(null);
 
   /** Columna tocada: muestra su cifra. */
   protected readonly selected = signal<string | null>(null);
@@ -144,6 +149,7 @@ export class DailyKilosChartComponent {
     const max = Math.max(0, ...days.map((day) => day.kilograms));
     const peak = days.find((day) => day.kilograms === max && max > 0)?.date;
     const selected = this.selected();
+    const labelAll = this.labelAll();
     return days.map((day) => {
       const isToday = day.date === today;
       return {
@@ -152,7 +158,7 @@ export class DailyKilosChartComponent {
         isToday,
         weekday: WEEKDAYS[new Date(day.date).getUTCDay()],
         height: max > 0 ? (day.kilograms / max) * 100 : 0,
-        labelled: day.kilograms > 0 && (isToday || day.date === peak || day.date === selected),
+        labelled: day.kilograms > 0 && (labelAll || isToday || day.date === peak || day.date === selected),
       };
     });
   });
@@ -161,7 +167,7 @@ export class DailyKilosChartComponent {
     const parts = this.bars()
       .filter((day) => day.inHarvest)
       .map((day) => `${day.isToday ? 'hoy' : day.weekday} ${formatKilos(day.kilograms)}`);
-    return `Kilos por día, últimos ${this.days().length} días: ${parts.join(', ')}.`;
+    return `Kilos por día, ${this.period() ?? `últimos ${this.days().length} días`}: ${parts.join(', ')}.`;
   });
 
   protected toggle(date: string): void {

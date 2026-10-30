@@ -1,4 +1,4 @@
-import { addDaysToDateKey, colombiaDateKey, daysBetweenDateKeys } from './index';
+import { addDaysToDateKey, colombiaDateKey, daysBetweenDateKeys, weekStartDateKey } from './index';
 
 describe('date keys (Colombia)', () => {
   it('names the Colombian day of an instant, whatever the phone time zone', () => {
@@ -11,5 +11,12 @@ describe('date keys (Colombia)', () => {
     expect(addDaysToDateKey('2026-11-01', -1)).toBe('2026-10-31');
     expect(addDaysToDateKey('2026-10-26', -6)).toBe('2026-10-20');
     expect(daysBetweenDateKeys('2026-10-22', '2026-10-26')).toBe(4);
+  });
+
+  it('finds the Monday that starts the week, also from a Sunday', () => {
+    expect(weekStartDateKey('2026-10-26')).toBe('2026-10-26'); // lunes
+    expect(weekStartDateKey('2026-10-31')).toBe('2026-10-26'); // sábado
+    expect(weekStartDateKey('2026-11-01')).toBe('2026-10-26'); // domingo
+    expect(weekStartDateKey('2026-10-01')).toBe('2026-09-28'); // jueves, la semana empezó en septiembre
   });
 });

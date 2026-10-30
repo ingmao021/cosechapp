@@ -71,6 +71,10 @@ export const addDaysToDateKey = (key: string, days: number): string =>
 export const daysBetweenDateKeys = (from: string, to: string): number =>
   Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS);
 
+/** El lunes de la semana de un "AAAA-MM-DD" (la semana va de lunes a domingo, como en el backend). */
+export const weekStartDateKey = (key: string): string =>
+  addDaysToDateKey(key, -((new Date(key).getUTCDay() + 6) % 7));
+
 /** Mensajes en español para los errores de dominio que devuelve el backend (campo `error`). */
 const DOMAIN_ERROR_MESSAGES: Record<string, string> = {
   InvalidCredentialsError: 'Cédula o contraseña incorrectas.',
